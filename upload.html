@@ -370,7 +370,40 @@ async function processImage(file){
   // Hide any previous error hint
   const hint = document.getElementById('uploadHint');
   if(hint) hint.style.display = 'none';
+
   try{
+    // ── HEIC/HEIF detection and conversion ──────────────────────────
+    // iPhone saves photos as HEIC by default. Convert to JPEG first
+    // so all subsequent canvas methods work reliably.
+    const isHEIC = file.type === 'image/heic' ||
+                   file.type === 'image/heif' ||
+                   file.type === 'image/heic-sequence' ||
+                   file.name.toLowerCase().endsWith('.heic') ||
+                   file.name.toLowerCase().endsWith('.heif') ||
+                   // iOS sometimes reports blank type for HEIC from library
+                   (file.type === '' && file.size > 500000);
+
+    if (isHEIC) {
+      setStep('Converting iPhone photo format...');
+      try {
+        // heic2any converts the HEIC blob to a standard JPEG blob
+        if (typeof heic2any !== 'undefined') {
+          const jpegBlob = await heic2any({
+            blob: file,
+            toType: 'image/jpeg',
+            quality: 0.88,
+          });
+          // heic2any returns an array if multiple images, or a single blob
+          file = Array.isArray(jpegBlob) ? jpegBlob[0] : jpegBlob;
+        } else {
+          console.warn('heic2any not loaded — proceeding without HEIC conversion');
+        }
+      } catch(heicErr) {
+        console.warn('HEIC conversion failed, trying raw:', heicErr.message);
+        // Don't throw — fall through and let resizeAndEncode try its methods
+      }
+    }
+
     const {base64, mediaType} = await resizeAndEncode(file);
     setStep('AI reading score screen...');
     const result = await apiPost('upload_image', {imageBase64:base64, mediaType});
@@ -381,8 +414,7 @@ async function processImage(file){
   } catch(e) {
     resetUpload();
     console.error('processImage error:', e);
-    showToast('COULD NOT READ PHOTO — TRY A SCREENSHOT', true);
-    // Show more detail below the upload zone
+    showToast('COULD NOT READ PHOTO', true);
     const hint = document.getElementById('uploadHint');
     if(hint) hint.style.display = 'block';
   }
@@ -480,7 +512,9 @@ async function resizeAndEncode(file) {
       reader.onerror = () => { clearTimeout(timeout); reject(new Error('FileReader error')); };
       reader.readAsDataURL(file);
     });
-    const mediaType = file.type && file.type !== 'image/heic' ? file.type : 'image/jpeg';
+    // Default to jpeg — HEIC should have been converted above, blank type = jpeg
+    const mediaType = (file.type && !file.type.includes('heic') && file.type !== '')
+      ? file.type : 'image/jpeg';
     return { base64, mediaType };
   } catch(e) {
     console.warn('Method 3 (FileReader) failed:', e.message);
@@ -694,5 +728,9 @@ function showToast(msg,isErr=false,type=''){
   t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);
 }
 </script>
+
+<!-- heic2any: converts HEIC/HEIF photos to JPEG in the browser -->
+<!-- Loaded from cdnjs — no phone settings change needed -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
 </body>
 </html>
