@@ -103,7 +103,10 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
 .recent-item{background:var(--panel);border:2px solid var(--rail);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;box-shadow:3px 3px 0 rgba(0,0,0,.4);}
 .ri-date{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;margin-bottom:3px;}
 .ri-meta{font-family:'Exo 2',sans-serif;font-size:12px;color:var(--dim);}
-#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--neon-g);color:var(--void);border-radius:var(--r);padding:11px 22px;font-family:'Press Start 2P',monospace;font-size:9px;font-weight:700;letter-spacing:1px;z-index:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;box-shadow:0 0 20px rgba(57,255,20,.4);}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--neon-g);color:var(--void);border-radius:var(--r);padding:11px 18px;font-family:'Press Start 2P',monospace;font-size:8px;font-weight:700;letter-spacing:1px;z-index:500;opacity:0;transition:all .3s;pointer-events:none;
+  /* Allow wrapping on mobile */
+  max-width:90vw;text-align:center;line-height:1.6;white-space:normal;
+  box-shadow:0 0 20px rgba(57,255,20,.4);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 #toast.err{background:var(--neon-r);color:#fff;box-shadow:0 0 20px rgba(255,34,68,.4);}
 #toast.wrn{background:var(--neon-y);box-shadow:0 0 20px rgba(255,230,0,.4);}
@@ -166,6 +169,24 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
     </div>
     <div style="margin-top:10px;text-align:center;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:1px;line-height:1.8;">
       🔒 APPROVED ACCOUNTS ONLY &nbsp;·&nbsp; <a href="admin.html" style="color:var(--neon-r);">⚙ ADMIN PANEL →</a>
+    </div>
+
+    <!-- Photo error tip — hidden by default, shown if upload fails -->
+    <div id="uploadHint" style="display:none;margin-top:16px;background:rgba(255,230,0,.06);border:2px solid rgba(255,230,0,.3);border-radius:var(--r);padding:14px 16px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-y);letter-spacing:1px;margin-bottom:10px;line-height:1.6;">
+        📱 PHOTO UPLOAD TIP
+      </div>
+      <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);line-height:1.7;">
+        iPhone photos from your library may fail due to HEIC format restrictions in Safari.<br><br>
+        <strong style="color:var(--text);">Best options:</strong><br>
+        1. <strong>Take a screenshot</strong> of the score screen (press Side button + Volume Up) then upload from Photos<br>
+        2. Use the <strong>📷 TAKE PHOTO</strong> button to photograph the screen directly<br>
+        3. In iPhone Settings → Camera → Formats → set to <strong>Most Compatible</strong> to save as JPEG
+      </div>
+      <button onclick="document.getElementById('uploadHint').style.display='none'"
+        style="margin-top:10px;background:none;border:1px solid var(--rail2);border-radius:var(--r);padding:6px 14px;color:var(--dim);font-family:'Orbitron',sans-serif;font-size:11px;cursor:pointer;">
+        DISMISS
+      </button>
     </div>
   </div>
 
@@ -346,88 +367,127 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 async function processImage(file){
   showStep(2); setStep('Preparing image...');
+  // Hide any previous error hint
+  const hint = document.getElementById('uploadHint');
+  if(hint) hint.style.display = 'none';
   try{
-    // Use canvas resize — handles large iOS photos and avoids FileReader failures
     const {base64, mediaType} = await resizeAndEncode(file);
-    setStep('AI validating image content...');
-    const result=await apiPost('upload_image',{imageBase64:base64,mediaType});
+    setStep('AI reading score screen...');
+    const result = await apiPost('upload_image', {imageBase64:base64, mediaType});
     setStep('Checking for duplicates...');
-    const dupeCheck=await checkDuplicate(result.analysis);
+    const dupeCheck = await checkDuplicate(result.analysis);
     showStep(3);
-    renderAll(result.validation,result.analysis,dupeCheck);
-  }catch(e){
+    renderAll(result.validation, result.analysis, dupeCheck);
+  } catch(e) {
     resetUpload();
-    // Provide helpful iOS-specific error message
-    const msg = e.message||'';
-    if(msg.toLowerCase().includes('load')||msg.toLowerCase().includes('abort')){
-      showToast('PHOTO READ FAILED — Try a screenshot instead of a library photo',true);
-    } else {
-      showToast('ERROR: '+(msg||'Could not read image. Try another photo.'),true);
-    }
-    console.error(e);
+    console.error('processImage error:', e);
+    showToast('COULD NOT READ PHOTO — TRY A SCREENSHOT', true);
+    // Show more detail below the upload zone
+    const hint = document.getElementById('uploadHint');
+    if(hint) hint.style.display = 'block';
   }
 }
 
 /**
- * Resize and compress image using a canvas element.
- * This solves iOS Safari's FileReader failures on large photos
- * from the camera roll. Also speeds up the API call significantly
- * by reducing a 10MB iPhone photo to ~200KB before sending.
- *
- * Max dimension: 1600px (enough for the AI to read text clearly)
- * Quality: 0.85 JPEG
+ * iOS-compatible image encoder.
+ * Tries three methods in order:
+ *   1. createImageBitmap (best for HEIC on modern iOS)
+ *   2. Image element + canvas (fallback)
+ *   3. FileReader direct (last resort — no resize)
  */
-function resizeAndEncode(file){
-  return new Promise((resolve, reject)=>{
-    // Step 1: create an object URL (works reliably on iOS)
-    const objectURL = URL.createObjectURL(file);
-    const img = new Image();
+async function resizeAndEncode(file) {
+  const MAX = 1600;
+  const QUALITY = 0.88;
 
-    img.onload = ()=>{
-      URL.revokeObjectURL(objectURL); // free memory
+  // ── Method 1: createImageBitmap (handles HEIC on iOS 15+) ────────
+  if (window.createImageBitmap) {
+    try {
+      const bitmap = await createImageBitmap(file);
+      let w = bitmap.width, h = bitmap.height;
+      if (w === 0 || h === 0) throw new Error('zero dimensions');
 
-      // Step 2: calculate new dimensions (max 1600px on longest side)
-      const MAX = 1600;
-      let w = img.naturalWidth  || img.width;
-      let h = img.naturalHeight || img.height;
-
-      if(w === 0 || h === 0){
-        reject(new Error('Image has zero dimensions — try a different photo'));
-        return;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
       }
 
-      if(w > MAX || h > MAX){
-        if(w > h){ h = Math.round(h * MAX / w); w = MAX; }
-        else      { w = Math.round(w * MAX / h); h = MAX; }
-      }
-
-      // Step 3: draw onto canvas and export as JPEG
       const canvas = document.createElement('canvas');
-      canvas.width  = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
+      bitmap.close();
 
-      // toDataURL is synchronous and very reliable on iOS
-      const dataURL  = canvas.toDataURL('image/jpeg', 0.85);
-      const base64   = dataURL.split(',')[1];
-
-      if(!base64 || base64.length < 100){
-        reject(new Error('Failed to encode image — try a screenshot instead'));
-        return;
+      const dataURL = canvas.toDataURL('image/jpeg', QUALITY);
+      const base64  = dataURL.split(',')[1];
+      if (base64 && base64.length > 100) {
+        return { base64, mediaType: 'image/jpeg' };
       }
+      throw new Error('empty canvas output');
+    } catch(e) {
+      console.warn('Method 1 (createImageBitmap) failed:', e.message);
+    }
+  }
 
-      resolve({ base64, mediaType: 'image/jpeg' });
-    };
+  // ── Method 2: Object URL → <img> → canvas ────────────────────────
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const objectURL = URL.createObjectURL(file);
+      const img = new Image();
+      const timeout = setTimeout(() => {
+        URL.revokeObjectURL(objectURL);
+        reject(new Error('image load timeout'));
+      }, 10000); // 10 second timeout
 
-    img.onerror = ()=>{
-      URL.revokeObjectURL(objectURL);
-      reject(new Error('Could not load photo — try taking a screenshot of the score screen instead'));
-    };
+      img.onload = () => {
+        clearTimeout(timeout);
+        URL.revokeObjectURL(objectURL);
+        try {
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (w === 0 || h === 0) { reject(new Error('zero dimensions')); return; }
 
-    // Trigger load
-    img.src = objectURL;
-  });
+          if (w > MAX || h > MAX) {
+            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+            else        { w = Math.round(w * MAX / h); h = MAX; }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          const b64 = canvas.toDataURL('image/jpeg', QUALITY).split(',')[1];
+          if (b64 && b64.length > 100) resolve(b64);
+          else reject(new Error('empty canvas'));
+        } catch(err) { reject(err); }
+      };
+      img.onerror = () => {
+        clearTimeout(timeout);
+        URL.revokeObjectURL(objectURL);
+        reject(new Error('img.onerror'));
+      };
+      img.src = objectURL;
+    });
+    return { base64, mediaType: 'image/jpeg' };
+  } catch(e) {
+    console.warn('Method 2 (objectURL+canvas) failed:', e.message);
+  }
+
+  // ── Method 3: FileReader → base64 directly (no resize) ───────────
+  // Last resort — sends the raw file. May be large but works as final fallback.
+  try {
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      const timeout = setTimeout(() => reject(new Error('FileReader timeout')), 30000);
+      reader.onload  = () => { clearTimeout(timeout); resolve(reader.result.split(',')[1]); };
+      reader.onerror = () => { clearTimeout(timeout); reject(new Error('FileReader error')); };
+      reader.readAsDataURL(file);
+    });
+    const mediaType = file.type && file.type !== 'image/heic' ? file.type : 'image/jpeg';
+    return { base64, mediaType };
+  } catch(e) {
+    console.warn('Method 3 (FileReader) failed:', e.message);
+  }
+
+  // All methods failed
+  throw new Error('Could not read photo on this device');
 }
 function setStep(m){const el=document.getElementById('procStep');if(el)el.textContent=m;}
 function showStep(n){[1,2,3].forEach(i=>{const el=document.getElementById('step'+i);if(el)el.style.display=i===n?'block':'none';});}
