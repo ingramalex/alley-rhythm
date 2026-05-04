@@ -797,6 +797,8 @@ body::after {
     <button class="ntab" onclick="goTab('leaders',this)">HIGH SCORES</button>
     <button class="ntab" onclick="goTab('weekly',this)">WEEKLY</button>
     <button class="ntab" onclick="goTab('history',this)">HISTORY</button>
+    <a href="upload.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-g);text-decoration:none;white-space:nowrap;display:flex;align-items:center;margin-left:auto;">📸 UPLOAD</a>
+    <a href="admin.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-r);text-decoration:none;white-space:nowrap;display:flex;align-items:center;">⚙ ADMIN</a>
   </div>
 </div>
 
@@ -945,9 +947,12 @@ function loadingState(){
 /* ════════════════════════════════════════
    API
 ════════════════════════════════════════ */
+const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG.SCRIPT_URL.includes('PASTE_YOUR'))
+  ? LANE_CONFIG.SCRIPT_URL
+  : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
+
 async function apiFetch(action){
-  const url = `${LANE_CONFIG.SCRIPT_URL}?action=${action}`;
-  const r = await fetch(url);
+  const r = await fetch(`${SCRIPT_URL}?action=${action}`);
   if(!r.ok) throw new Error('API error '+r.status);
   return r.json();
 }
