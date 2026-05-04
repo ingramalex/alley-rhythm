@@ -493,6 +493,153 @@ body::after {
   box-shadow: 0 0 6px var(--neon-g), 0 -2px 8px var(--neon-g2);
 }
 
+/* ═══════════ EXPANDABLE BOWLER CARDS ═══════════ */
+.bc-card {
+  background: var(--panel);
+  border: 2px solid var(--rail);
+  border-radius: var(--radius-px);
+  margin-bottom: 8px;
+  overflow: hidden;
+  box-shadow: 4px 4px 0 rgba(0,0,0,.5);
+  transition: border-color .2s;
+}
+.bc-card:hover { border-color: var(--rail2); }
+.bc-card.bc-open { border-color: var(--neon-g); }
+
+.bc-summary {
+  display: flex; align-items: center;
+  padding: 12px 14px; gap: 12px;
+  cursor: pointer;
+}
+.bc-summary:hover { background: rgba(57,255,20,.03); }
+
+.bc-rank {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 11px; text-align: center; width: 24px; flex-shrink: 0;
+  color: var(--dim);
+}
+.bc-rank.r1 { color: var(--neon-y); text-shadow: 0 0 8px var(--neon-y); }
+.bc-rank.r2 { color: #aaa; }
+.bc-rank.r3 { color: var(--neon-o); }
+
+.bc-info { flex: 1; min-width: 0; }
+.bc-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 13px; font-weight: 700; color: var(--text);
+}
+.bc-sub {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 11px; color: var(--dim); margin-top: 2px;
+}
+
+.bc-right {
+  display: flex; align-items: center; gap: 14px; flex-shrink: 0;
+}
+.bc-avg {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 22px; font-weight: 900; text-align: right; line-height: 1;
+}
+.bc-avg-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; color: var(--dim); letter-spacing: 1px;
+  text-align: right; margin-top: 2px;
+}
+.bc-chev { color: var(--dim); font-size: 11px; transition: transform .2s; }
+.bc-card.bc-open .bc-chev { transform: rotate(180deg); }
+
+/* Detail body */
+.bc-body {
+  display: none;
+  border-top: 2px solid var(--rail);
+  padding: 14px;
+}
+.bc-card.bc-open .bc-body { display: block; }
+
+/* 2-col mini stat grid */
+.bc-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.bc-stat {
+  background: var(--panel2);
+  border: 1px solid var(--rail);
+  border-radius: var(--radius-px);
+  padding: 10px 12px;
+}
+.bc-stat-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; letter-spacing: 1px;
+  color: var(--dim); margin-bottom: 5px; line-height: 1.5;
+}
+.bc-stat-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 20px; font-weight: 700;
+  color: var(--text); line-height: 1;
+}
+.bc-stat-val .bc-unit {
+  font-size: 12px; font-weight: 400; color: var(--dim);
+}
+.bc-trend-up { font-family:'Exo 2',sans-serif; font-size:11px; color:var(--neon-g); margin-top:3px; }
+.bc-trend-dn { font-family:'Exo 2',sans-serif; font-size:11px; color:var(--neon-r); margin-top:3px; }
+.bc-trend-eq { font-family:'Exo 2',sans-serif; font-size:11px; color:var(--dim); margin-top:3px; }
+
+/* Opportunity badge */
+.bc-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(0,255,255,.08);
+  border: 1px solid rgba(0,255,255,.3);
+  border-radius: var(--radius-px);
+  padding: 5px 10px; margin-bottom: 12px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; color: var(--neon-c);
+  letter-spacing: 1px; line-height: 1.5;
+}
+
+/* Section divider inside card */
+.bc-section {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; color: var(--neon-g);
+  letter-spacing: 2px; text-transform: uppercase;
+  text-shadow: 0 0 6px var(--neon-g2);
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--rail2);
+  margin-bottom: 10px; margin-top: 14px;
+}
+.bc-section:first-child { margin-top: 0; }
+
+/* Trend bar */
+.bc-bar-row { margin-bottom: 7px; }
+.bc-bar-labels {
+  display: flex; justify-content: space-between;
+  font-family: 'Exo 2', sans-serif;
+  font-size: 11px; color: var(--dim); margin-bottom: 3px;
+}
+.bc-bar-track {
+  height: 7px; background: var(--panel2);
+  border-radius: 3px; overflow: hidden;
+}
+.bc-bar-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+
+/* Potential avg callout */
+.bc-potential {
+  background: rgba(57,255,20,.06);
+  border: 1px solid rgba(57,255,20,.25);
+  border-radius: var(--radius-px);
+  padding: 10px 12px; margin-top: 10px;
+  display: flex; align-items: center; gap: 10px;
+}
+.bc-potential-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 24px; font-weight: 900;
+  color: var(--neon-g); flex-shrink: 0;
+}
+.bc-potential-txt {
+  font-family: 'Exo 2', sans-serif;
+  font-size: 12px; color: var(--text2); line-height: 1.5;
+}
+
 /* ═══════════ LEADERBOARD ═══════════ */
 .lb-arcade-grid {
   display: grid;
@@ -837,18 +984,7 @@ body::after {
     <div class="sec-line"></div>
   </div>
 
-  <div class="player-list">
-    <div class="pl-header">
-      <div class="pl-hcell">#</div>
-      <div class="pl-hcell">PLAYER</div>
-      <div class="pl-hcell">AVG</div>
-      <div class="pl-hcell ph-hide">BEST</div>
-      <div class="pl-hcell ph-hide">SPS%</div>
-      <div class="pl-hcell ph-hide">MPH</div>
-      <div class="pl-hcell">TREND</div>
-    </div>
-    <div id="playerRows"></div>
-  </div>
+  <div id="bowlerCards"></div>
 
 </div>
 </div>
@@ -1056,11 +1192,12 @@ function updateHeaderAndMarquee(stats){
 }
 
 /* ════════════════════════════════════════
-   STATS TAB
+   STATS TAB — expandable bowler cards
 ════════════════════════════════════════ */
 function renderStats(stats){
   const bowlers = stats.bowlers || [];
-  const el = document.getElementById('playerRows');
+  const el = document.getElementById('bowlerCards');
+  if(!el) return;
 
   if(!bowlers.length){
     el.innerHTML = emptyState('NO GAMES YET<br>UPLOAD YOUR FIRST SCORE SCREEN');
@@ -1070,40 +1207,167 @@ function renderStats(stats){
   const sorted = [...bowlers].sort((a,z)=>z.avg-a.avg);
   const rankClass = ['r1','r2','r3','','','','','',''];
 
-  el.innerHTML = sorted.map((p,i)=>{
-    const c = pColor(p.name);
-    const trend = p.recentGames || [];
-    const mx = trend.length ? Math.max(...trend) : 200;
-    const mn = trend.length ? Math.min(...trend) : 100;
-    const bars = trend.slice(-7).map(v=>{
-      const h = Math.max(4, Math.round(5+((v-mn)/Math.max(mx-mn,1))*22));
-      const cls = v===mx ? 'top' : v>(p.avg||0) ? 'pos' : '';
-      return `<div class="spk ${cls}" style="height:${h}px"></div>`;
-    }).join('');
+  el.innerHTML = sorted.map((p,i) => bowlerCard(p, i, rankClass[i]||'')).join('');
+}
 
-    const spare = p.sparePct !== null && p.sparePct !== undefined
-      ? p.sparePct + '%'
-      : (p.strikes + p.spares) > 0
-        ? Math.round((p.spares / (p.spares + p.strikes)) * 100) + '%'
-        : '—';
-    const speed = p.avgSpeed ? p.avgSpeed : '—';
+function bowlerCard(p, i, rankCls) {
+  const c   = pColor(p.name);
+  const ini = ini2(p.name);
 
-    return `<div class="pl-row">
-      <div class="pl-rank ${rankClass[i]||''}">${i+1}</div>
-      <div class="pl-bowler">
-        <div class="px-av" style="background:${c}12;border-color:${c};color:${c};">${ini2(p.name)}</div>
+  // ── Core stats ──
+  const sparePct      = p.sparePct !== null && p.sparePct !== undefined ? p.sparePct : null;
+  const strikeRate    = p.gamesCount > 0 && p.strikes > 0
+    ? (p.strikes / p.gamesCount).toFixed(1) : null;
+  const missedPerGame = p.gamesCount > 0 && p.missedSpares > 0
+    ? (p.missedSpares / p.gamesCount).toFixed(1) : null;
+
+  // ── Potential avg: if they hit 70% spare conv, how much do they gain? ──
+  // Each converted spare saves ~10 pins on avg vs a miss
+  const potentialAvg = (() => {
+    if (sparePct === null || p.gamesCount < 2) return null;
+    const TARGET = 70;
+    if (sparePct >= TARGET) return null; // already there
+    const totalOpps = p.spares + p.missedSpares;
+    const spareOppsPerGame = totalOpps / p.gamesCount;
+    const currentConverted = p.spares / p.gamesCount;
+    const targetConverted  = spareOppsPerGame * (TARGET / 100);
+    const extraSpares = targetConverted - currentConverted;
+    return Math.round(p.avg + extraSpares * 10);
+  })();
+
+  // ── Biggest opportunity insight ──
+  const opp = (() => {
+    if (sparePct !== null && sparePct < 50 && (p.missedSpares || 0) > 0)
+      return `SPARE CONVERSION AT ${sparePct}% — BIGGEST GAIN AREA`;
+    if (strikeRate && parseFloat(strikeRate) < 2)
+      return 'FIRST BALL — INCREASE STRIKE RATE';
+    return null;
+  })();
+
+  // ── Score trend bars ──
+  const trend = p.recentGames || [];
+  const mx = trend.length ? Math.max(...trend) : 200;
+  const mn = trend.length ? Math.min(...trend) : 100;
+  const sparkBars = trend.slice(-7).map(v => {
+    const h = Math.max(4, Math.round(5 + ((v-mn) / Math.max(mx-mn,1)) * 22));
+    const cls = v===mx ? 'top' : v>(p.avg||0) ? 'pos' : '';
+    return `<div class="spk ${cls}" style="height:${h}px"></div>`;
+  }).join('');
+
+  // ── Spare conv color ──
+  const spareColor = sparePct === null ? 'var(--text)'
+    : sparePct >= 70 ? 'var(--neon-g)'
+    : sparePct >= 50 ? 'var(--neon-y)'
+    : 'var(--neon-r)';
+
+  return `
+  <div class="bc-card" id="bcard_${i}">
+    <div class="bc-summary" onclick="toggleCard(${i})">
+      <div class="bc-rank ${rankCls}">${i+1}</div>
+      <div class="px-av" style="background:${c}12;border-color:${c};color:${c};">${ini}</div>
+      <div class="bc-info">
+        <div class="bc-name" style="color:${c};text-shadow:0 0 8px ${c}55;">${p.name.toUpperCase()}</div>
+        <div class="bc-sub">${p.gamesCount||0} games · ${p.highGame||'—'} best</div>
+      </div>
+      <div class="bc-right">
         <div>
-          <div class="pl-name" style="color:${c};text-shadow:0 0 8px ${c}66;">${p.name.toUpperCase()}</div>
-          <div class="pl-sub">${p.gamesCount||0} games</div>
+          <div class="bc-avg" style="color:${c};text-shadow:0 0 10px ${c}66;">${p.avg||'—'}</div>
+          <div class="bc-avg-lbl">AVG</div>
+        </div>
+        <div class="spark-bars" style="height:28px;">${sparkBars||'<span style="color:var(--dim);font-size:10px;">—</span>'}</div>
+        <div class="bc-chev">▾</div>
+      </div>
+    </div>
+
+    <div class="bc-body">
+
+      ${opp ? `<div class="bc-badge">▶ ${opp}</div>` : ''}
+
+      <div class="bc-section">▶ PERFORMANCE</div>
+      <div class="bc-grid">
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">SPARE<br>CONVERSION</div>
+          <div class="bc-stat-val" style="color:${spareColor};">
+            ${sparePct !== null ? sparePct + '<span class="bc-unit">%</span>' : '—'}
+          </div>
+          ${sparePct !== null ? `<div class="${sparePct>=60?'bc-trend-up':sparePct>=40?'bc-trend-eq':'bc-trend-dn'}">${sparePct>=70?'✓ SOLID':sparePct>=50?'ROOM TO GROW':'KEY FOCUS'}</div>` : ''}
+        </div>
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">STRIKE<br>RATE</div>
+          <div class="bc-stat-val">
+            ${strikeRate !== null ? strikeRate + '<span class="bc-unit">/ game</span>' : '—'}
+          </div>
+          ${strikeRate ? `<div class="bc-trend-eq">${Math.round(parseFloat(strikeRate)*10)} TOTAL</div>` : ''}
+        </div>
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">MISSED<br>SPARES</div>
+          <div class="bc-stat-val" style="${(p.missedSpares||0)>0?'color:var(--neon-r);':''}">
+            ${missedPerGame !== null ? missedPerGame + '<span class="bc-unit">/ game</span>' : '—'}
+          </div>
+          ${p.missedSpares ? `<div class="bc-trend-dn">${p.missedSpares} TOTAL</div>` : '<div class="bc-trend-eq">NO DATA YET</div>'}
+        </div>
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">BALL<br>SPEED</div>
+          <div class="bc-stat-val">
+            ${p.avgSpeed ? p.avgSpeed + '<span class="bc-unit"> mph</span>' : '—'}
+          </div>
         </div>
       </div>
-      <div class="pl-num hi">${p.avg||'—'}</div>
-      <div class="pl-num ph-hide">${p.highGame||'—'}</div>
-      <div class="pl-num ph-hide">${spare}</div>
-      <div class="pl-num ph-hide">${speed}</div>
-      <div class="spark-bars">${bars||'<span style="color:var(--dim);font-size:10px;">—</span>'}</div>
-    </div>`;
-  }).join('');
+
+      <div class="bc-section">▶ SCORES</div>
+      <div class="bc-grid">
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">HIGH<br>GAME</div>
+          <div class="bc-stat-val" style="color:var(--neon-y);">${p.highGame||'—'}</div>
+        </div>
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">HIGH<br>SERIES</div>
+          <div class="bc-stat-val" style="color:var(--neon-y);">${p.highSeries||'—'}</div>
+        </div>
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">TOP 3<br>AVG</div>
+          <div class="bc-stat-val">${p.top3Avg||'—'}</div>
+        </div>
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">FIRST 3<br>AVG</div>
+          <div class="bc-stat-val">${p.first3Avg||'—'}</div>
+        </div>
+      </div>
+
+      ${sparePct !== null ? `
+      <div class="bc-section">▶ SPARE CONVERSION</div>
+      <div class="bc-bar-row">
+        <div class="bc-bar-labels"><span>CURRENT</span><span style="color:${spareColor};">${sparePct}%</span></div>
+        <div class="bc-bar-track"><div class="bc-bar-fill" style="width:${sparePct}%;background:${spareColor};"></div></div>
+      </div>
+      <div class="bc-bar-row">
+        <div class="bc-bar-labels"><span>TARGET</span><span style="color:var(--neon-g);">70%</span></div>
+        <div class="bc-bar-track"><div class="bc-bar-fill" style="width:70%;background:rgba(57,255,20,.3);border-right:2px solid var(--neon-g);"></div></div>
+      </div>
+      <div class="bc-bar-row">
+        <div class="bc-bar-labels"><span>ELITE</span><span style="color:var(--dim);">90%</span></div>
+        <div class="bc-bar-track"><div class="bc-bar-fill" style="width:90%;background:var(--rail2);"></div></div>
+      </div>
+      ` : ''}
+
+      ${potentialAvg ? `
+      <div class="bc-potential">
+        <div class="bc-potential-val">${potentialAvg}</div>
+        <div class="bc-potential-txt">
+          Projected avg if spare<br>conversion reaches <strong style="color:var(--neon-g);">70%</strong><br>
+          <span style="color:var(--neon-g);">+${potentialAvg - p.avg} pins per game</span>
+        </div>
+      </div>
+      ` : ''}
+
+    </div>
+  </div>`;
+}
+
+function toggleCard(i) {
+  const card = document.getElementById('bcard_' + i);
+  if (!card) return;
+  card.classList.toggle('bc-open');
 }
 
 /* ════════════════════════════════════════
@@ -1120,13 +1384,11 @@ function renderLeaders(stats){
 
   const posCls = ['p1','p2','p3','','',''];
   const lbCats = [
-    { icon:'🏆', title:'SEASON AVG',  rows:[...bowlers].sort((a,z)=>z.avg-a.avg).map(p=>({n:p.name,c:pColor(p.name),v:p.avg})) },
-    { icon:'🎯', title:'HIGH GAME',   rows:[...bowlers].sort((a,z)=>z.highGame-a.highGame).map(p=>({n:p.name,c:pColor(p.name),v:p.highGame})) },
-    { icon:'💥', title:'BEST SERIES', rows:[...bowlers].sort((a,z)=>z.highSeries-a.highSeries).map(p=>({n:p.name,c:pColor(p.name),v:p.highSeries||0})) },
-    { icon:'🎳', title:'SPARE %',     rows:[...bowlers]
-        .filter(p=>(p.strikes||0)+(p.spares||0)>0)
-        .sort((a,z)=>(z.spares/(z.spares+z.strikes))-(a.spares/(a.spares+a.strikes)))
-        .map(p=>({n:p.name,c:pColor(p.name),v:Math.round(p.spares/(p.spares+p.strikes)*100)+'%'})) },
+    { icon:'🏆', title:'SEASON AVG',    rows:[...bowlers].sort((a,z)=>z.avg-a.avg).map(p=>({n:p.name,c:pColor(p.name),v:p.avg})) },
+    { icon:'🎯', title:'HIGH GAME',     rows:[...bowlers].sort((a,z)=>z.highGame-a.highGame).map(p=>({n:p.name,c:pColor(p.name),v:p.highGame})) },
+    { icon:'💥', title:'BEST SERIES',   rows:[...bowlers].sort((a,z)=>z.highSeries-a.highSeries).map(p=>({n:p.name,c:pColor(p.name),v:p.highSeries||0})) },
+    { icon:'/',  title:'SPARE CONV %',  rows:[...bowlers].filter(b=>b.sparePct!==null&&b.sparePct!==undefined).sort((a,z)=>z.sparePct-a.sparePct).map(p=>({n:p.name,c:pColor(p.name),v:p.sparePct+'%'})) },
+    { icon:'X',  title:'STRIKE RATE',   rows:[...bowlers].filter(b=>b.gamesCount>0&&b.strikes>0).sort((a,z)=>(z.strikes/z.gamesCount)-(a.strikes/a.gamesCount)).map(p=>({n:p.name,c:pColor(p.name),v:(p.strikes/p.gamesCount).toFixed(1)+'/g'})) },
   ];
 
   el.innerHTML = lbCats.map(cat=>`
