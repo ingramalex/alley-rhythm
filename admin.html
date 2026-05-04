@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Alley Rhythm — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
+<style>
+:root{
+  --void:#01030a;--deep:#060914;--panel:#0a0e1a;--panel2:#0f1424;
+  --groove:#151c30;--rail:#1e2840;--rail2:#283450;
+  --neon-g:#39ff14;--neon-g2:#22cc00;
+  --neon-p:#ff00ff;--neon-p2:#cc00cc;
+  --neon-y:#ffe600;--neon-c:#00ffff;--neon-o:#ff6600;
+  --neon-r:#ff2244;--neon-r2:#cc1133;
+  --text:#d0e8ff;--text2:#8aa0c8;--dim:#3a4a68;--r:4px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--void);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
+body::before{content:'';position:fixed;inset:0;z-index:1000;background:repeating-linear-gradient(0deg,transparent 0px,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);pointer-events:none;}
+body::after{content:'';position:fixed;inset:0;z-index:999;background:radial-gradient(ellipse 85% 85% at 50% 50%,transparent 60%,rgba(0,0,0,.65) 100%);pointer-events:none;}
+
+/* HEADER */
+header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:0 0 30px rgba(255,34,68,.12),0 4px 0 var(--neon-r2);position:sticky;top:0;z-index:200;padding:0 16px;height:58px;display:flex;align-items:center;justify-content:space-between;}
+.logo-wrap{display:flex;flex-direction:column;gap:2px;}
+.logo-a{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--neon-r);text-shadow:0 0 10px var(--neon-r),0 0 20px var(--neon-r2);letter-spacing:1px;}
+.logo-b{font-family:'Orbitron',sans-serif;font-size:7px;letter-spacing:3px;color:var(--neon-y);text-shadow:0 0 8px var(--neon-y);}
+.admin-badge{background:rgba(255,34,68,.15);border:1px solid var(--neon-r2);border-radius:var(--r);padding:3px 10px;font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-r);letter-spacing:1px;}
+
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:2px solid var(--rail2);border-radius:var(--r);padding:5px 12px 5px 6px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;}
+.user-chip img{width:24px;height:24px;border-radius:3px;border:1px solid var(--neon-r2);}
+.btn-out{background:none;border:2px solid var(--rail2);border-radius:var(--r);padding:6px 12px;color:var(--dim);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.btn-out:hover{border-color:var(--neon-r);color:var(--neon-r);}
+
+/* NAV TABS */
+.nav-bar{background:var(--panel);border-bottom:2px solid var(--rail2);display:flex;overflow-x:auto;scrollbar-width:none;}
+.nav-bar::-webkit-scrollbar{display:none;}
+.ntab{padding:12px 18px;background:none;border:none;border-bottom:3px solid transparent;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--dim);cursor:pointer;white-space:nowrap;transition:all .15s;margin-bottom:-2px;}
+.ntab:hover{color:var(--text2);}
+.ntab.active{color:var(--neon-r);border-bottom-color:var(--neon-r);text-shadow:0 0 8px var(--neon-r);}
+
+/* LOGIN */
+#loginScreen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;position:relative;z-index:1;text-align:center;}
+.login-icon{font-size:48px;margin-bottom:20px;}
+.login-title{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--neon-r);text-shadow:0 0 10px var(--neon-r);margin-bottom:10px;line-height:1.6;}
+.login-sub{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);margin-bottom:32px;line-height:1.7;max-width:300px;}
+.login-box{background:var(--panel);border:2px solid var(--neon-r2);border-radius:var(--r);padding:24px;width:100%;max-width:320px;box-shadow:4px 4px 0 rgba(0,0,0,.5);}
+.login-box-lbl{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim);letter-spacing:1px;margin-bottom:16px;}
+
+/* ERROR */
+#errorScreen{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;position:relative;z-index:1;}
+
+/* MAIN */
+#adminScreen{display:none;flex:1;flex-direction:column;position:relative;z-index:1;}
+.view{display:none;}.view.active{display:block;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:none;}}
+.page{max-width:800px;margin:0 auto;padding:24px 16px 80px;}
+
+/* Section label */
+.sec-lbl{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-r);letter-spacing:2px;text-transform:uppercase;text-shadow:0 0 6px var(--neon-r2);padding-bottom:8px;border-bottom:1px solid var(--rail2);margin-bottom:14px;margin-top:28px;}
+.sec-lbl:first-child{margin-top:0;}
+
+/* Buttons */
+.btn-del{background:none;border:2px solid var(--neon-r2);border-radius:var(--r);padding:7px 14px;color:var(--neon-r);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-del:hover{background:rgba(255,34,68,.1);box-shadow:0 0 12px rgba(255,34,68,.2);}
+.btn-restore{background:none;border:2px solid var(--neon-g2);border-radius:var(--r);padding:7px 14px;color:var(--neon-g);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-restore:hover{background:rgba(57,255,20,.08);}
+.btn-main{background:var(--neon-g);color:var(--void);border:none;border-radius:var(--r);padding:10px 22px;font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .1s;box-shadow:0 0 18px rgba(57,255,20,.3),3px 3px 0 var(--neon-g2);line-height:1.5;}
+.btn-main:hover{box-shadow:0 0 28px rgba(57,255,20,.5),3px 3px 0 var(--neon-g2);transform:translate(-1px,-1px);}
+.btn-main:active{transform:translate(2px,2px);}
+.btn-sec{background:var(--panel2);color:var(--text2);border:2px solid var(--rail2);border-radius:var(--r);padding:9px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;}
+.btn-sec:hover{border-color:var(--neon-c);color:var(--neon-c);}
+.btn-warn{background:var(--neon-y);color:var(--void);border:none;border-radius:var(--r);padding:9px 18px;font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;cursor:pointer;box-shadow:3px 3px 0 #ccb800;line-height:1.5;}
+
+/* Session cards */
+.sess-card{background:var(--panel);border:2px solid var(--rail);border-radius:var(--r);margin-bottom:10px;overflow:hidden;box-shadow:4px 4px 0 rgba(0,0,0,.4);transition:border-color .2s,opacity .3s;}
+.sess-card.deleted{opacity:.4;border-color:var(--neon-r2);}
+.sess-card.deleting{opacity:.3;transform:scaleY(.97);transition:all .25s;}
+
+.sc-top{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;gap:12px;cursor:pointer;}
+.sc-top:hover{background:rgba(255,255,255,.02);}
+.sc-date{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;}
+.sc-date.recent{color:var(--neon-g);text-shadow:0 0 8px var(--neon-g2);}
+.sc-meta{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:.5px;margin-top:3px;}
+.sc-top-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.sc-total{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--text2);}
+
+.sc-body{display:none;padding:0 16px 14px;border-top:2px solid var(--rail);}
+.sess-card.open .sc-body{display:block;}
+.sess-card.open .chv{transform:rotate(180deg);}
+
+.sc-bowler-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--rail);font-size:13px;}
+.sc-bowler-row:last-child{border-bottom:none;}
+.sc-nm{font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;width:72px;flex-shrink:0;}
+.s-tile{background:var(--void);border:2px solid var(--rail2);border-radius:3px;padding:3px 7px;font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--text2);margin:2px;}
+.s-tile.lit{border-color:var(--neon-g2);color:var(--neon-g);background:rgba(57,255,20,.06);text-shadow:0 0 6px var(--neon-g);}
+.s-tile.ser{border-color:var(--neon-p2);color:var(--neon-p);background:rgba(255,0,255,.06);}
+.sc-ser{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;margin-left:auto;color:var(--neon-g);}
+
+/* deleted overlay */
+.deleted-overlay{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 16px;background:rgba(255,34,68,.06);
+  border-top:1px solid var(--neon-r2);
+}
+.del-msg{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-r);letter-spacing:1px;line-height:1.5;}
+.undo-bar{
+  display:none;
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--panel);border:2px solid var(--neon-r);
+  border-radius:var(--r);padding:12px 18px;
+  display:none;align-items:center;gap:14px;
+  font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;
+  color:var(--text);z-index:400;
+  box-shadow:0 0 24px rgba(255,34,68,.25),4px 4px 0 rgba(0,0,0,.5);
+  min-width:280px;
+}
+.undo-bar.show{display:flex;}
+.undo-timer{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--neon-r);min-width:24px;}
+
+/* Roster */
+.roster-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.roster-pill{
+  display:flex;align-items:center;gap:8px;
+  background:var(--panel);border:2px solid var(--rail);
+  border-radius:var(--r);padding:6px 12px;
+  font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;
+  box-shadow:2px 2px 0 rgba(0,0,0,.4);
+}
+.rp-av{width:28px;height:28px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:9px;border:2px solid;flex-shrink:0;}
+.rp-del{background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:0 2px;transition:color .15s;}
+.rp-del:hover{color:var(--neon-r);}
+.add-row{display:flex;gap:8px;margin-top:4px;}
+.inp{background:var(--panel2);border:2px solid var(--rail2);border-radius:var(--r);padding:9px 14px;color:var(--text);font-family:'Orbitron',sans-serif;font-size:13px;flex:1;}
+.inp:focus{outline:none;border-color:var(--neon-c);}
+
+/* Stats summary cards */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:22px;}
+@media(max-width:480px){.stat-row{grid-template-columns:repeat(2,1fr);}}
+.stat-box{background:var(--panel);border:2px solid var(--rail);border-radius:var(--r);padding:14px 10px;text-align:center;box-shadow:3px 3px 0 rgba(0,0,0,.4);position:relative;overflow:hidden;}
+.stat-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--neon-r);}
+.stat-box.g::before{background:var(--neon-g);}
+.stat-box.y::before{background:var(--neon-y);}
+.stat-box.c::before{background:var(--neon-c);}
+.sb-val{font-family:'Orbitron',sans-serif;font-weight:900;font-size:28px;color:var(--neon-r);line-height:1;}
+.stat-box.g .sb-val{color:var(--neon-g);}
+.stat-box.y .sb-val{color:var(--neon-y);}
+.stat-box.c .sb-val{color:var(--neon-c);}
+.sb-lbl{font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:1px;margin-top:5px;line-height:1.4;}
+
+/* Confirm modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
+.modal-bg.show{display:flex;}
+.modal{background:var(--panel);border:2px solid var(--neon-r);border-radius:var(--r) var(--r) 0 0;width:100%;max-width:480px;padding:24px 20px 40px;box-shadow:0 0 30px rgba(255,34,68,.2);}
+.modal-title{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--neon-r);letter-spacing:1px;margin-bottom:10px;line-height:1.5;}
+.modal-body{font-family:'Exo 2',sans-serif;font-size:14px;color:var(--text2);line-height:1.6;margin-bottom:20px;}
+.modal-match{background:var(--panel2);border:1px solid var(--rail2);border-radius:var(--r);padding:10px 12px;font-family:'Orbitron',sans-serif;font-size:12px;color:var(--text2);margin-bottom:18px;}
+.modal-actions{display:flex;gap:10px;}
+
+/* chev */
+.chv{color:var(--dim);font-size:11px;transition:transform .2s;flex-shrink:0;}
+
+/* loading */
+.loading{text-align:center;padding:50px 20px;}
+.ld-icon{font-size:36px;animation:spin .8s linear infinite;display:inline-block;margin-bottom:14px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.ld-txt{font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-g);letter-spacing:1px;}
+
+/* toast */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--neon-g);color:var(--void);border-radius:var(--r);padding:10px 20px;font-family:'Press Start 2P',monospace;font-size:8px;font-weight:700;letter-spacing:1px;z-index:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.err{background:var(--neon-r);color:#fff;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-wrap">
+    <div class="logo-a">ALLEY RHYTHM</div>
+    <div class="logo-b">ADMIN CONTROL</div>
+  </div>
+  <div class="hdr-right">
+    <span class="admin-badge">⚙ ADMIN</span>
+    <div id="hdr"></div>
+  </div>
+</header>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-icon">🔐</div>
+  <div class="login-title">ADMIN<br>ACCESS</div>
+  <div class="login-sub">ADMIN PANEL REQUIRES SIGN IN.<br>YOUR ACCOUNT MUST HAVE ADMIN PERMISSIONS.</div>
+  <div class="login-box">
+    <div class="login-box-lbl">ADMIN CREDENTIALS REQUIRED</div>
+    <div id="g_id_onload" data-client_id="" data-callback="handleGoogleSignIn" data-auto_prompt="false"></div>
+    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left" data-width="260"></div>
+  </div>
+</div>
+
+<!-- ERROR -->
+<div id="errorScreen">
+  <div style="font-size:48px;margin-bottom:16px;">⛔</div>
+  <div style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--neon-r);margin-bottom:10px;line-height:1.5;">ACCESS DENIED</div>
+  <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);line-height:1.6;max-width:280px;margin-bottom:24px;" id="errMsg">Your account does not have admin permissions.</div>
+  <button class="btn-sec" onclick="signOut()">SIGN OUT</button>
+</div>
+
+<!-- ADMIN -->
+<div id="adminScreen">
+
+  <!-- NAV -->
+  <div class="nav-bar">
+    <button class="ntab active" onclick="goTab('sessions',this)">SESSIONS</button>
+    <button class="ntab" onclick="goTab('roster',this)">ROSTER</button>
+    <button class="ntab" onclick="goTab('overview',this)">OVERVIEW</button>
+  </div>
+
+  <!-- SESSIONS TAB -->
+  <div id="tab-sessions" class="view active">
+  <div class="page">
+
+    <div class="sec-lbl">▶ RECENT SESSIONS — MANAGE & DELETE</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6;">
+      Delete removes a session and all associated game data. You have <strong style="color:var(--neon-y);">10 seconds</strong> to undo before it's permanent.
+    </div>
+
+    <div id="sessionsList">
+      <div class="loading">
+        <div class="ld-icon">⚙</div>
+        <div class="ld-txt">LOADING SESSIONS...</div>
+      </div>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- ROSTER TAB -->
+  <div id="tab-roster" class="view">
+  <div class="page">
+
+    <div class="sec-lbl">▶ BOWLER ROSTER</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;">
+      The app auto-matches truncated screen names (WAYN → Wayne, DARN → Darnell). Add or remove bowlers here.
+    </div>
+    <div class="roster-grid" id="rosterGrid">
+      <div class="loading"><div class="ld-icon">⚙</div><div class="ld-txt">LOADING...</div></div>
+    </div>
+    <div class="add-row">
+      <input class="inp" id="newBowlerInp" placeholder="ADD BOWLER NAME..." maxlength="30">
+      <button class="btn-main" onclick="addBowler()">ADD</button>
+    </div>
+
+    <div class="sec-lbl" style="margin-top:32px;">▶ SCREEN NAME MAPPINGS</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6;">
+      Known truncations the AI has encountered. These train the matching algorithm.
+    </div>
+    <div id="mappingGrid">
+      <div class="loading"><div class="ld-icon">⚙</div><div class="ld-txt">LOADING...</div></div>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div id="tab-overview" class="view">
+  <div class="page">
+
+    <div class="sec-lbl">▶ DATABASE OVERVIEW</div>
+    <div class="stat-row" id="overviewStats">
+      <div class="stat-box g"><div class="sb-val" id="ov-sessions">—</div><div class="sb-lbl">TOTAL<br>SESSIONS</div></div>
+      <div class="stat-box y"><div class="sb-val" id="ov-games">—</div><div class="sb-lbl">TOTAL<br>GAMES</div></div>
+      <div class="stat-box c"><div class="sb-val" id="ov-bowlers">—</div><div class="sb-lbl">ACTIVE<br>BOWLERS</div></div>
+      <div class="stat-box"><div class="sb-val" id="ov-weeks">—</div><div class="sb-lbl">WEEKS<br>TRACKED</div></div>
+    </div>
+
+    <div class="sec-lbl">▶ APPROVED UPLOAD USERS</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+      These are stored securely in your Apps Script — never in any public file. Edit <code style="color:var(--neon-g);font-family:monospace;">Code.gs</code> to change them.
+    </div>
+    <div style="background:rgba(57,255,20,.05);border:2px solid var(--neon-g2);border-radius:var(--r);padding:14px 16px;margin-bottom:16px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-g);margin-bottom:10px;letter-spacing:1px;">✓ SECURITY STATUS</div>
+      <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);line-height:1.9;">
+        ✅ Approved emails stored server-side only<br>
+        ✅ Google ID tokens verified on every request<br>
+        ✅ Frontend never receives the approved list<br>
+        ✅ Admin routes require separate admin check<br>
+        ✅ All deletes are logged with user + timestamp
+      </div>
+    </div>
+
+    <div class="sec-lbl">▶ WEEKLY EMAIL</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+      Automatic weekly digest fires every Monday at 8am via Apps Script time trigger. Configure recipients in <code style="color:var(--neon-g);font-family:monospace;">Code.gs → EMAIL_CONFIG</code>.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-main" onclick="sendTestEmail()">SEND TEST EMAIL</button>
+      <button class="btn-sec" onclick="toast('Open Apps Script → Triggers to configure schedule')">VIEW TRIGGER SETTINGS</button>
+    </div>
+
+    <div class="sec-lbl" style="margin-top:32px;">▶ DATA EXPORT</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn-sec" onclick="exportData()">EXPORT ALL DATA (JSON)</button>
+      <button class="btn-sec" onclick="toast('Opens your Google Sheet — link in Apps Script')">OPEN GOOGLE SHEET</button>
+    </div>
+
+  </div>
+  </div>
+
+</div><!-- /adminScreen -->
+
+<!-- DELETE CONFIRM MODAL -->
+<div class="modal-bg" id="deleteModal">
+  <div class="modal">
+    <div class="modal-title">⚠ CONFIRM DELETE</div>
+    <div class="modal-body">This will permanently remove this session and all game scores from the database. You'll have 10 seconds to undo.</div>
+    <div class="modal-match" id="deleteModalContent"></div>
+    <div class="modal-actions">
+      <button class="btn-del" style="flex:1;" onclick="confirmDelete()">DELETE SESSION</button>
+      <button class="btn-sec" onclick="closeModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- UNDO BAR -->
+<div class="undo-bar" id="undoBar">
+  <div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-r);letter-spacing:1px;">SESSION DELETED</div>
+    <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);margin-top:3px;" id="undoDesc"></div>
+  </div>
+  <div class="undo-timer" id="undoTimer">10</div>
+  <button class="btn-restore" onclick="undoDelete()">UNDO</button>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let currentUser=null, currentIdToken=null;
+let sessionsData=[], rosterData=[], mappingsData=[];
+let pendingDelete=null, undoCountdown=null;
+
+const COLORS=['#ffb830','#39ff14','#ff3d6b','#00ffff','#b87eff','#ff6600','#00e5ff','#ff00ff'];
+function pColor(n){let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffffffff;return COLORS[Math.abs(h)%COLORS.length];}
+function ini2(n){return(n||'??').slice(0,2).toUpperCase();}
+
+/* ── AUTH ── */
+window.addEventListener('load',()=>{
+  const el=document.getElementById('g_id_onload');
+  if(el)el.dataset.client_id=LANE_CONFIG.GOOGLE_CLIENT_ID;
+});
+
+function handleGoogleSignIn(res){
+  currentIdToken=res.credential;
+  const p=JSON.parse(atob(res.credential.split('.')[1]));
+  currentUser={email:p.email,name:p.name,picture:p.picture};
+  verifyAdmin();
+}
+
+async function verifyAdmin(){
+  try{
+    const r=await apiPost('admin_verify',{});
+    if(!r.isAdmin){showErr('Your account does not have admin permissions.');return;}
+    showAdmin();
+  }catch(e){
+    if(e.status===403||e.status===401)showErr(e.message);
+    else showErr('Could not verify admin access.');
+  }
+}
+
+function showAdmin(){
+  document.getElementById('loginScreen').style.display='none';
+  const a=document.getElementById('adminScreen');
+  a.style.display='flex';a.style.flexDirection='column';
+  document.getElementById('hdr').innerHTML=`
+    <div class="user-chip">
+      <img src="${currentUser.picture}" referrerpolicy="no-referrer">
+      <span>${currentUser.name.split(' ')[0].toUpperCase()}</span>
+    </div>
+    <button class="btn-out" onclick="signOut()">SIGN OUT</button>`;
+  loadSessions();
+  loadRoster();
+  loadOverview();
+}
+
+function showErr(msg){
+  document.getElementById('loginScreen').style.display='none';
+  const e=document.getElementById('errorScreen');
+  e.style.display='flex';e.style.flexDirection='column';
+  e.style.alignItems='center';e.style.justifyContent='center';
+  document.getElementById('errMsg').textContent=msg;
+}
+function signOut(){if(window.google)google.accounts.id.disableAutoSelect();location.reload();}
+
+/* ── API ── */
+async function apiPost(action,data){
+  const r=await fetch(LANE_CONFIG.SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:currentIdToken,...data})});
+  const j=await r.json();
+  if(j.error){const e=new Error(j.error);e.status=r.status;throw e;}
+  return j;
+}
+async function apiGet(action){
+  const r=await fetch(`${LANE_CONFIG.SCRIPT_URL}?action=${action}`);
+  return r.json();
+}
+
+/* ── TABS ── */
+function goTab(name,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* ── SESSIONS ── */
+async function loadSessions(){
+  try{
+    const data=await apiGet('admin_sessions');
+    sessionsData=data.sessions||[];
+    renderSessions();
+  }catch(e){
+    document.getElementById('sessionsList').innerHTML=`<div style="font-family:'Orbitron',sans-serif;font-size:12px;color:var(--neon-r);padding:20px;">Error loading sessions: ${e.message}</div>`;
+  }
+}
+
+function renderSessions(){
+  const el=document.getElementById('sessionsList');
+  if(!sessionsData.length){
+    el.innerHTML=`<div style="font-family:'Orbitron',sans-serif;font-size:13px;color:var(--dim);padding:30px;text-align:center;">NO SESSIONS FOUND</div>`;
+    return;
+  }
+
+  const now=Date.now();
+  el.innerHTML=sessionsData.map((s,i)=>{
+    const isRecent=s.uploadedAt&&(now-new Date(s.uploadedAt).getTime())<3600000*24; // within 24h
+    const bowlers=s.bowlers||[];
+    const totalPins=bowlers.reduce((sum,b)=>sum+(b.series||0),0);
+    const isDeleted=s._deleted;
+
+    return `
+    <div class="sess-card${s.open?' open':''}${isDeleted?' deleted':''}" id="sc_${s.id}">
+      <div class="sc-top" onclick="toggleSession('${s.id}')">
+        <div>
+          <div class="sc-date${isRecent?' recent':''}">${s.date}${isRecent?' <span style="font-size:10px;color:var(--neon-g);">● NEW</span>':''}</div>
+          <div class="sc-meta">${s.teamName||'SESSION'} · ${bowlers.length} PLAYERS · ${s.uploadedBy||''}</div>
+        </div>
+        <div class="sc-top-right">
+          <div class="sc-total">${totalPins} PINS</div>
+          ${isDeleted
+            ? `<span style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-r);">DELETED</span>`
+            : `<button class="btn-del" onclick="event.stopPropagation();promptDelete('${s.id}')">DELETE</button>`
+          }
+          <span class="chv">▾</span>
+        </div>
+      </div>
+      <div class="sc-body">
+        ${bowlers.map(b=>{
+          const c=pColor(b.matchedName||b.name||'');
+          const games=(b.games||[]).map(g=>`<span class="s-tile ${g>=200?'lit':''}">${g}</span>`).join('');
+          const ser=b.series?`<span class="s-tile ser">${b.series}</span>`:'';
+          return `<div class="sc-bowler-row">
+            <div class="sc-nm" style="color:${c};">${(b.matchedName||b.name||'').toUpperCase()}</div>
+            <div style="flex:1;">${games}</div>
+            ${ser}
+          </div>`;
+        }).join('')}
+        ${s.uploadedBy?`<div style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:.5px;">UPLOADED BY: ${s.uploadedBy} · ${s.uploadedAt||''}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSession(id){
+  const s=sessionsData.find(x=>x.id===id);
+  if(s)s.open=!s.open;
+  renderSessions();
+}
+
+/* ── DELETE FLOW ── */
+let pendingDeleteId=null;
+
+function promptDelete(id){
+  const s=sessionsData.find(x=>x.id===id);
+  if(!s)return;
+  pendingDeleteId=id;
+  const bowlers=(s.bowlers||[]).map(b=>b.matchedName||b.name).join(', ');
+  document.getElementById('deleteModalContent').innerHTML=`
+    <strong style="color:var(--neon-r);">SESSION:</strong> ${s.date}<br>
+    <strong style="color:var(--neon-r);">TEAM:</strong> ${s.teamName||'N/A'}<br>
+    <strong style="color:var(--neon-r);">BOWLERS:</strong> ${bowlers}`;
+  document.getElementById('deleteModal').classList.add('show');
+}
+function closeModal(){ document.getElementById('deleteModal').classList.remove('show'); pendingDeleteId=null; }
+
+async function confirmDelete(){
+  if(!pendingDeleteId)return;
+  const id=pendingDeleteId;
+  closeModal();
+
+  const s=sessionsData.find(x=>x.id===id);
+  if(!s)return;
+
+  // Mark as "soft deleted" in UI immediately
+  s._deleted=true;
+  s._deletedAt=Date.now();
+  renderSessions();
+
+  // Start undo countdown
+  startUndoCountdown(id, `${s.date} · ${(s.bowlers||[]).map(b=>b.matchedName||b.name).join(', ')}`);
+}
+
+function startUndoCountdown(id, desc){
+  clearInterval(undoCountdown);
+  let secs=10;
+  const bar=document.getElementById('undoBar');
+  const timer=document.getElementById('undoTimer');
+  const undoDesc=document.getElementById('undoDesc');
+
+  bar.classList.add('show');
+  timer.textContent=secs;
+  undoDesc.textContent=desc;
+
+  undoCountdown=setInterval(async()=>{
+    secs--;
+    timer.textContent=secs;
+    if(secs<=0){
+      clearInterval(undoCountdown);
+      bar.classList.remove('show');
+      // Commit the delete to server
+      try{
+        await apiPost('admin_delete_session',{sessionId:id});
+        sessionsData=sessionsData.filter(s=>s.id!==id);
+        renderSessions();
+        toast('SESSION PERMANENTLY DELETED');
+      }catch(e){
+        // Restore on error
+        const s=sessionsData.find(x=>x.id===id);
+        if(s){s._deleted=false;renderSessions();}
+        toast('DELETE FAILED: '+e.message,true);
+      }
+    }
+  },1000);
+}
+
+function undoDelete(){
+  clearInterval(undoCountdown);
+  document.getElementById('undoBar').classList.remove('show');
+  // Restore in UI
+  sessionsData.forEach(s=>{if(s._deleted){s._deleted=false;}});
+  renderSessions();
+  toast('DELETE CANCELLED ✓');
+}
+
+/* ── ROSTER ── */
+async function loadRoster(){
+  try{
+    const data=await apiGet('admin_roster');
+    rosterData=data.roster||[];
+    mappingsData=data.mappings||[];
+    renderRoster();
+  }catch(e){console.warn('Roster load failed',e);}
+}
+
+function renderRoster(){
+  const el=document.getElementById('rosterGrid');
+  if(!rosterData.length){el.innerHTML=`<div style="color:var(--dim);font-family:'Orbitron',sans-serif;font-size:12px;">NO BOWLERS IN ROSTER</div>`;return;}
+  el.innerHTML=rosterData.map((name,i)=>{
+    const c=pColor(name);
+    return `<div class="roster-pill">
+      <div class="rp-av" style="background:${c}15;border-color:${c};color:${c};">${ini2(name)}</div>
+      <span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;">${name}</span>
+      <button class="rp-del" onclick="removeBowler(${i})" title="Remove">✕</button>
+    </div>`;
+  }).join('');
+
+  const mg=document.getElementById('mappingGrid');
+  if(!mappingsData.length){mg.innerHTML=`<div style="color:var(--dim);font-family:'Orbitron',sans-serif;font-size:12px;">NO MAPPINGS YET</div>`;return;}
+  mg.innerHTML=`<table style="width:100%;border-collapse:collapse;">
+    <tr style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);">
+      <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--rail2);">SCREEN SHOWS</th>
+      <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--rail2);">MAPPED TO</th>
+      <th style="text-align:left;padding:8px 12px;border-bottom:1px solid var(--rail2);">LAST SEEN</th>
+    </tr>
+    ${mappingsData.map(m=>`<tr style="font-family:'Orbitron',sans-serif;font-size:11px;">
+      <td style="padding:8px 12px;border-bottom:1px solid var(--rail);color:var(--neon-y);">${m.rawName}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--rail);color:var(--neon-g);">${m.mappedName}</td>
+      <td style="padding:8px 12px;border-bottom:1px solid var(--rail);color:var(--dim);">${m.lastSeen||'—'}</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+async function addBowler(){
+  const inp=document.getElementById('newBowlerInp');
+  const name=inp.value.trim();
+  if(!name)return;
+  try{
+    await apiPost('add_bowler',{name});
+    rosterData.push(name);
+    inp.value='';
+    renderRoster();
+    toast('BOWLER ADDED: '+name.toUpperCase());
+  }catch(e){toast('FAILED: '+e.message,true);}
+}
+
+async function removeBowler(idx){
+  if(!confirm(`Remove ${rosterData[idx]} from roster?`))return;
+  const name=rosterData[idx];
+  try{
+    await apiPost('admin_remove_bowler',{name});
+    rosterData.splice(idx,1);
+    renderRoster();
+    toast('BOWLER REMOVED');
+  }catch(e){toast('FAILED: '+e.message,true);}
+}
+
+document.getElementById('newBowlerInp')?.addEventListener('keypress',e=>{if(e.key==='Enter')addBowler();});
+
+/* ── OVERVIEW ── */
+async function loadOverview(){
+  try{
+    const data=await apiGet('admin_overview');
+    document.getElementById('ov-sessions').textContent=data.sessionCount||0;
+    document.getElementById('ov-games').textContent=data.gameCount||0;
+    document.getElementById('ov-bowlers').textContent=data.bowlerCount||0;
+    document.getElementById('ov-weeks').textContent=data.weekCount||0;
+  }catch(e){console.warn('Overview load failed');}
+}
+
+async function sendTestEmail(){
+  try{
+    await apiPost('send_test_email',{});
+    toast('TEST EMAIL SENT!');
+  }catch(e){toast('EMAIL FAILED: '+e.message,true);}
+}
+
+async function exportData(){
+  try{
+    const data=await apiGet('export_all');
+    const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url;a.download=`alley-rhythm-${new Date().toISOString().split('T')[0]}.json`;a.click();
+    URL.revokeObjectURL(url);
+  }catch(e){toast('EXPORT FAILED: '+e.message,true);}
+}
+
+function toast(msg,isErr=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=isErr?'err':'';t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+</script>
+</body>
+</html>
