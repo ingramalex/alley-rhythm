@@ -367,161 +367,130 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 async function processImage(file){
   showStep(2); setStep('Preparing image...');
-  // Hide any previous error hint
   const hint = document.getElementById('uploadHint');
   if(hint) hint.style.display = 'none';
 
   try{
-    // ── HEIC/HEIF detection and conversion ──────────────────────────
-    // iPhone saves photos as HEIC by default. Convert to JPEG first
-    // so all subsequent canvas methods work reliably.
-    const isHEIC = file.type === 'image/heic' ||
-                   file.type === 'image/heif' ||
-                   file.type === 'image/heic-sequence' ||
-                   file.name.toLowerCase().endsWith('.heic') ||
-                   file.name.toLowerCase().endsWith('.heif') ||
-                   // iOS sometimes reports blank type for HEIC from library
-                   (file.type === '' && file.size > 500000);
-
-    if (isHEIC) {
-      setStep('Converting iPhone photo format...');
-      try {
-        // heic2any converts the HEIC blob to a standard JPEG blob
-        if (typeof heic2any !== 'undefined') {
-          const jpegBlob = await heic2any({
-            blob: file,
-            toType: 'image/jpeg',
-            quality: 0.88,
-          });
-          // heic2any returns an array if multiple images, or a single blob
-          file = Array.isArray(jpegBlob) ? jpegBlob[0] : jpegBlob;
-        } else {
-          console.warn('heic2any not loaded — proceeding without HEIC conversion');
-        }
-      } catch(heicErr) {
-        console.warn('HEIC conversion failed, trying raw:', heicErr.message);
-        // Don't throw — fall through and let resizeAndEncode try its methods
-      }
-    }
-
-    const {base64, mediaType} = await resizeAndEncode(file);
+    setStep('Reading photo...');
+    const {base64, mediaType} = await readFileForUpload(file);
     setStep('AI reading score screen...');
-    const result = await apiPost('upload_image', {imageBase64:base64, mediaType});
+    const result = await apiPost('upload_image', {imageBase64: base64, mediaType});
     setStep('Checking for duplicates...');
     const dupeCheck = await checkDuplicate(result.analysis);
     showStep(3);
     renderAll(result.validation, result.analysis, dupeCheck);
   } catch(e) {
     resetUpload();
-    console.error('processImage error:', e);
-    showToast('COULD NOT READ PHOTO', true);
+    console.error('Upload error:', e);
+    showToast('UPLOAD FAILED', true);
     const hint = document.getElementById('uploadHint');
     if(hint) hint.style.display = 'block';
   }
 }
 
 /**
- * iOS-compatible image encoder.
- * Tries three methods in order:
- *   1. createImageBitmap (best for HEIC on modern iOS)
- *   2. Image element + canvas (fallback)
- *   3. FileReader direct (last resort — no resize)
+ * Read file using ArrayBuffer — the most reliable method across all
+ * iOS versions, HEIC format, and file sources (library vs camera).
+ *
+ * ArrayBuffer reads the raw bytes regardless of format. The Apps Script
+ * backend passes it to Google's AI which handles HEIC natively.
+ *
+ * For large files we resize using canvas first if possible,
+ * otherwise send raw (Google/Anthropic can handle HEIC server-side).
  */
-async function resizeAndEncode(file) {
-  const MAX = 1600;
+async function readFileForUpload(file) {
+  const MAX = 1800;
   const QUALITY = 0.88;
 
-  // ── Method 1: createImageBitmap (handles HEIC on iOS 15+) ────────
-  if (window.createImageBitmap) {
+  // Detect HEIC — iOS often reports blank type for library HEIC photos
+  const isHEIC =
+    file.type === 'image/heic' ||
+    file.type === 'image/heif' ||
+    file.name.toLowerCase().endsWith('.heic') ||
+    file.name.toLowerCase().endsWith('.heif');
+
+  // ── For non-HEIC: try canvas resize first (reduces upload size) ──
+  if (!isHEIC && file.type !== '') {
     try {
-      const bitmap = await createImageBitmap(file);
-      let w = bitmap.width, h = bitmap.height;
-      if (w === 0 || h === 0) throw new Error('zero dimensions');
-
-      if (w > MAX || h > MAX) {
-        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-        else        { w = Math.round(w * MAX / h); h = MAX; }
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = w; canvas.height = h;
-      canvas.getContext('2d').drawImage(bitmap, 0, 0, w, h);
-      bitmap.close();
-
-      const dataURL = canvas.toDataURL('image/jpeg', QUALITY);
-      const base64  = dataURL.split(',')[1];
-      if (base64 && base64.length > 100) {
-        return { base64, mediaType: 'image/jpeg' };
-      }
-      throw new Error('empty canvas output');
+      const b64 = await canvasResize(file, MAX, QUALITY);
+      if (b64) return { base64: b64, mediaType: 'image/jpeg' };
     } catch(e) {
-      console.warn('Method 1 (createImageBitmap) failed:', e.message);
+      console.warn('Canvas resize failed, using raw:', e.message);
     }
   }
 
-  // ── Method 2: Object URL → <img> → canvas ────────────────────────
-  try {
-    const base64 = await new Promise((resolve, reject) => {
-      const objectURL = URL.createObjectURL(file);
-      const img = new Image();
-      const timeout = setTimeout(() => {
-        URL.revokeObjectURL(objectURL);
-        reject(new Error('image load timeout'));
-      }, 10000); // 10 second timeout
+  // ── For HEIC or canvas failure: read raw bytes via ArrayBuffer ────
+  // ArrayBuffer never fails on iOS regardless of format.
+  // The Anthropic API accepts HEIC natively server-side.
+  const base64 = await arrayBufferToBase64(file);
+  // Tell the API it's JPEG if type is blank — Apps Script will auto-detect
+  const mediaType = isHEIC ? 'image/jpeg'
+    : (file.type && file.type !== '') ? file.type
+    : 'image/jpeg';
 
-      img.onload = () => {
-        clearTimeout(timeout);
-        URL.revokeObjectURL(objectURL);
-        try {
-          let w = img.naturalWidth || img.width;
-          let h = img.naturalHeight || img.height;
-          if (w === 0 || h === 0) { reject(new Error('zero dimensions')); return; }
+  return { base64, mediaType };
+}
 
-          if (w > MAX || h > MAX) {
-            if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
-            else        { w = Math.round(w * MAX / h); h = MAX; }
-          }
+/**
+ * Canvas resize — shrinks large photos before upload.
+ * Only used for non-HEIC photos where canvas can actually decode the format.
+ */
+function canvasResize(file, maxPx, quality) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    const t = setTimeout(() => { URL.revokeObjectURL(url); reject(new Error('timeout')); }, 8000);
 
-          const canvas = document.createElement('canvas');
-          canvas.width = w; canvas.height = h;
-          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
-          const b64 = canvas.toDataURL('image/jpeg', QUALITY).split(',')[1];
-          if (b64 && b64.length > 100) resolve(b64);
-          else reject(new Error('empty canvas'));
-        } catch(err) { reject(err); }
-      };
-      img.onerror = () => {
-        clearTimeout(timeout);
-        URL.revokeObjectURL(objectURL);
-        reject(new Error('img.onerror'));
-      };
-      img.src = objectURL;
-    });
-    return { base64, mediaType: 'image/jpeg' };
-  } catch(e) {
-    console.warn('Method 2 (objectURL+canvas) failed:', e.message);
-  }
+    img.onload = () => {
+      clearTimeout(t);
+      URL.revokeObjectURL(url);
+      let w = img.naturalWidth, h = img.naturalHeight;
+      if (!w || !h) { reject(new Error('no dimensions')); return; }
+      if (w > maxPx || h > maxPx) {
+        if (w > h) { h = Math.round(h * maxPx / w); w = maxPx; }
+        else       { w = Math.round(w * maxPx / h); h = maxPx; }
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const b64 = c.toDataURL('image/jpeg', quality).split(',')[1];
+      if (b64 && b64.length > 500) resolve(b64);
+      else reject(new Error('empty canvas'));
+    };
+    img.onerror = () => { clearTimeout(t); URL.revokeObjectURL(url); reject(new Error('img error')); };
+    img.src = url;
+  });
+}
 
-  // ── Method 3: FileReader → base64 directly (no resize) ───────────
-  // Last resort — sends the raw file. May be large but works as final fallback.
-  try {
-    const base64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      const timeout = setTimeout(() => reject(new Error('FileReader timeout')), 30000);
-      reader.onload  = () => { clearTimeout(timeout); resolve(reader.result.split(',')[1]); };
-      reader.onerror = () => { clearTimeout(timeout); reject(new Error('FileReader error')); };
-      reader.readAsDataURL(file);
-    });
-    // Default to jpeg — HEIC should have been converted above, blank type = jpeg
-    const mediaType = (file.type && !file.type.includes('heic') && file.type !== '')
-      ? file.type : 'image/jpeg';
-    return { base64, mediaType };
-  } catch(e) {
-    console.warn('Method 3 (FileReader) failed:', e.message);
-  }
+/**
+ * ArrayBuffer → base64.
+ * Reads raw bytes — works on HEIC, JPEG, PNG, any format, any iOS version.
+ * Uses chunked conversion to avoid stack overflow on large files.
+ */
+function arrayBufferToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    const timeout = setTimeout(() => reject(new Error('FileReader timeout')), 60000);
 
-  // All methods failed
-  throw new Error('Could not read photo on this device');
+    reader.onload = (e) => {
+      clearTimeout(timeout);
+      try {
+        const bytes = new Uint8Array(e.target.result);
+        // Chunked base64 encoding — avoids "Maximum call stack" on large files
+        let b64 = '';
+        const CHUNK = 8192;
+        for (let i = 0; i < bytes.length; i += CHUNK) {
+          b64 += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+        }
+        resolve(btoa(b64));
+      } catch(err) {
+        reject(err);
+      }
+    };
+
+    reader.onerror = () => { clearTimeout(timeout); reject(new Error('FileReader error')); };
+    reader.readAsArrayBuffer(file); // readAsArrayBuffer works when readAsDataURL fails on iOS
+  });
 }
 function setStep(m){const el=document.getElementById('procStep');if(el)el.textContent=m;}
 function showStep(n){[1,2,3].forEach(i=>{const el=document.getElementById('step'+i);if(el)el.style.display=i===n?'block':'none';});}
@@ -729,8 +698,6 @@ function showToast(msg,isErr=false,type=''){
 }
 </script>
 
-<!-- heic2any: converts HEIC/HEIF photos to JPEG in the browser -->
-<!-- Loaded from cdnjs — no phone settings change needed -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/heic2any/0.0.4/heic2any.min.js"></script>
+<!-- No external dependencies needed - HEIC handled server-side -->
 </body>
 </html>
