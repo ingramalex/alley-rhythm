@@ -7,49 +7,33 @@
 <title>Alley Rhythm — Upload</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<!-- config.js MUST load before Google GSI so client_id is set first -->
 <script src="config.js"></script>
-<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
-:root {
-  --void:#01030a;--deep:#060914;--panel:#0a0e1a;--panel2:#0f1424;
-  --rail:#1e2840;--rail2:#283450;
-  --neon-g:#39ff14;--neon-g2:#22cc00;
-  --neon-p:#ff00ff;--neon-p2:#cc00cc;
-  --neon-y:#ffe600;--neon-c:#00ffff;--neon-o:#ff6600;
-  --neon-r:#ff2244;--neon-r2:#cc1133;
-  --text:#d0e8ff;--text2:#8aa0c8;--dim:#3a4a68;--r:4px;
-}
+:root{--void:#01030a;--deep:#060914;--panel:#0a0e1a;--panel2:#0f1424;--rail:#1e2840;--rail2:#283450;--neon-g:#39ff14;--neon-g2:#22cc00;--neon-p:#ff00ff;--neon-p2:#cc00cc;--neon-y:#ffe600;--neon-c:#00ffff;--neon-r:#ff2244;--neon-r2:#cc1133;--text:#d0e8ff;--text2:#8aa0c8;--dim:#3a4a68;--r:4px;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--void);color:var(--text);font-family:'Exo 2',sans-serif;min-height:100vh;display:flex;flex-direction:column;}
-body::before{content:'';position:fixed;inset:0;z-index:1000;background:repeating-linear-gradient(0deg,transparent 0px,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);pointer-events:none;}
+body::before{content:'';position:fixed;inset:0;z-index:1000;background:repeating-linear-gradient(0deg,transparent 0,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);pointer-events:none;}
 body::after{content:'';position:fixed;inset:0;z-index:999;background:radial-gradient(ellipse 85% 85% at 50% 50%,transparent 60%,rgba(0,0,0,.65) 100%);pointer-events:none;}
-
 header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:0 0 30px rgba(57,255,20,.12),0 4px 0 var(--neon-g2);position:sticky;top:0;z-index:200;padding:0 16px;height:58px;display:flex;align-items:center;justify-content:space-between;}
 .logo-link{text-decoration:none;display:flex;flex-direction:column;gap:2px;}
 .logo-a{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--neon-g);text-shadow:0 0 10px var(--neon-g),0 0 20px var(--neon-g2);letter-spacing:1px;}
 .logo-b{font-family:'Orbitron',sans-serif;font-size:7px;letter-spacing:3px;color:var(--neon-p);text-shadow:0 0 8px var(--neon-p2);}
-
 .user-strip{display:flex;align-items:center;gap:10px;}
-.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:2px solid var(--rail2);border-radius:var(--r);padding:5px 12px 5px 6px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--text);}
+.user-chip{display:flex;align-items:center;gap:8px;background:var(--panel);border:2px solid var(--rail2);border-radius:var(--r);padding:5px 12px 5px 6px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;}
 .user-chip img{width:24px;height:24px;border-radius:3px;border:1px solid var(--neon-g2);}
 .btn-out{background:none;border:2px solid var(--rail2);border-radius:var(--r);padding:6px 12px;color:var(--dim);font-family:'Orbitron',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;}
 .btn-out:hover{border-color:var(--neon-r);color:var(--neon-r);}
-
 #loginScreen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;position:relative;z-index:1;text-align:center;}
+#errorScreen{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;position:relative;z-index:1;}
+#appScreen{display:none;flex:1;flex-direction:column;position:relative;z-index:1;}
 .login-icon{font-size:52px;margin-bottom:20px;animation:float 3s ease-in-out infinite;}
 @keyframes float{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}
 .login-title{font-family:'Press Start 2P',monospace;font-size:14px;color:var(--neon-g);text-shadow:0 0 12px var(--neon-g);margin-bottom:10px;line-height:1.6;}
 .login-sub{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);margin-bottom:32px;line-height:1.7;letter-spacing:1px;max-width:300px;}
 .login-box{background:var(--panel);border:2px solid var(--rail2);border-radius:var(--r);padding:24px 20px;width:100%;max-width:320px;box-shadow:4px 4px 0 rgba(0,0,0,.5);}
 .login-box-lbl{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim);letter-spacing:1px;margin-bottom:16px;}
-
-#errorScreen{display:none;flex:1;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px;text-align:center;position:relative;z-index:1;}
-.err-title{font-family:'Press Start 2P',monospace;font-size:12px;color:var(--neon-r);text-shadow:0 0 10px var(--neon-r2);margin-bottom:10px;line-height:1.5;}
-.err-sub{font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);line-height:1.6;max-width:280px;margin-bottom:24px;}
-
-#appScreen{display:none;flex:1;flex-direction:column;position:relative;z-index:1;}
 .app-page{padding:20px 16px 80px;max-width:560px;margin:0 auto;width:100%;}
-
 .upload-zone{background:var(--panel);border:2px dashed var(--rail2);border-radius:var(--r);padding:36px 20px;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;box-shadow:4px 4px 0 rgba(0,0,0,.5);}
 .upload-zone::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 0%,rgba(57,255,20,.05) 0%,transparent 70%);pointer-events:none;}
 .upload-zone:hover,.upload-zone.drag{border-color:var(--neon-g2);background:rgba(57,255,20,.03);}
@@ -57,29 +41,21 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
 .uz-title{font-family:'Press Start 2P',monospace;font-size:11px;color:var(--text);letter-spacing:1px;line-height:1.6;margin-bottom:8px;}
 .uz-hint{font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);line-height:1.6;max-width:280px;margin:0 auto;}
 #fileInput{display:none;}
-
-.btn-main{display:inline-block;margin-top:18px;background:var(--neon-g);color:var(--void);border:none;border-radius:var(--r);padding:12px 28px;font-family:'Press Start 2P',monospace;font-size:9px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .1s;box-shadow:0 0 20px rgba(57,255,20,.3),3px 3px 0 var(--neon-g2);line-height:1.5;}
+.btn-main{display:inline-block;margin-top:18px;background:var(--neon-g);color:var(--void);border:none;border-radius:var(--r);padding:12px 28px;font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;cursor:pointer;transition:all .1s;line-height:1.5;box-shadow:0 0 20px rgba(57,255,20,.3),3px 3px 0 var(--neon-g2);}
 .btn-main:hover{box-shadow:0 0 32px rgba(57,255,20,.5),3px 3px 0 var(--neon-g2);transform:translate(-1px,-1px);}
 .btn-main:active{transform:translate(2px,2px);box-shadow:0 0 10px rgba(57,255,20,.3),1px 1px 0 var(--neon-g2);}
 .btn-main:disabled{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none;}
-
-.btn-warn{background:var(--neon-y);color:var(--void);border:none;border-radius:var(--r);padding:10px 22px;font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;cursor:pointer;transition:all .1s;box-shadow:0 0 16px rgba(255,230,0,.3),3px 3px 0 #ccb800;line-height:1.5;}
+.btn-warn{background:var(--neon-y);color:var(--void);border:none;border-radius:var(--r);padding:10px 22px;font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;cursor:pointer;line-height:1.5;box-shadow:0 0 16px rgba(255,230,0,.3),3px 3px 0 #ccb800;}
 .btn-warn:hover{box-shadow:0 0 28px rgba(255,230,0,.5),3px 3px 0 #ccb800;transform:translate(-1px,-1px);}
-.btn-warn:active{transform:translate(2px,2px);}
-
 .btn-sec{background:var(--panel2);color:var(--text2);border:2px solid var(--rail2);border-radius:var(--r);padding:10px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .15s;}
 .btn-sec:hover{border-color:var(--neon-c);color:var(--neon-c);}
-
 #processingBlock{text-align:center;padding:40px 0;}
 .spinner{width:56px;height:56px;border:3px solid var(--rail2);border-top-color:var(--neon-g);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 20px;box-shadow:0 0 20px rgba(57,255,20,.2);}
 @keyframes spin{to{transform:rotate(360deg);}}
 .proc-title{font-family:'Press Start 2P',monospace;font-size:10px;color:var(--neon-g);text-shadow:0 0 8px var(--neon-g2);letter-spacing:1px;margin-bottom:8px;line-height:1.6;}
 .proc-step{font-family:'Orbitron',sans-serif;font-size:12px;color:var(--text2);letter-spacing:1px;}
-
 .sec-lbl{font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-g);letter-spacing:2px;text-transform:uppercase;text-shadow:0 0 6px var(--neon-g2);padding-bottom:8px;border-bottom:1px solid var(--rail2);margin-bottom:12px;margin-top:22px;}
 .sec-lbl:first-child{margin-top:0;}
-
-/* Validation card */
 .vcard{border:2px solid;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;box-shadow:4px 4px 0 rgba(0,0,0,.4);}
 .vcard.pass{border-color:var(--neon-g2);background:rgba(57,255,20,.05);}
 .vcard.fail{border-color:var(--neon-r2);background:rgba(255,34,68,.05);}
@@ -87,18 +63,14 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
 .vc-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
 .vc-icon{font-size:20px;flex-shrink:0;}
 .vc-title{font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;line-height:1.5;}
-.vcard.pass .vc-title{color:var(--neon-g);}
-.vcard.fail .vc-title{color:var(--neon-r);}
-.vcard.warn .vc-title{color:var(--neon-y);}
+.vcard.pass .vc-title{color:var(--neon-g);}.vcard.fail .vc-title{color:var(--neon-r);}.vcard.warn .vc-title{color:var(--neon-y);}
 .vc-body{font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);line-height:1.6;}
 .vc-checks{margin-top:10px;display:flex;flex-direction:column;gap:6px;}
 .vc-check{display:flex;align-items:flex-start;gap:8px;font-family:'Exo 2',sans-serif;font-size:13px;line-height:1.4;}
-.ck-ok .ck-i{color:var(--neon-g);} .ck-ok .ck-t{color:var(--text2);}
-.ck-no .ck-i{color:var(--neon-r);} .ck-no .ck-t{color:var(--text);}
-.ck-wr .ck-i{color:var(--neon-y);} .ck-wr .ck-t{color:var(--neon-y);}
+.ck-ok .ck-i{color:var(--neon-g);}.ck-ok .ck-t{color:var(--text2);}
+.ck-no .ck-i{color:var(--neon-r);}.ck-no .ck-t{color:var(--text);}
+.ck-wr .ck-i{color:var(--neon-y);}.ck-wr .ck-t{color:var(--neon-y);}
 .ck-i{flex-shrink:0;width:16px;font-weight:700;}
-
-/* Dupe card */
 .dupe-card{border:2px solid var(--neon-y);background:rgba(255,230,0,.06);border-radius:var(--r);padding:16px;box-shadow:0 0 20px rgba(255,230,0,.1),4px 4px 0 rgba(0,0,0,.4);margin-bottom:14px;}
 .dupe-head{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .dupe-icon{font-size:22px;animation:blink 1s step-start infinite;}
@@ -108,30 +80,32 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
 .dupe-match{background:var(--panel2);border:1px solid var(--rail2);border-radius:var(--r);padding:10px 12px;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);margin-bottom:14px;letter-spacing:.5px;}
 .dupe-match strong{color:var(--neon-y);}
 .dupe-actions{display:flex;gap:10px;flex-wrap:wrap;}
-
-/* Bowler rows */
 .b-row{display:flex;align-items:flex-start;background:var(--panel);border:2px solid var(--rail);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;gap:12px;box-shadow:3px 3px 0 rgba(0,0,0,.4);}
 .b-row.is-new{border-color:var(--neon-y);}
+.b-row.is-trunc{border-color:var(--neon-c);}
 .px-av{width:38px;height:38px;border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:11px;flex-shrink:0;border:2px solid;}
 .b-name{font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;}
-.b-raw{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--dim);}
-.b-spd{font-size:11px;color:var(--neon-c);font-family:'Exo 2',sans-serif;}
-.s-tiles{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-left:auto;}
+.b-raw{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--dim);margin-top:2px;}
+.b-spd{font-size:11px;color:var(--neon-c);font-family:'Exo 2',sans-serif;margin-top:2px;}
+.name-edit-section{margin-top:10px;background:var(--panel2);border:1px solid var(--rail2);border-radius:var(--r);padding:10px 12px;}
+.ne-label{font-family:'Press Start 2P',monospace;font-size:7px;letter-spacing:1px;margin-bottom:8px;line-height:1.6;}
+.b-row.is-new .ne-label{color:var(--neon-y);}
+.b-row.is-trunc .ne-label{color:var(--neon-c);}
+.ne-input-row{display:flex;gap:8px;align-items:center;}
+.name-inp{flex:1;background:var(--void);border:2px solid var(--rail2);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;}
+.name-inp:focus{outline:none;border-color:var(--neon-c);}
+.ne-save-tip{font-family:'Exo 2',sans-serif;font-size:11px;color:var(--dim);margin-top:6px;line-height:1.5;}
+.s-tiles{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-left:auto;align-self:flex-start;}
 .s-tile{background:var(--void);border:2px solid var(--rail2);border-radius:3px;padding:4px 8px;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;color:var(--text2);}
 .s-tile.lit{border-color:var(--neon-g2);color:var(--neon-g);background:rgba(57,255,20,.06);text-shadow:0 0 6px var(--neon-g);}
 .s-tile.ser{border-color:var(--neon-p2);color:var(--neon-p);background:rgba(255,0,255,.06);font-size:15px;}
-.new-banner{background:rgba(255,230,0,.06);border:1px solid rgba(255,230,0,.3);border-radius:var(--r);padding:8px 12px;margin-top:8px;font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-y);letter-spacing:.5px;line-height:1.6;}
-.name-inp{width:100%;background:var(--panel2);border:2px solid var(--rail2);border-radius:var(--r);padding:8px 12px;color:var(--text);font-family:'Orbitron',sans-serif;font-size:13px;margin-top:8px;}
-.name-inp:focus{outline:none;border-color:var(--neon-c);}
 .save-row{display:flex;gap:10px;margin-top:22px;flex-wrap:wrap;}
-
 .recent-item{background:var(--panel);border:2px solid var(--rail);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;box-shadow:3px 3px 0 rgba(0,0,0,.4);}
 .ri-date{font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;margin-bottom:3px;}
 .ri-meta{font-family:'Exo 2',sans-serif;font-size:12px;color:var(--dim);}
-
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--neon-g);color:var(--void);border-radius:var(--r);padding:11px 22px;font-family:'Press Start 2P',monospace;font-size:9px;font-weight:700;letter-spacing:1px;z-index:500;opacity:0;transition:all .3s;pointer-events:none;white-space:nowrap;box-shadow:0 0 20px rgba(57,255,20,.4);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-#toast.err{background:var(--neon-r);box-shadow:0 0 20px rgba(255,34,68,.4);color:#fff;}
+#toast.err{background:var(--neon-r);color:#fff;box-shadow:0 0 20px rgba(255,34,68,.4);}
 #toast.wrn{background:var(--neon-y);box-shadow:0 0 20px rgba(255,230,0,.4);}
 </style>
 </head>
@@ -145,26 +119,32 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
   <div class="user-strip" id="hdr"></div>
 </header>
 
+<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-icon">🎳</div>
   <div class="login-title">SCORE<br>UPLOAD</div>
   <div class="login-sub">SIGN IN WITH YOUR GOOGLE ACCOUNT.<br>APPROVED MEMBERS ONLY.</div>
   <div class="login-box">
     <div class="login-box-lbl">INSERT COIN TO CONTINUE</div>
-    <div id="g_id_onload" data-client_id="" data-callback="handleGoogleSignIn" data-auto_prompt="false"></div>
-    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left" data-width="260"></div>
-    <div style="margin-top:14px;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.7;">🔒 UPLOAD ACCESS IS INVITE-ONLY</div>
+    <!-- Button rendered by JS after GSI loads, using client_id from config.js -->
+    <div id="googleSignInBtn"></div>
+    <div style="margin-top:14px;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.7;">
+      🔒 UPLOAD ACCESS IS INVITE-ONLY<br>
+      <a href="index.html" style="color:var(--dim);">← VIEW PUBLIC STATS</a>
+    </div>
   </div>
 </div>
 
+<!-- ERROR -->
 <div id="errorScreen">
   <div style="font-size:48px;margin-bottom:16px;">⛔</div>
-  <div class="err-title">ACCESS DENIED</div>
-  <div class="err-sub" id="errMsg">Your Google account is not on the approved list.</div>
+  <div style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--neon-r);margin-bottom:10px;line-height:1.5;">ACCESS DENIED</div>
+  <div id="errMsg" style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);line-height:1.6;max-width:280px;margin-bottom:24px;">Your Google account is not on the approved list.</div>
   <button class="btn-sec" onclick="signOut()" style="margin-bottom:12px;">SIGN OUT & TRY AGAIN</button><br>
   <a href="index.html" style="color:var(--dim);font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:1px;margin-top:10px;display:inline-block;">← VIEW PUBLIC STATS</a>
 </div>
 
+<!-- APP -->
 <div id="appScreen">
 <div class="app-page">
 
@@ -172,13 +152,12 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
     <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <span class="uz-icon">📷</span>
       <div class="uz-title">SNAP A SCORE SCREEN</div>
-      <div class="uz-hint">Photo of the bowling alley display. Must show complete game data — scorecards, stat screens, or recap sheets.</div>
+      <div class="uz-hint">Photo of the bowling alley display. Must show complete game data.</div>
       <button class="btn-main" type="button">SELECT PHOTO</button>
       <input type="file" id="fileInput" accept="image/*" capture="environment">
     </div>
     <div style="margin-top:10px;text-align:center;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:1px;line-height:1.8;">
-      🔒 APPROVED ACCOUNTS ONLY &nbsp;·&nbsp;
-      <a href="admin.html" style="color:var(--neon-g2);">ADMIN PANEL →</a>
+      🔒 APPROVED ACCOUNTS ONLY &nbsp;·&nbsp; <a href="admin.html" style="color:var(--neon-g2);">ADMIN PANEL →</a>
     </div>
   </div>
 
@@ -210,18 +189,44 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
 
 <div id="toast"></div>
 
+<!-- GSI loads AFTER config.js so GOOGLE_CLIENT_ID is available -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
 <script>
-let currentUser = null, currentIdToken = null, pendingSession = null;
-const sessionHistory = [];
+let currentUser=null,currentIdToken=null,pendingSession=null;
+const sessionHistory=[];
+const COLORS=['#ffb830','#39ff14','#ff3d6b','#00ffff','#b87eff','#ff6600','#00e5ff','#ff00ff'];
+function pColor(n){let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffffffff;return COLORS[Math.abs(h)%COLORS.length];}
+function ini2(n){return(n||'??').slice(0,2).toUpperCase();}
 
-const COLORS = ['#ffb830','#39ff14','#ff3d6b','#00ffff','#b87eff','#ff6600','#00e5ff','#ff00ff'];
-function pColor(n){ let h=0; for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffffffff; return COLORS[Math.abs(h)%COLORS.length]; }
-function ini2(n){ return(n||'??').slice(0,2).toUpperCase(); }
+/* ── AUTH ── */
+// Poll for GSI library then initialise with client_id from config.js
+function waitForGSI(){
+  if(window.google&&window.google.accounts){
+    initGSI();
+  }else{
+    setTimeout(waitForGSI,100);
+  }
+}
 
-window.addEventListener('load',()=>{
-  const el=document.getElementById('g_id_onload');
-  if(el)el.dataset.client_id=LANE_CONFIG.GOOGLE_CLIENT_ID;
-});
+function initGSI(){
+  if(!window.LANE_CONFIG||!LANE_CONFIG.GOOGLE_CLIENT_ID||LANE_CONFIG.GOOGLE_CLIENT_ID.includes('PASTE_YOUR')){
+    document.getElementById('googleSignInBtn').innerHTML=
+      '<div style="font-family:\'Orbitron\',sans-serif;font-size:11px;color:var(--neon-r);line-height:1.7;padding:10px 0;">⚠ config.js not configured.<br>Add your GOOGLE_CLIENT_ID first.</div>';
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id:LANE_CONFIG.GOOGLE_CLIENT_ID,
+    callback:handleGoogleSignIn,
+    auto_select:false
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('googleSignInBtn'),
+    {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
+  );
+}
+
+waitForGSI();
 
 function handleGoogleSignIn(res){
   currentIdToken=res.credential;
@@ -231,14 +236,14 @@ function handleGoogleSignIn(res){
 }
 
 async function verifyAndShow(){
-  try{ await apiPost('get_roster',{}); showApp(); }
-  catch(e){ if(e.status===403||e.status===401) showErr(e.message); else showApp(); }
+  try{await apiPost('get_roster',{});showApp();}
+  catch(e){if(e.status===403||e.status===401)showErr(e.message);else showApp();}
 }
 
 function showApp(){
   document.getElementById('loginScreen').style.display='none';
-  const app=document.getElementById('appScreen');
-  app.style.display='flex'; app.style.flexDirection='column';
+  const a=document.getElementById('appScreen');
+  a.style.display='flex';a.style.flexDirection='column';
   document.getElementById('hdr').innerHTML=`
     <div class="user-chip">
       <img src="${currentUser.picture}" referrerpolicy="no-referrer">
@@ -250,13 +255,14 @@ function showApp(){
 function showErr(msg){
   document.getElementById('loginScreen').style.display='none';
   const e=document.getElementById('errorScreen');
-  e.style.display='flex'; e.style.flexDirection='column';
-  e.style.alignItems='center'; e.style.justifyContent='center';
+  e.style.display='flex';e.style.flexDirection='column';
+  e.style.alignItems='center';e.style.justifyContent='center';
   document.getElementById('errMsg').textContent=msg||'Your account is not approved.';
 }
 
-function signOut(){ if(window.google)google.accounts.id.disableAutoSelect(); location.reload(); }
+function signOut(){if(window.google)google.accounts.id.disableAutoSelect();location.reload();}
 
+/* ── API ── */
 async function apiPost(action,data){
   const r=await fetch(LANE_CONFIG.SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:currentIdToken,...data})});
   const j=await r.json();
@@ -268,9 +274,10 @@ async function apiGet(action){
   return r.json();
 }
 
+/* ── FILE ── */
 document.addEventListener('DOMContentLoaded',()=>{
   const fi=document.getElementById('fileInput');
-  if(fi) fi.addEventListener('change',e=>{if(e.target.files[0])processImage(e.target.files[0]);});
+  if(fi)fi.addEventListener('change',e=>{if(e.target.files[0])processImage(e.target.files[0]);});
   const dz=document.getElementById('dropZone');
   if(dz){
     dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
@@ -280,7 +287,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 async function processImage(file){
-  showStep(2); setStep('Converting image...');
+  showStep(2);setStep('Converting image...');
   try{
     const base64=await toBase64(file);
     const mediaType=file.type||'image/jpeg';
@@ -290,62 +297,50 @@ async function processImage(file){
     const dupeCheck=await checkDuplicate(result.analysis);
     showStep(3);
     renderAll(result.validation,result.analysis,dupeCheck);
-  }catch(e){
-    resetUpload();
-    toast('ERROR: '+(e.message||'Could not read image'),true);
-  }
+  }catch(e){resetUpload();showToast('ERROR: '+(e.message||'Could not read image'),true);console.error(e);}
 }
 
 function toBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(file);});}
 function setStep(m){const el=document.getElementById('procStep');if(el)el.textContent=m;}
 function showStep(n){[1,2,3].forEach(i=>{const el=document.getElementById('step'+i);if(el)el.style.display=i===n?'block':'none';});}
 
-/* ── DUPLICATE DETECTION ── */
+/* ── DUPE CHECK ── */
 async function checkDuplicate(analysis){
-  if(!analysis||!(analysis.bowlers||[]).length) return {isDupe:false};
+  if(!analysis||!(analysis.bowlers||[]).length)return{isDupe:false};
   try{
     const data=await apiGet('recent_sessions_for_dupe');
-    const sessions=data.sessions||[];
     const inFP=fingerprint(analysis);
-    for(const s of sessions){
-      const score=fpMatch(inFP,fingerprint(s));
-      if(score>=0.85) return{isDupe:true,matchSession:s,confidence:Math.round(score*100)};
+    for(const s of(data.sessions||[])){
+      const sc=fpMatch(inFP,fingerprint(s));
+      if(sc>=0.85)return{isDupe:true,matchSession:s,confidence:Math.round(sc*100)};
     }
     return{isDupe:false};
-  }catch(e){ return{isDupe:false}; }
+  }catch(e){return{isDupe:false};}
 }
-
 function fingerprint(s){
-  const bs=(s.bowlers||[]).map(b=>({
-    name:(b.matchedName||b.name||b.rawName||'').toLowerCase().trim(),
-    series:b.series||(b.games||[]).reduce((a,c)=>a+c,0)
-  })).sort((a,z)=>a.name.localeCompare(z.name));
+  const bs=(s.bowlers||[]).map(b=>({name:(b.matchedName||b.name||b.rawName||'').toLowerCase().trim(),series:b.series||(b.games||[]).reduce((a,c)=>a+c,0)})).sort((a,z)=>a.name.localeCompare(z.name));
   return{names:bs.map(b=>b.name),totals:bs.map(b=>b.series),pins:bs.reduce((s,b)=>s+b.series,0),ct:bs.length};
 }
-
 function fpMatch(a,b){
-  if(a.ct!==b.ct||a.ct===0) return 0;
+  if(a.ct!==b.ct||a.ct===0)return 0;
   const nm=a.names.filter((n,i)=>n===b.names[i]).length/a.ct;
   const sm=a.totals.filter((s,i)=>Math.abs(s-(b.totals[i]||0))<=5).length/a.ct;
   const td=Math.abs(a.pins-b.pins);
-  const tm=td<=10?1:td<=30?.7:0;
-  return nm*.35+sm*.45+tm*.2;
+  return nm*.35+sm*.45+(td<=10?1:td<=30?.7:0)*.2;
 }
 
-/* ── RENDER ALL ── */
+/* ── RENDER ── */
 function renderAll(validation,analysis,dupeCheck){
   const v=validation||{};
   const isRejected=v.passed===false&&v.fatal;
   const cardCls=isRejected?'fail':v.passed?'pass':'warn';
   const cardIcon=isRejected?'❌':v.passed?'✅':'⚠️';
   const cardTitle=isRejected?'UPLOAD REJECTED':v.passed?'VALIDATION PASSED':'REVIEW REQUIRED';
-
   const checks=(v.checks||[]).map(c=>{
     const cls=c.pass?'ck-ok':c.fatal?'ck-no':'ck-wr';
     const ico=c.pass?'✓':c.fatal?'✗':'!';
-    return `<div class="vc-check ${cls}"><span class="ck-i">${ico}</span><span class="ck-t">${c.message}</span></div>`;
+    return`<div class="vc-check ${cls}"><span class="ck-i">${ico}</span><span class="ck-t">${c.message}</span></div>`;
   }).join('');
-
   document.getElementById('vResult').innerHTML=`
     <div class="sec-lbl">▶ VALIDATION RESULT</div>
     <div class="vcard ${cardCls}">
@@ -353,7 +348,6 @@ function renderAll(validation,analysis,dupeCheck){
       ${v.message?`<div class="vc-body">${v.message}</div>`:''}
       ${checks?`<div class="vc-checks">${checks}</div>`:''}
     </div>`;
-
   if(isRejected){
     document.getElementById('dupeZone').style.display='none';
     document.getElementById('bowlerZone').style.display='none';
@@ -361,19 +355,13 @@ function renderAll(validation,analysis,dupeCheck){
     document.getElementById('saveRow').style.display='flex';
     return;
   }
-
-  /* Duplicate */
   if(dupeCheck&&dupeCheck.isDupe){
     document.getElementById('dupeZone').style.display='block';
     document.getElementById('dupeZone').innerHTML=`
       <div class="dupe-card">
         <div class="dupe-head"><span class="dupe-icon">⚠️</span><span class="dupe-title">POSSIBLE DUPLICATE<br>DETECTED</span></div>
-        <div class="dupe-body">This upload matches an existing session (${dupeCheck.confidence}% match). Bowlers and scores are very similar to data already saved.</div>
-        <div class="dupe-match">
-          <strong>EXISTING SESSION:</strong><br>
-          ${dupeCheck.matchSession?.date||'Recent session'} ·
-          ${(dupeCheck.matchSession?.bowlers||[]).map(b=>b.matchedName||b.name).join(', ')}
-        </div>
+        <div class="dupe-body">This upload matches an existing session (${dupeCheck.confidence}% match).</div>
+        <div class="dupe-match"><strong>EXISTING SESSION:</strong><br>${dupeCheck.matchSession?.date||'Recent session'} · ${(dupeCheck.matchSession?.bowlers||[]).map(b=>b.matchedName||b.name).join(', ')}</div>
         <div class="dupe-actions">
           <button class="btn-warn" onclick="proceedDupe()">UPLOAD ANYWAY</button>
           <button class="btn-sec" onclick="resetUpload()">CANCEL</button>
@@ -385,7 +373,6 @@ function renderAll(validation,analysis,dupeCheck){
     pendingSession={...analysis,dupeAcknowledged:false};
     return;
   }
-
   document.getElementById('dupeZone').style.display='none';
   renderBowlers(analysis);
   document.getElementById('bowlerZone').style.display='block';
@@ -398,27 +385,63 @@ function proceedDupe(){
     pendingSession.dupeAcknowledged=true;
     document.getElementById('dupeZone').style.display='none';
     document.getElementById('saveRow').style.display='flex';
-    toast('⚠ UPLOADING AS NEW SESSION','','wrn');
+    showToast('⚠ UPLOADING AS NEW SESSION',false,'wrn');
   }
 }
 
+/* ── BOWLER ROWS
+   Shows editable name for:
+   - New bowlers (yellow border) — not in roster at all
+   - Truncated names (cyan border) — screen showed "WAYN", matched to "Wayne"
+   Both types save a permanent raw→full mapping on save.
+── */
 function renderBowlers(analysis){
   const bz=document.getElementById('bowlerZone');
-  let html=`<div class="sec-lbl">▶ DETECTED BOWLERS</div>`;
+  let html=`
+    <div class="sec-lbl">▶ DETECTED BOWLERS</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
+      Review all names. If the screen cut off a name (e.g. <strong style="color:var(--neon-c);">WAYN</strong> → correct to 
+      <strong style="color:var(--neon-c);">Wayne</strong>), update it below — the app will remember this mapping permanently.
+    </div>`;
+
   (analysis.bowlers||[]).forEach((b,i)=>{
-    const name=b.matchedName||b.rawName||'?';
-    const c=pColor(name);
-    const rawDiff=b.rawName&&b.rawName.toUpperCase()!==name.toUpperCase();
+    const raw=     (b.rawName    ||'').trim();
+    const matched= (b.matchedName||raw||'?').trim();
+    const c=pColor(matched);
+
+    // Truncated = screen showed something different from what we matched
+    const isTrunc= raw && raw.toUpperCase()!==matched.toUpperCase();
+    const isNew=   b.isNew;
+    const needsEdit= isNew||isTrunc;
+    const rowClass= isNew?'is-new':isTrunc?'is-trunc':'';
+
     const games=(b.games||[]).map(g=>`<span class="s-tile ${g>=200?'lit':''}">${g}</span>`).join('');
-    const ser=b.series?`<span class="s-tile ser">${b.series}</span>`:'';
+    const ser=  b.series?`<span class="s-tile ser">${b.series}</span>`:'';
+
+    const editSection=needsEdit?`
+      <div class="name-edit-section">
+        <div class="ne-label">
+          ${isNew
+            ?'✨ NEW PLAYER — ENTER FULL NAME:'
+            :`📺 SCREEN SHOWED "${raw.toUpperCase()}" — CONFIRM FULL NAME:`}
+        </div>
+        <div class="ne-input-row">
+          <input class="name-inp" id="nn_${i}" value="${matched}" placeholder="FULL NAME..."
+            oninput="previewName(${i},this.value)">
+        </div>
+        <div class="ne-save-tip">
+          Saving will permanently remember that "${raw.toUpperCase()}" = this name.
+        </div>
+      </div>`:'';
+
     html+=`
-    <div class="b-row${b.isNew?' is-new':''}">
-      <div class="px-av" style="background:${c}15;border-color:${c};color:${c};">${ini2(name)}</div>
+    <div class="b-row ${rowClass}" id="brow_${i}">
+      <div class="px-av" style="background:${c}15;border-color:${c};color:${c};" id="bav_${i}">${ini2(matched)}</div>
       <div style="flex:1;min-width:0;">
-        <div class="b-name" style="color:${c};text-shadow:0 0 8px ${c}55;">${name}</div>
-        ${rawDiff?`<div class="b-raw">SCREEN: "${b.rawName.toUpperCase()}"</div>`:''}
+        <div class="b-name" style="color:${c};text-shadow:0 0 8px ${c}55;" id="bname_${i}">${matched.toUpperCase()}</div>
+        ${isTrunc&&!isNew?`<div class="b-raw">SCREEN: "${raw.toUpperCase()}"</div>`:''}
         ${b.ballSpeed?`<div class="b-spd">⚡ ${b.ballSpeed} MPH</div>`:''}
-        ${b.isNew?`<div class="new-banner">✨ NEW PLAYER — CONFIRM NAME:<input class="name-inp" id="nn_${i}" value="${name}" placeholder="FULL NAME..."></div>`:''}
+        ${editSection}
       </div>
       <div class="s-tiles">${games}${ser}</div>
     </div>`;
@@ -426,22 +449,34 @@ function renderBowlers(analysis){
   bz.innerHTML=html;
 }
 
+function previewName(i,val){
+  const el=document.getElementById('bname_'+i);
+  const av=document.getElementById('bav_'+i);
+  if(el&&val.trim()){el.textContent=val.trim().toUpperCase();}
+  if(av&&val.trim()){av.textContent=val.trim().slice(0,2).toUpperCase();}
+}
+
+/* ── SAVE — collects confirmed names for ALL edited rows ── */
 async function saveSession(){
   if(!pendingSession)return;
   const btn=document.getElementById('saveBtn');
   btn.disabled=true;btn.textContent='SAVING...';
+
+  // Collect edits from any input field (new bowlers AND truncated matches)
   (pendingSession.bowlers||[]).forEach((b,i)=>{
-    if(b.isNew){const inp=document.getElementById(`nn_${i}`);if(inp&&inp.value.trim())b.confirmedName=inp.value.trim();}
+    const inp=document.getElementById(`nn_${i}`);
+    if(inp&&inp.value.trim())b.confirmedName=inp.value.trim();
   });
+
   try{
     const r=await apiPost('save_session',{session:pendingSession});
-    toast('SESSION SAVED!');
+    showToast('SESSION SAVED!');
     sessionHistory.unshift({id:r.sessionId,date:new Date().toLocaleString(),bowlers:pendingSession.bowlers});
     renderRecent();
     pendingSession=null;
     resetUpload();
   }catch(e){
-    toast('SAVE FAILED: '+e.message,true);
+    showToast('SAVE FAILED: '+e.message,true);
     btn.disabled=false;btn.textContent='✓ SAVE SESSION';
   }
 }
@@ -453,7 +488,7 @@ function renderRecent(){
   li.innerHTML=sessionHistory.slice(0,5).map(u=>`
     <div class="recent-item">
       <div class="ri-date">${u.date}</div>
-      <div class="ri-meta">${(u.bowlers||[]).map(b=>b.matchedName||b.rawName).join(' · ')}</div>
+      <div class="ri-meta">${(u.bowlers||[]).map(b=>(b.confirmedName||b.matchedName||b.rawName||'').toUpperCase()).join(' · ')}</div>
     </div>`).join('');
 }
 
@@ -465,12 +500,10 @@ function resetUpload(){
   if(btn){btn.disabled=false;btn.textContent='✓ SAVE SESSION';}
 }
 
-function toast(msg,isErr=false,type=''){
+function showToast(msg,isErr=false,type=''){
   const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.className=isErr?'err':type==='wrn'?'wrn':'';
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),3200);
+  t.textContent=msg;t.className=isErr?'err':type==='wrn'?'wrn':'';
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);
 }
 </script>
 </body>

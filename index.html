@@ -773,24 +773,20 @@ body::after {
     <div class="logo-wrap">
       <div class="logo-line1">ALLEY</div>
       <div class="logo-line1" style="margin-top:-2px;">RHYTHM</div>
-      <div class="logo-line2">Bowling Stats</div>
+      <div class="logo-line2" id="leagueNameDisplay">Bowling Stats</div>
     </div>
     <div class="header-readouts">
       <div class="readout">
-        <div class="readout-val">159</div>
+        <div class="readout-val" id="hdr-avg">—</div>
         <div class="readout-lbl">AVG</div>
       </div>
       <div class="readout">
-        <div class="readout-val hot">248</div>
+        <div class="readout-val hot" id="hdr-high">—</div>
         <div class="readout-lbl">HIGH</div>
-      </div>
-      <div class="readout" style="display:none;" id="rout-wk">
-        <div class="readout-val warm">163</div>
-        <div class="readout-lbl">WK AVG</div>
       </div>
     </div>
     <div class="header-spacer"></div>
-    <button class="insert-btn">📸 UPLOAD<br>SCORE</button>
+    <button class="insert-btn" onclick="window.location.href='upload.html'">📸 UPLOAD<br>SCORE</button>
   </div>
 </div>
 
@@ -817,19 +813,19 @@ body::after {
 
   <div class="scoreboard-strip">
     <div class="score-box">
-      <div class="sb-num">159</div>
+      <div class="sb-num" id="stat-avg">—</div>
       <div class="sb-lbl">GROUP<br>AVG</div>
     </div>
     <div class="score-box b-p">
-      <div class="sb-num">248</div>
+      <div class="sb-num" id="stat-high">—</div>
       <div class="sb-lbl">HIGH<br>GAME</div>
     </div>
     <div class="score-box b-y">
-      <div class="sb-num">24</div>
+      <div class="sb-num" id="stat-sessions">—</div>
       <div class="sb-lbl">SESSIONS<br>PLAYED</div>
     </div>
     <div class="score-box b-c">
-      <div class="sb-num">192</div>
+      <div class="sb-num" id="stat-games">—</div>
       <div class="sb-lbl">GAMES<br>BOWLED</div>
     </div>
   </div>
@@ -902,41 +898,18 @@ body::after {
   <div class="footer-track" id="footerTrack"></div>
 </div>
 
+<script src="config.js"></script>
 <script>
-/* ════════════════════════════════════════
-   DATA
-════════════════════════════════════════ */
-const PLAYERS = [
-  { name:'MARK',    c:'#ffb830', avg:193, high:248, series:641, spare:41, speed:14.2, trend:[178,195,210,223,188,201,215,195,248,212,183,201] },
-  { name:'WAYNE',   c:'#39ff14', avg:186, high:231, series:647, spare:44, speed:13.1, trend:[165,188,201,178,195,212,198,218,231,198,205,210] },
-  { name:'STEVE',   c:'#ff3d6b', avg:174, high:208, series:576, spare:55, speed:7.8,  trend:[155,172,188,165,178,192,168,183,208,190,178,185] },
-  { name:'ALEX',    c:'#00ffff', avg:163, high:198, series:524, spare:58, speed:11.4, trend:[142,165,158,172,155,168,183,167,183,157,171,162] },
-  { name:'REECE',   c:'#b87eff', avg:158, high:193, series:501, spare:62, speed:10.2, trend:[138,155,168,142,158,172,145,162,178,165,148,155] },
-  { name:'DARNELL', c:'#ff6600', avg:147, high:172, series:451, spare:63, speed:9.6,  trend:[128,142,155,138,148,162,132,145,168,155,142,138] },
-  { name:'TERRY',   c:'#00e5ff', avg:139, high:162, series:420, spare:54, speed:10.8, trend:[125,138,148,132,142,155,128,145,158,155,148,142] },
-  { name:'JESS',    c:'#ff00ff', avg:124, high:155, series:375, spare:69, speed:8.3,  trend:[108,118,132,115,122,138,110,125,142,113,107,119] },
-];
-
-const SESSIONS = [
-  { date:'FRI  MAY 2', team:'TEAM 14', bowlers:[{name:'WAYNE',games:[218,231,198],series:647},{name:'STEVE',games:[178,208,190],series:576},{name:'MARK',games:[195,182,176],series:553},{name:'ALEX',games:[167,183,157],series:507}] },
-  { date:'TUE  APR 29', team:'TEAM 13', bowlers:[{name:'REECE',games:[155,168,178],series:501},{name:'JESS',games:[132,118,125],series:375},{name:'TERRY',games:[148,158,155],series:461},{name:'DARNELL',games:[162,168,158],series:488}] },
-  { date:'FRI  APR 25', team:'TEAM 14', bowlers:[{name:'MARK',games:[212,248,181],series:641},{name:'WAYNE',games:[198,205,212],series:615},{name:'STEVE',games:[183,192,195],series:570},{name:'ALEX',games:[155,172,168],series:495}] },
-  { date:'TUE  APR 22', team:'TEAM 13', bowlers:[{name:'REECE',games:[162,145,178],series:485},{name:'JESS',games:[107,113,155],series:375},{name:'TERRY',games:[142,155,132],series:429},{name:'DARNELL',games:[142,138,155],series:435}] },
-  { date:'FRI  APR 18', team:'TEAM 14', bowlers:[{name:'WAYNE',games:[188,195,201],series:584},{name:'MARK',games:[195,178,188],series:561},{name:'STEVE',games:[165,178,172],series:515},{name:'ALEX',games:[158,148,162],series:468}] },
-];
-
-const WEEKLY = [
-  { week:'APR 28 – MAY 2', groupAvg:163, highGame:231, bowlers:[{name:'WAYNE',games:[218,231,198],avg:216},{name:'STEVE',games:[178,208,190],avg:192},{name:'MARK',games:[195,182,176],avg:184},{name:'ALEX',games:[167,183,157],avg:169},{name:'REECE',games:[155,168,178],avg:167},{name:'TERRY',games:[148,158,155],avg:154},{name:'DARNELL',games:[162,168,158],avg:163},{name:'JESS',games:[132,118,125],avg:125}] },
-  { week:'APR 21 – APR 25', groupAvg:171, highGame:248, bowlers:[{name:'MARK',games:[212,248,181],avg:214},{name:'WAYNE',games:[198,205,212],avg:205},{name:'STEVE',games:[183,192,195],avg:190},{name:'REECE',games:[162,145,178],avg:162},{name:'ALEX',games:[155,172,168],avg:165},{name:'DARNELL',games:[142,138,155],avg:145},{name:'TERRY',games:[142,155,132],avg:143},{name:'JESS',games:[107,113,155],avg:125}] },
-  { week:'APR 14 – APR 18', groupAvg:156, highGame:201, bowlers:[{name:'WAYNE',games:[188,195,201],avg:195},{name:'MARK',games:[195,178,188],avg:187},{name:'STEVE',games:[165,178,172],avg:172},{name:'REECE',games:[142,158,165],avg:155},{name:'ALEX',games:[158,148,162],avg:156},{name:'DARNELL',games:[155,148,138],avg:147},{name:'TERRY',games:[128,138,145],avg:137},{name:'JESS',games:[122,110,108],avg:113}] },
-  { week:'APR 7 – APR 11', groupAvg:158, highGame:215, bowlers:[{name:'MARK',games:[201,215,192],avg:203},{name:'WAYNE',games:[178,195,188],avg:187},{name:'ALEX',games:[172,165,178],avg:172},{name:'STEVE',games:[168,155,172],avg:165},{name:'REECE',games:[145,158,162],avg:155},{name:'DARNELL',games:[148,132,145],avg:142},{name:'TERRY',games:[138,145,128],avg:137},{name:'JESS',games:[118,122,115],avg:118}] },
-];
-
 /* ════════════════════════════════════════
    HELPERS
 ════════════════════════════════════════ */
-function pColor(name){ return PLAYERS.find(p=>p.name===name)?.c || '#39ff14'; }
-function ini2(n){ return n.slice(0,2); }
+const COLORS = ['#ffb830','#39ff14','#ff3d6b','#00ffff','#b87eff','#ff6600','#00e5ff','#ff00ff'];
+function pColor(name){
+  if(!name) return '#39ff14';
+  let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))&0xffffffff;
+  return COLORS[Math.abs(h)%COLORS.length];
+}
+function ini2(n){ return (n||'??').slice(0,2).toUpperCase(); }
 
 function goTab(name, btn){
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
@@ -945,147 +918,307 @@ function goTab(name, btn){
   btn.classList.add('active');
 }
 
-/* ════════════════════════════════════════
-   MARQUEES
-════════════════════════════════════════ */
-const tickerItems = [
-  'MARK · HIGH GAME 248',
-  'WAYNE · BEST SERIES 647',
-  'ALLEY RHYTHM · SEASON 1',
-  'FRIDAY NIGHT CREW',
-  'GROUP AVG 159',
-  'STEVE · 208 GAME',
-  'UPLOAD YOUR SCORES',
-  'JESS · MOST IMPROVED',
-  'NEXT SESSION FRIDAY',
-  'DARNELL · 3 STRIKES',
-];
+function emptyState(msg){
+  return `<div style="text-align:center;padding:48px 20px;">
+    <div style="font-size:36px;margin-bottom:14px;">🎳</div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;line-height:1.8;">${msg}</div>
+    <div style="margin-top:18px;">
+      <button onclick="window.location.href='upload.html'"
+        style="background:var(--neon-g);color:var(--void);border:none;border-radius:4px;padding:10px 22px;
+               font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;cursor:pointer;
+               box-shadow:0 0 16px rgba(57,255,20,.3),3px 3px 0 var(--neon-g2);">
+        📸 UPLOAD FIRST SCORE
+      </button>
+    </div>
+  </div>`;
+}
 
-const topEl = document.getElementById('topMarquee');
-const doubled = [...tickerItems, ...tickerItems];
-topEl.innerHTML = doubled.map(t=>`<span class="marquee-item">${t}</span>`).join('');
+function loadingState(){
+  return `<div style="text-align:center;padding:40px 20px;">
+    <div style="width:40px;height:40px;border:3px solid var(--rail2);border-top-color:var(--neon-g);
+                border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px;
+                box-shadow:0 0 16px rgba(57,255,20,.2);"></div>
+    <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim);letter-spacing:1px;">LOADING...</div>
+  </div>`;
+}
+
+/* ════════════════════════════════════════
+   API
+════════════════════════════════════════ */
+async function apiFetch(action){
+  const url = `${LANE_CONFIG.SCRIPT_URL}?action=${action}`;
+  const r = await fetch(url);
+  if(!r.ok) throw new Error('API error '+r.status);
+  return r.json();
+}
+
+/* ════════════════════════════════════════
+   MARQUEE — static defaults, updated after load
+════════════════════════════════════════ */
+function buildMarquee(items){
+  const doubled = [...items,...items];
+  return doubled.map(t=>`<span class="marquee-item">${t}</span>`).join('');
+}
+
+// Apply config-driven branding on load
+document.getElementById('leagueNameDisplay').textContent = (LANE_CONFIG.LEAGUE_NAME || 'Bowling Stats').toUpperCase();
+document.title = (LANE_CONFIG.SITE_NAME || 'Alley Rhythm') + ' — Stats';
+
+const defaultTicker = [
+  LANE_CONFIG.SITE_NAME || 'ALLEY RHYTHM',
+  'UPLOAD YOUR SCORES',
+  (LANE_CONFIG.LEAGUE_NAME || 'BOWLING CREW').toUpperCase(),
+  'BOWLING STATS TRACKER',
+  'UPLOAD A SCORE TO GET STARTED',
+  `MEETS EVERY ${(LANE_CONFIG.LEAGUE_DAY || 'WEEK').toUpperCase()}`
+];
+document.getElementById('topMarquee').innerHTML = buildMarquee(defaultTicker);
 
 const footItems = [
-  '© ALLEY RHYTHM  ·  SEASON STATS',
-  'MARK LEADS WITH 193 AVG',
-  'WAYNE TOP SERIES: 647',
-  'JESS SPARE% LEADER: 69%',
+  `© ${(LANE_CONFIG.SITE_NAME || 'ALLEY RHYTHM').toUpperCase()}  ·  SEASON STATS`,
   'UPLOAD SCORES AFTER EACH SESSION',
-  'WEEKLY EMAIL DIGEST EVERY MONDAY',
+  `WEEKLY EMAIL DIGEST EVERY MONDAY`,
+  `${(LANE_CONFIG.LEAGUE_NAME || 'THE CREW').toUpperCase()} · ${(LANE_CONFIG.LEAGUE_DAY || 'WEEKLY').toUpperCase()} SESSIONS`
 ];
-const footEl = document.getElementById('footerTrack');
-const doubledFoot = [...footItems,...footItems];
-footEl.innerHTML = doubledFoot.map(t=>`<span class="footer-item">${t}</span>`).join('');
+document.getElementById('footerTrack').innerHTML = buildMarquee(footItems);
 
 /* ════════════════════════════════════════
-   STATS — PLAYER ROWS
+   LOAD ALL DATA ON PAGE LOAD
 ════════════════════════════════════════ */
-const sortedP = [...PLAYERS].sort((a,z)=>z.avg-a.avg);
-const rankClass = ['r1','r2','r3','','','','',''];
+let liveStats = null;
+let liveHistory = null;
+let liveWeekly = null;
 
-document.getElementById('playerRows').innerHTML = sortedP.map((p,i)=>{
-  const mx=Math.max(...p.trend), mn=Math.min(...p.trend);
-  const bars = p.trend.slice(-7).map(v=>{
-    const h = Math.max(4, Math.round(5+((v-mn)/(mx-mn))*22));
-    const cls = v===mx ? 'top' : v>p.avg ? 'pos' : '';
-    return `<div class="spk ${cls}" style="height:${h}px"></div>`;
-  }).join('');
+async function loadAll(){
+  try {
+    // Parallel fetch
+    const [stats, history, weekly] = await Promise.all([
+      apiFetch('stats'),
+      apiFetch('history'),
+      apiFetch('weekly'),
+    ]);
+    liveStats   = stats;
+    liveHistory = history;
+    liveWeekly  = weekly;
 
-  return `<div class="pl-row">
-    <div class="pl-rank ${rankClass[i]}">${i+1}</div>
-    <div class="pl-bowler">
-      <div class="px-av" style="background:${p.c}12;border-color:${p.c};color:${p.c};">${ini2(p.name)}</div>
-      <div>
-        <div class="pl-name" style="color:${p.c};text-shadow:0 0 8px ${p.c}66;">${p.name}</div>
-        <div class="pl-sub">${p.trend.length} games</div>
-      </div>
-    </div>
-    <div class="pl-num hi">${p.avg}</div>
-    <div class="pl-num ph-hide">${p.high}</div>
-    <div class="pl-num ph-hide">${p.spare}%</div>
-    <div class="pl-num ph-hide">${p.speed}</div>
-    <div class="spark-bars">${bars}</div>
-  </div>`;
-}).join('');
+    renderStats(stats);
+    renderLeaders(stats);
+    renderWeekly(weekly);
+    renderHistory(history);
+    updateHeaderAndMarquee(stats);
+  } catch(e) {
+    console.error('Failed to load data:', e);
+    // Show empty states on error
+    document.getElementById('playerRows').innerHTML =
+      `<div style="padding:20px;font-family:'Orbitron',sans-serif;font-size:12px;color:var(--neon-r);text-align:center;">
+        Could not connect to server.<br>Check your SCRIPT_URL in config.js.
+      </div>`;
+  }
+}
 
 /* ════════════════════════════════════════
-   HIGH SCORES / LEADERBOARD
+   UPDATE HEADER READOUTS + MARQUEE
 ════════════════════════════════════════ */
-const lbCats = [
-  { icon:'🏆', title:'SEASON AVG',   rows:[...PLAYERS].sort((a,z)=>z.avg-a.avg).map(p=>({n:p.name,c:p.c,v:p.avg})) },
-  { icon:'🎯', title:'HIGH GAME',    rows:[...PLAYERS].sort((a,z)=>z.high-a.high).map(p=>({n:p.name,c:p.c,v:p.high})) },
-  { icon:'💥', title:'BEST SERIES',  rows:[...PLAYERS].sort((a,z)=>z.series-a.series).map(p=>({n:p.name,c:p.c,v:p.series})) },
-  { icon:'🎳', title:'SPARE %',      rows:[...PLAYERS].sort((a,z)=>z.spare-a.spare).map(p=>({n:p.name,c:p.c,v:p.spare+'%'})) },
-];
+function updateHeaderAndMarquee(stats){
+  const bowlers = stats.bowlers || [];
+  if(!bowlers.length) return;
 
-const posCls = ['p1','p2','p3','','',''];
+  const allGames = bowlers.flatMap(b => b.recentGames || []);
+  const groupAvg = allGames.length ? Math.round(allGames.reduce((a,b)=>a+b,0)/allGames.length) : 0;
+  const highGame = Math.max(...bowlers.map(b=>b.highGame||0));
 
-document.getElementById('lbGrid').innerHTML = lbCats.map(cat=>`
-  <div class="lb-cabinet">
-    <div class="lb-cab-header">
-      <span class="lb-cab-icon">${cat.icon}</span>
-      <span class="lb-cab-title">${cat.title}</span>
-    </div>
-    ${cat.rows.slice(0,6).map((r,i)=>`
-    <div class="lb-entry">
-      <div class="lb-pos ${posCls[i]}">${['01','02','03','04','05','06'][i]}</div>
-      <div class="lb-dot" style="background:${r.c};box-shadow:0 0 8px ${r.c};"></div>
-      <div class="lb-nm" style="color:${r.c};text-shadow:0 0 6px ${r.c}44;">${r.n}</div>
-      <div class="lb-score" style="color:${r.c};text-shadow:0 0 8px ${r.c}66;">${r.v}</div>
-    </div>`).join('')}
-  </div>`).join('');
+  document.getElementById('hdr-avg').textContent  = groupAvg || '—';
+  document.getElementById('hdr-high').textContent = highGame || '—';
+  document.getElementById('stat-avg').textContent  = groupAvg || '—';
+  document.getElementById('stat-high').textContent = highGame || '—';
+  document.getElementById('stat-sessions').textContent = liveHistory?.sessions?.length || '—';
+  document.getElementById('stat-games').textContent    = bowlers.reduce((s,b)=>s+b.gamesCount,0) || '—';
+
+  // Build live marquee from real data + config
+  const leader = [...bowlers].sort((a,z)=>z.avg-a.avg)[0];
+  const highSeries = Math.max(...bowlers.map(b=>b.highSeries||0));
+  const items = [
+    `${(LANE_CONFIG.SITE_NAME||'ALLEY RHYTHM').toUpperCase()} · SEASON STATS`,
+    leader ? `${leader.name.toUpperCase()} LEADS · ${leader.avg} AVG` : null,
+    highGame ? `HIGH GAME THIS SEASON: ${highGame}` : null,
+    `${bowlers.length} PLAYERS TRACKED`,
+    highSeries ? `BEST SERIES: ${highSeries}` : null,
+    `UPLOAD SCORES AFTER EACH SESSION`,
+    `${(LANE_CONFIG.LEAGUE_NAME||'THE CREW').toUpperCase()} · EVERY ${(LANE_CONFIG.LEAGUE_DAY||'WEEK').toUpperCase()}`,
+  ].filter(Boolean);
+
+  document.getElementById('topMarquee').innerHTML = buildMarquee(items);
+}
 
 /* ════════════════════════════════════════
-   WEEKLY
+   STATS TAB
 ════════════════════════════════════════ */
-document.getElementById('weeklyPanels').innerHTML = WEEKLY.map((w,i)=>`
-  <div class="wk-panel ${i===0?'wo':''}">
-    <div class="wk-top" onclick="this.parentElement.classList.toggle('wo')">
-      <div>
-        <div class="wk-week-label">${w.week}</div>
-        <div class="wk-meta">HIGH GAME: ${w.highGame}  //  ${w.bowlers.length} PLAYERS</div>
-      </div>
-      <div style="display:flex;align-items:center;">
+function renderStats(stats){
+  const bowlers = stats.bowlers || [];
+  const el = document.getElementById('playerRows');
+
+  if(!bowlers.length){
+    el.innerHTML = emptyState('NO GAMES YET<br>UPLOAD YOUR FIRST SCORE SCREEN');
+    return;
+  }
+
+  const sorted = [...bowlers].sort((a,z)=>z.avg-a.avg);
+  const rankClass = ['r1','r2','r3','','','','','',''];
+
+  el.innerHTML = sorted.map((p,i)=>{
+    const c = pColor(p.name);
+    const trend = p.recentGames || [];
+    const mx = trend.length ? Math.max(...trend) : 200;
+    const mn = trend.length ? Math.min(...trend) : 100;
+    const bars = trend.slice(-7).map(v=>{
+      const h = Math.max(4, Math.round(5+((v-mn)/Math.max(mx-mn,1))*22));
+      const cls = v===mx ? 'top' : v>(p.avg||0) ? 'pos' : '';
+      return `<div class="spk ${cls}" style="height:${h}px"></div>`;
+    }).join('');
+
+    const spare = (p.strikes||0)+(p.spares||0) > 0
+      ? Math.round((p.spares/(p.spares+p.strikes))*100)+'%' : '—';
+    const speed = p.avgSpeed ? p.avgSpeed : '—';
+
+    return `<div class="pl-row">
+      <div class="pl-rank ${rankClass[i]||''}">${i+1}</div>
+      <div class="pl-bowler">
+        <div class="px-av" style="background:${c}12;border-color:${c};color:${c};">${ini2(p.name)}</div>
         <div>
-          <div class="wk-avg-display">${w.groupAvg}</div>
-          <div class="wk-avg-lbl">GRP AVG</div>
+          <div class="pl-name" style="color:${c};text-shadow:0 0 8px ${c}66;">${p.name.toUpperCase()}</div>
+          <div class="pl-sub">${p.gamesCount||0} games</div>
+        </div>
+      </div>
+      <div class="pl-num hi">${p.avg||'—'}</div>
+      <div class="pl-num ph-hide">${p.highGame||'—'}</div>
+      <div class="pl-num ph-hide">${spare}</div>
+      <div class="pl-num ph-hide">${speed}</div>
+      <div class="spark-bars">${bars||'<span style="color:var(--dim);font-size:10px;">—</span>'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════
+   LEADERS TAB
+════════════════════════════════════════ */
+function renderLeaders(stats){
+  const bowlers = stats.bowlers || [];
+  const el = document.getElementById('lbGrid');
+
+  if(!bowlers.length){
+    el.innerHTML = emptyState('NO DATA YET<br>UPLOAD SCORES TO SEE LEADERBOARD');
+    return;
+  }
+
+  const posCls = ['p1','p2','p3','','',''];
+  const lbCats = [
+    { icon:'🏆', title:'SEASON AVG',  rows:[...bowlers].sort((a,z)=>z.avg-a.avg).map(p=>({n:p.name,c:pColor(p.name),v:p.avg})) },
+    { icon:'🎯', title:'HIGH GAME',   rows:[...bowlers].sort((a,z)=>z.highGame-a.highGame).map(p=>({n:p.name,c:pColor(p.name),v:p.highGame})) },
+    { icon:'💥', title:'BEST SERIES', rows:[...bowlers].sort((a,z)=>z.highSeries-a.highSeries).map(p=>({n:p.name,c:pColor(p.name),v:p.highSeries||0})) },
+    { icon:'🎳', title:'SPARE %',     rows:[...bowlers]
+        .filter(p=>(p.strikes||0)+(p.spares||0)>0)
+        .sort((a,z)=>(z.spares/(z.spares+z.strikes))-(a.spares/(a.spares+a.strikes)))
+        .map(p=>({n:p.name,c:pColor(p.name),v:Math.round(p.spares/(p.spares+p.strikes)*100)+'%'})) },
+  ];
+
+  el.innerHTML = lbCats.map(cat=>`
+    <div class="lb-cabinet">
+      <div class="lb-cab-header">
+        <span class="lb-cab-icon">${cat.icon}</span>
+        <span class="lb-cab-title">${cat.title}</span>
+      </div>
+      ${cat.rows.slice(0,6).map((r,i)=>`
+      <div class="lb-entry">
+        <div class="lb-pos ${posCls[i]||''}">${['01','02','03','04','05','06'][i]}</div>
+        <div class="lb-dot" style="background:${r.c};box-shadow:0 0 8px ${r.c};"></div>
+        <div class="lb-nm" style="color:${r.c};text-shadow:0 0 6px ${r.c}44;">${r.n.toUpperCase()}</div>
+        <div class="lb-score" style="color:${r.c};text-shadow:0 0 8px ${r.c}66;">${r.v}</div>
+      </div>`).join('')}
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════
+   WEEKLY TAB
+════════════════════════════════════════ */
+function renderWeekly(weekly){
+  const weeks = weekly.weeks || [];
+  const el = document.getElementById('weeklyPanels');
+
+  if(!weeks.length){
+    el.innerHTML = emptyState('NO WEEKLY DATA YET<br>UPLOAD SCORES TO START TRACKING');
+    return;
+  }
+
+  el.innerHTML = [...weeks].reverse().map((w,i)=>`
+    <div class="wk-panel ${i===0?'wo':''}">
+      <div class="wk-top" onclick="this.parentElement.classList.toggle('wo')">
+        <div>
+          <div class="wk-week-label">${w.week}</div>
+          <div class="wk-meta">HIGH GAME: ${w.highGame}  //  ${w.bowlers.length} PLAYERS</div>
+        </div>
+        <div style="display:flex;align-items:center;">
+          <div>
+            <div class="wk-avg-display">${w.groupAvg}</div>
+            <div class="wk-avg-lbl">GRP AVG</div>
+          </div>
+          <span class="chv">▾</span>
+        </div>
+      </div>
+      <div class="wk-body">
+        ${w.bowlers.map(b=>`
+        <div class="wk-prow">
+          <div class="wk-pname" style="color:${pColor(b.name)};text-shadow:0 0 6px ${pColor(b.name)}55;">${b.name.toUpperCase()}</div>
+          <div class="wk-pgames">${b.games.join('  ·  ')}</div>
+          <div class="wk-pavg" style="${b.avg>=200?'color:var(--neon-g);text-shadow:0 0 8px var(--neon-g);':''}">${b.avg}</div>
+        </div>`).join('')}
+      </div>
+    </div>`).join('');
+}
+
+/* ════════════════════════════════════════
+   HISTORY TAB
+════════════════════════════════════════ */
+function renderHistory(history){
+  const sessions = history.sessions || [];
+  const el = document.getElementById('histPanels');
+
+  if(!sessions.length){
+    el.innerHTML = emptyState('NO SESSIONS YET<br>UPLOAD YOUR FIRST SCORE SCREEN');
+    return;
+  }
+
+  el.innerHTML = sessions.map((s,i)=>{
+    const bowlers = s.bowlers || [];
+    const pins = bowlers.reduce((sum,b)=>sum+(b.series||0),0);
+    return `<div class="hs-panel ${i===0?'ho':''}">
+      <div class="hs-top" onclick="this.parentElement.classList.toggle('ho')">
+        <div>
+          <div class="hs-date" style="color:${i===0?'var(--neon-g)':'var(--text)'};">${s.date}${s.teamName?'  //  '+s.teamName:''}</div>
+          <div class="hs-meta">${bowlers.length} PLAYERS  ·  ${pins} TOTAL PINS</div>
         </div>
         <span class="chv">▾</span>
       </div>
-    </div>
-    <div class="wk-body">
-      ${w.bowlers.map(b=>`
-      <div class="wk-prow">
-        <div class="wk-pname" style="color:${pColor(b.name)};text-shadow:0 0 6px ${pColor(b.name)}55;">${b.name}</div>
-        <div class="wk-pgames">${b.games.join('  ·  ')}</div>
-        <div class="wk-pavg" style="${b.avg>=200?`color:var(--neon-g);text-shadow:0 0 8px var(--neon-g);`:''}">${b.avg}</div>
-      </div>`).join('')}
-    </div>
-  </div>`).join('');
+      <div class="hs-body">
+        ${bowlers.map(b=>`
+        <div class="hs-prow">
+          <div class="hs-nm" style="color:${pColor(b.matchedName||b.name)};text-shadow:0 0 6px ${pColor(b.matchedName||b.name)}44;">${(b.matchedName||b.name||'').toUpperCase()}</div>
+          <div style="flex:1;">${(b.games||[]).map(g=>`<span class="score-tile ${g>=200?'lit':''}">${g}</span>`).join('')}</div>
+          <div class="hs-ser">${b.series||''}</div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
 
 /* ════════════════════════════════════════
-   HISTORY
+   INIT — show loading states then fetch
 ════════════════════════════════════════ */
-document.getElementById('histPanels').innerHTML = SESSIONS.map((s,i)=>{
-  const pins = s.bowlers.reduce((sum,b)=>sum+b.series,0);
-  return `<div class="hs-panel ${i===0?'ho':''}">
-    <div class="hs-top" onclick="this.parentElement.classList.toggle('ho')">
-      <div>
-        <div class="hs-date" style="color:${i===0?'var(--neon-g)':'var(--text)'};">${s.date}  <span style="color:var(--dim);">//</span>  ${s.team}</div>
-        <div class="hs-meta">${s.bowlers.length} PLAYERS  ·  ${pins} TOTAL PINS</div>
-      </div>
-      <span class="chv">▾</span>
-    </div>
-    <div class="hs-body">
-      ${s.bowlers.map(b=>`
-      <div class="hs-prow">
-        <div class="hs-nm" style="color:${pColor(b.name)};text-shadow:0 0 6px ${pColor(b.name)}44;">${b.name}</div>
-        <div style="flex:1;">${b.games.map(g=>`<span class="score-tile ${g>=200?'lit':''}">${g}</span>`).join('')}</div>
-        <div class="hs-ser">${b.series}</div>
-      </div>`).join('')}
-    </div>
-  </div>`;
-}).join('');
+document.getElementById('playerRows').innerHTML = loadingState();
+document.getElementById('lbGrid').innerHTML = loadingState();
+document.getElementById('weeklyPanels').innerHTML = loadingState();
+document.getElementById('histPanels').innerHTML = loadingState();
+
+loadAll();
 </script>
 </body>
 </html>

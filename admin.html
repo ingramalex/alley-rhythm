@@ -6,8 +6,8 @@
 <title>Alley Rhythm — Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
+<!-- config.js MUST load before Google GSI so GOOGLE_CLIENT_ID is available -->
 <script src="config.js"></script>
-<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 :root{
   --void:#01030a;--deep:#060914;--panel:#0a0e1a;--panel2:#0f1424;
@@ -196,8 +196,8 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
   <div class="login-sub">ADMIN PANEL REQUIRES SIGN IN.<br>YOUR ACCOUNT MUST HAVE ADMIN PERMISSIONS.</div>
   <div class="login-box">
     <div class="login-box-lbl">ADMIN CREDENTIALS REQUIRED</div>
-    <div id="g_id_onload" data-client_id="" data-callback="handleGoogleSignIn" data-auto_prompt="false"></div>
-    <div class="g_id_signin" data-type="standard" data-size="large" data-theme="filled_black" data-text="sign_in_with" data-shape="rectangular" data-logo_alignment="left" data-width="260"></div>
+    <!-- Sign-in button rendered by JS after GSI loads -->
+    <div id="googleSignInBtn"></div>
   </div>
 </div>
 
@@ -347,10 +347,33 @@ function pColor(n){let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff
 function ini2(n){return(n||'??').slice(0,2).toUpperCase();}
 
 /* ── AUTH ── */
-window.addEventListener('load',()=>{
-  const el=document.getElementById('g_id_onload');
-  if(el)el.dataset.client_id=LANE_CONFIG.GOOGLE_CLIENT_ID;
-});
+// Poll for GSI library (loaded at bottom of page) then init with client_id from config.js
+function waitForGSI(){
+  if(window.google&&window.google.accounts){
+    initGSI();
+  }else{
+    setTimeout(waitForGSI,100);
+  }
+}
+
+function initGSI(){
+  if(!window.LANE_CONFIG||!LANE_CONFIG.GOOGLE_CLIENT_ID||LANE_CONFIG.GOOGLE_CLIENT_ID.includes('PASTE_YOUR')){
+    document.getElementById('googleSignInBtn').innerHTML=
+      '<div style="font-family:\'Orbitron\',sans-serif;font-size:11px;color:var(--neon-r);line-height:1.7;padding:10px 0;">⚠ config.js not configured.<br>Add your GOOGLE_CLIENT_ID first.</div>';
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id:LANE_CONFIG.GOOGLE_CLIENT_ID,
+    callback:handleGoogleSignIn,
+    auto_select:false
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('googleSignInBtn'),
+    {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
+  );
+}
+
+waitForGSI();
 
 function handleGoogleSignIn(res){
   currentIdToken=res.credential;
@@ -652,5 +675,7 @@ function toast(msg,isErr=false){
   setTimeout(()=>t.classList.remove('show'),3000);
 }
 </script>
+<!-- GSI loads AFTER config.js is parsed so GOOGLE_CLIENT_ID is available -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </body>
 </html>
