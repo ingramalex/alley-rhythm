@@ -152,9 +152,17 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
     <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
       <span class="uz-icon">📷</span>
       <div class="uz-title">SNAP A SCORE SCREEN</div>
-      <div class="uz-hint">Photo of the bowling alley display. Must show complete game data.</div>
-      <button class="btn-main" type="button">SELECT PHOTO</button>
-      <input type="file" id="fileInput" accept="image/*" capture="environment">
+      <div class="uz-hint">Take a photo of the score screen or choose one from your photo library.</div>
+      <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
+        <button class="btn-main" type="button" style="margin-top:0;"
+          onclick="document.getElementById('fileCamera').click()">📷 TAKE PHOTO</button>
+        <button class="btn-main" type="button" style="margin-top:0;background:var(--neon-c);box-shadow:0 0 20px rgba(0,255,255,.3),3px 3px 0 var(--neon-c2,#00aaaa);"
+          onclick="document.getElementById('fileLibrary').click()">🖼 PHOTO LIBRARY</button>
+      </div>
+      <!-- Camera: opens camera directly on mobile -->
+      <input type="file" id="fileCamera"  accept="image/*" capture="environment" style="display:none;">
+      <!-- Library: lets user browse photos, camera roll, files -->
+      <input type="file" id="fileLibrary" accept="image/*" style="display:none;">
     </div>
     <div style="margin-top:10px;text-align:center;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:1px;line-height:1.8;">
       🔒 APPROVED ACCOUNTS ONLY &nbsp;·&nbsp; <a href="admin.html" style="color:var(--neon-r);">⚙ ADMIN PANEL →</a>
@@ -323,8 +331,11 @@ async function apiGet(action){
 
 /* ── FILE ── */
 document.addEventListener('DOMContentLoaded',()=>{
-  const fi=document.getElementById('fileInput');
-  if(fi)fi.addEventListener('change',e=>{if(e.target.files[0])processImage(e.target.files[0]);});
+  // Both inputs feed into the same processImage function
+  ['fileCamera','fileLibrary'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('change',e=>{if(e.target.files[0])processImage(e.target.files[0]);});
+  });
   const dz=document.getElementById('dropZone');
   if(dz){
     dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
@@ -541,7 +552,7 @@ function renderRecent(){
 
 function resetUpload(){
   pendingSession=null;
-  const fi=document.getElementById('fileInput');if(fi)fi.value='';
+  ['fileCamera','fileLibrary'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   showStep(1);
   const btn=document.getElementById('saveBtn');
   if(btn){btn.disabled=false;btn.textContent='✓ SAVE SESSION';}
