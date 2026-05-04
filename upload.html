@@ -157,7 +157,7 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
       <input type="file" id="fileInput" accept="image/*" capture="environment">
     </div>
     <div style="margin-top:10px;text-align:center;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:1px;line-height:1.8;">
-      🔒 APPROVED ACCOUNTS ONLY &nbsp;·&nbsp; <a href="admin.html" style="color:var(--neon-g2);">ADMIN PANEL →</a>
+      🔒 APPROVED ACCOUNTS ONLY &nbsp;·&nbsp; <a href="admin.html" style="color:var(--neon-r);">⚙ ADMIN PANEL →</a>
     </div>
   </div>
 
@@ -210,13 +210,19 @@ function waitForGSI(){
 }
 
 function initGSI(){
-  if(!window.LANE_CONFIG||!LANE_CONFIG.GOOGLE_CLIENT_ID||LANE_CONFIG.GOOGLE_CLIENT_ID.includes('PASTE_YOUR')){
+  // Use LANE_CONFIG if loaded, otherwise fall back to inline values
+  const clientId = (window.LANE_CONFIG && LANE_CONFIG.GOOGLE_CLIENT_ID &&
+                    !LANE_CONFIG.GOOGLE_CLIENT_ID.includes('PASTE_YOUR'))
+                    ? LANE_CONFIG.GOOGLE_CLIENT_ID
+                    : '288728154445-7dhhfgipuq69smendv7ntro4p3mkbe9e.apps.googleusercontent.com';
+
+  if(!clientId || clientId.length < 10){
     document.getElementById('googleSignInBtn').innerHTML=
-      '<div style="font-family:\'Orbitron\',sans-serif;font-size:11px;color:var(--neon-r);line-height:1.7;padding:10px 0;">⚠ config.js not configured.<br>Add your GOOGLE_CLIENT_ID first.</div>';
+      '<div style="font-family:\'Orbitron\',sans-serif;font-size:11px;color:var(--neon-r);line-height:1.7;padding:10px 0;">⚠ Google Client ID missing.<br>Check config.js.</div>';
     return;
   }
   google.accounts.id.initialize({
-    client_id:LANE_CONFIG.GOOGLE_CLIENT_ID,
+    client_id:clientId,
     callback:handleGoogleSignIn,
     auto_select:false
   });
@@ -263,14 +269,18 @@ function showErr(msg){
 function signOut(){if(window.google)google.accounts.id.disableAutoSelect();location.reload();}
 
 /* ── API ── */
+const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG.SCRIPT_URL.includes('PASTE_YOUR'))
+  ? LANE_CONFIG.SCRIPT_URL
+  : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
+
 async function apiPost(action,data){
-  const r=await fetch(LANE_CONFIG.SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:currentIdToken,...data})});
+  const r=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:currentIdToken,...data})});
   const j=await r.json();
   if(j.error){const e=new Error(j.error);e.status=r.status;throw e;}
   return j;
 }
 async function apiGet(action){
-  const r=await fetch(`${LANE_CONFIG.SCRIPT_URL}?action=${action}`);
+  const r=await fetch(`${SCRIPT_URL}?action=${action}`);
   return r.json();
 }
 

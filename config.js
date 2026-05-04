@@ -16,7 +16,7 @@ const LANE_CONFIG = {
   // ── Site Branding ───────────────────────────────────────────────
   // Change these anytime — just re-upload config.js to GitHub
   SITE_NAME:   "Alley Rhythm",
-  LEAGUE_NAME: "Blame It On The Lane",   // ← updated from Friday Night Crew
+  LEAGUE_NAME: "Sunday Night Crew",   // ← updated from Friday Night Crew
   LEAGUE_DAY:  "Sunday",              // ← used in emails and footer ticker
 
 };
