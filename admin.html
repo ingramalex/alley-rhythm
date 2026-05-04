@@ -465,10 +465,17 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
   ? LANE_CONFIG.SCRIPT_URL
   : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
 
-async function apiPost(action,data){
-  const r=await fetch(SCRIPT_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action,token:currentIdToken,...data})});
-  const j=await r.json();
-  if(j.error){const e=new Error(j.error);e.status=r.status;throw e;}
+async function apiPost(action, data){
+  // text/plain avoids iOS Safari CORS preflight that blocks application/json
+  const payload = JSON.stringify({action, token:currentIdToken, ...data});
+  const r = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: payload,
+  });
+  if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
+  const j = await r.json();
+  if (j.error) { const e = new Error(j.error); e.status = r.status; throw e; }
   return j;
 }
 async function apiGet(action){
