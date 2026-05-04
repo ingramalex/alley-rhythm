@@ -1081,8 +1081,11 @@ function renderStats(stats){
       return `<div class="spk ${cls}" style="height:${h}px"></div>`;
     }).join('');
 
-    const spare = (p.strikes||0)+(p.spares||0) > 0
-      ? Math.round((p.spares/(p.spares+p.strikes))*100)+'%' : '—';
+    const spare = p.sparePct !== null && p.sparePct !== undefined
+      ? p.sparePct + '%'
+      : (p.strikes + p.spares) > 0
+        ? Math.round((p.spares / (p.spares + p.strikes)) * 100) + '%'
+        : '—';
     const speed = p.avgSpeed ? p.avgSpeed : '—';
 
     return `<div class="pl-row">
