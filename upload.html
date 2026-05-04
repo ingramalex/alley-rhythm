@@ -152,41 +152,41 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
 <div class="app-page">
 
   <div id="step1">
-    <div class="upload-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+    <div class="upload-zone" id="dropZone" onclick="event.target===this&&document.getElementById('fileCamera').click()">
       <span class="uz-icon">📷</span>
       <div class="uz-title">SNAP A SCORE SCREEN</div>
       <div class="uz-hint">Take a photo of the score screen or choose one from your photo library.</div>
       <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:18px;">
         <button class="btn-main" type="button" style="margin-top:0;"
-          onclick="document.getElementById('fileCamera').click()">📷 TAKE PHOTO</button>
+          onclick="event.stopPropagation();document.getElementById('fileCamera').click()">📷 TAKE PHOTO</button>
         <button class="btn-main" type="button" style="margin-top:0;background:var(--neon-c);box-shadow:0 0 20px rgba(0,255,255,.3),3px 3px 0 var(--neon-c2,#00aaaa);"
-          onclick="document.getElementById('fileLibrary').click()">🖼 PHOTO LIBRARY</button>
+          onclick="event.stopPropagation();document.getElementById('fileLibrary').click()">🖼 PHOTO LIBRARY</button>
       </div>
-      <!-- Camera: opens camera directly on mobile -->
       <input type="file" id="fileCamera"  accept="image/*" capture="environment" style="display:none;">
-      <!-- Library: lets user browse photos, camera roll, files -->
       <input type="file" id="fileLibrary" accept="image/*" style="display:none;">
     </div>
     <div style="margin-top:10px;text-align:center;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:1px;line-height:1.8;">
       🔒 APPROVED ACCOUNTS ONLY &nbsp;·&nbsp; <a href="admin.html" style="color:var(--neon-r);">⚙ ADMIN PANEL →</a>
     </div>
 
-    <!-- Photo error tip — hidden by default, shown if upload fails -->
+    <!-- Debug log — persists after error so it's visible on iPhone -->
+    <div id="debugWrap" style="display:none;margin-top:16px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-y);letter-spacing:1px;margin-bottom:8px;">▶ DEBUG LOG</div>
+      <div id="debugPanel" style="background:var(--void);border:2px solid var(--rail2);border-radius:var(--r);padding:10px 12px;max-height:200px;overflow-y:auto;font-family:monospace;font-size:12px;color:var(--neon-g);line-height:1.8;word-break:break-all;"></div>
+    </div>
+
+    <!-- Photo error tip -->
     <div id="uploadHint" style="display:none;margin-top:16px;background:rgba(255,230,0,.06);border:2px solid rgba(255,230,0,.3);border-radius:var(--r);padding:14px 16px;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-y);letter-spacing:1px;margin-bottom:10px;line-height:1.6;">
-        📱 PHOTO UPLOAD TIP
-      </div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-y);letter-spacing:1px;margin-bottom:10px;line-height:1.6;">📱 PHOTO UPLOAD TIP</div>
       <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);line-height:1.7;">
-        iPhone photos from your library may fail due to HEIC format restrictions in Safari.<br><br>
-        <strong style="color:var(--text);">Best options:</strong><br>
-        1. <strong>Take a screenshot</strong> of the score screen (press Side button + Volume Up) then upload from Photos<br>
-        2. Use the <strong>📷 TAKE PHOTO</strong> button to photograph the screen directly<br>
-        3. In iPhone Settings → Camera → Formats → set to <strong>Most Compatible</strong> to save as JPEG
+        iPhone photos from your library may fail due to HEIC format.<br><br>
+        <strong style="color:var(--text);">Try these instead:</strong><br>
+        1. <strong>Screenshot</strong> the score screen (Side + Volume Up) then upload<br>
+        2. Use <strong>📷 TAKE PHOTO</strong> to photograph live<br>
+        3. Settings → Camera → Formats → <strong>Most Compatible</strong>
       </div>
       <button onclick="document.getElementById('uploadHint').style.display='none'"
-        style="margin-top:10px;background:none;border:1px solid var(--rail2);border-radius:var(--r);padding:6px 14px;color:var(--dim);font-family:'Orbitron',sans-serif;font-size:11px;cursor:pointer;">
-        DISMISS
-      </button>
+        style="margin-top:10px;background:none;border:1px solid var(--rail2);border-radius:var(--r);padding:6px 14px;color:var(--dim);font-family:'Orbitron',sans-serif;font-size:11px;cursor:pointer;">DISMISS</button>
     </div>
   </div>
 
@@ -196,8 +196,6 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
       <div class="proc-title">ANALYZING<br>SCORE SCREEN</div>
       <div class="proc-step" id="procStep">Reading image...</div>
     </div>
-    <!-- Debug panel — shows exact error location on iPhone -->
-    <div id="debugPanel" style="margin-top:16px;background:var(--void);border:1px solid var(--rail2);border-radius:var(--r);padding:10px 12px;max-height:180px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text2);line-height:1.5;"></div>
   </div>
 
   <div id="step3" style="display:none;">
@@ -369,9 +367,10 @@ document.addEventListener('DOMContentLoaded',()=>{
 
 async function processImage(file){
   showStep(2); setStep('Preparing image...');
+  // Clear previous debug, hide hint
+  clearDebug();
   const hint = document.getElementById('uploadHint');
   if(hint) hint.style.display = 'none';
-  clearDebug();
 
   try{
     // ── Step 1: Read the file ──────────────────────────────────────
@@ -417,21 +416,25 @@ async function processImage(file){
   }
 }
 
-// On-screen debug panel — visible on iPhone without dev tools
+// On-screen debug — survives resetUpload() so visible on iPhone
 function debug(msg) {
   console.log('[AR]', msg);
-  let panel = document.getElementById('debugPanel');
+  const wrap  = document.getElementById('debugWrap');
+  const panel = document.getElementById('debugPanel');
   if (!panel) return;
+  if (wrap) wrap.style.display = 'block';
   const line = document.createElement('div');
-  line.style.cssText = 'border-bottom:1px solid #1e2840;padding:3px 0;word-break:break-all;';
-  line.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+  line.style.cssText = 'border-bottom:1px solid #1e2840;padding:2px 0;';
+  line.textContent = new Date().toLocaleTimeString('en',{hour12:false}) + ' ' + msg;
   panel.appendChild(line);
   panel.scrollTop = panel.scrollHeight;
 }
 
 function clearDebug() {
-  const p = document.getElementById('debugPanel');
-  if(p) p.innerHTML = '';
+  const panel = document.getElementById('debugPanel');
+  const wrap  = document.getElementById('debugWrap');
+  if (panel) panel.innerHTML = '';
+  if (wrap)  wrap.style.display = 'none';
 }
 
 /**
@@ -737,7 +740,10 @@ function renderRecent(){
 function resetUpload(){
   pendingSession=null;
   ['fileCamera','fileLibrary'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  showStep(1);
+  // Show step 1 but keep debug panel and hint visible
+  document.getElementById('step1').style.display = 'block';
+  document.getElementById('step2').style.display = 'none';
+  document.getElementById('step3').style.display = 'none';
   const btn=document.getElementById('saveBtn');
   if(btn){btn.disabled=false;btn.textContent='✓ SAVE SESSION';}
 }
