@@ -196,6 +196,8 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
       <div class="proc-title">ANALYZING<br>SCORE SCREEN</div>
       <div class="proc-step" id="procStep">Reading image...</div>
     </div>
+    <!-- Debug panel — shows exact error location on iPhone -->
+    <div id="debugPanel" style="margin-top:16px;background:var(--void);border:1px solid var(--rail2);border-radius:var(--r);padding:10px 12px;max-height:180px;overflow-y:auto;font-family:monospace;font-size:11px;color:var(--text2);line-height:1.5;"></div>
   </div>
 
   <div id="step3" style="display:none;">
@@ -369,23 +371,67 @@ async function processImage(file){
   showStep(2); setStep('Preparing image...');
   const hint = document.getElementById('uploadHint');
   if(hint) hint.style.display = 'none';
+  clearDebug();
 
   try{
+    // ── Step 1: Read the file ──────────────────────────────────────
     setStep('Reading photo...');
-    const {base64, mediaType} = await readFileForUpload(file);
-    setStep('AI reading score screen...');
-    const result = await apiPost('upload_image', {imageBase64: base64, mediaType});
+    debug('File: ' + file.name + ' | type: ' + (file.type||'(blank)') + ' | size: ' + Math.round(file.size/1024) + 'KB');
+
+    let base64, mediaType;
+    try {
+      const result = await readFileForUpload(file);
+      base64 = result.base64;
+      mediaType = result.mediaType;
+      debug('Read OK — mediaType: ' + mediaType + ' | base64 length: ' + base64.length);
+    } catch(readErr) {
+      debug('READ FAILED: ' + readErr.message);
+      throw new Error('Could not read photo: ' + readErr.message);
+    }
+
+    // ── Step 2: Send to Apps Script ────────────────────────────────
+    setStep('Sending to server...');
+    debug('Posting to Apps Script...');
+    let result;
+    try {
+      result = await apiPost('upload_image', {imageBase64: base64, mediaType});
+      debug('Server response OK');
+    } catch(apiErr) {
+      debug('SERVER FAILED: ' + apiErr.message + ' (status: ' + (apiErr.status||'?') + ')');
+      throw new Error('Server error: ' + apiErr.message);
+    }
+
+    // ── Step 3: Duplicate check ────────────────────────────────────
     setStep('Checking for duplicates...');
     const dupeCheck = await checkDuplicate(result.analysis);
     showStep(3);
     renderAll(result.validation, result.analysis, dupeCheck);
+
   } catch(e) {
     resetUpload();
     console.error('Upload error:', e);
-    showToast('UPLOAD FAILED', true);
+    // Show the actual error message, not a generic one
+    showToast(e.message || 'UPLOAD FAILED', true);
     const hint = document.getElementById('uploadHint');
     if(hint) hint.style.display = 'block';
   }
+}
+
+// On-screen debug panel — visible on iPhone without dev tools
+function debug(msg) {
+  console.log('[AR]', msg);
+  let panel = document.getElementById('debugPanel');
+  if (!panel) return;
+  const line = document.createElement('div');
+  line.style.cssText = 'border-bottom:1px solid #1e2840;padding:3px 0;word-break:break-all;';
+  line.textContent = new Date().toLocaleTimeString() + ' — ' + msg;
+  panel.appendChild(line);
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function clearDebug() {
+  const p = document.getElementById('debugPanel');
+  if(p) p.innerHTML = '';
 }
 
 /**
@@ -402,28 +448,33 @@ async function readFileForUpload(file) {
   const MAX = 1800;
   const QUALITY = 0.88;
 
-  // Detect HEIC — iOS often reports blank type for library HEIC photos
   const isHEIC =
     file.type === 'image/heic' ||
     file.type === 'image/heif' ||
     file.name.toLowerCase().endsWith('.heic') ||
     file.name.toLowerCase().endsWith('.heif');
 
-  // ── For non-HEIC: try canvas resize first (reduces upload size) ──
+  debug('isHEIC: ' + isHEIC + ' | trying canvas first: ' + (!isHEIC && file.type !== ''));
+
+  // ── For non-HEIC: try canvas resize first ──
   if (!isHEIC && file.type !== '') {
     try {
+      debug('Trying canvas resize...');
       const b64 = await canvasResize(file, MAX, QUALITY);
-      if (b64) return { base64: b64, mediaType: 'image/jpeg' };
+      if (b64) {
+        debug('Canvas resize OK — ' + Math.round(b64.length * 0.75 / 1024) + 'KB');
+        return { base64: b64, mediaType: 'image/jpeg' };
+      }
     } catch(e) {
-      console.warn('Canvas resize failed, using raw:', e.message);
+      debug('Canvas failed: ' + e.message + ' — falling back to ArrayBuffer');
     }
   }
 
-  // ── For HEIC or canvas failure: read raw bytes via ArrayBuffer ────
-  // ArrayBuffer never fails on iOS regardless of format.
-  // The Anthropic API accepts HEIC natively server-side.
+  // ── ArrayBuffer fallback — works on all iOS/HEIC ──
+  debug('Using ArrayBuffer reader...');
   const base64 = await arrayBufferToBase64(file);
-  // Tell the API it's JPEG if type is blank — Apps Script will auto-detect
+  debug('ArrayBuffer read OK — ' + Math.round(base64.length * 0.75 / 1024) + 'KB');
+
   const mediaType = isHEIC ? 'image/jpeg'
     : (file.type && file.type !== '') ? file.type
     : 'image/jpeg';
