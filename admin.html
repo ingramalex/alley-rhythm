@@ -418,16 +418,27 @@ async function verifyAdmin(){
     if(!r.isAdmin){
       sessionStorage.removeItem('ar_token');
       sessionStorage.removeItem('ar_user');
-      showErr('Your account does not have admin permissions.');
+      showErr('Your account does not have admin permissions. Make sure your email is in ADMIN_EMAILS in Code.gs.');
       return;
     }
     showAdmin();
   }catch(e){
+    console.error('Admin verify error:', e);
+    // Clear stale session — likely an expired token
+    sessionStorage.removeItem('ar_token');
+    sessionStorage.removeItem('ar_user');
     if(e.status===403||e.status===401){
-      sessionStorage.removeItem('ar_token');
-      sessionStorage.removeItem('ar_user');
-      showErr(e.message);
-    } else showErr('Could not verify admin access. Check your connection.');
+      showErr(e.message||'Access denied.');
+    } else if(e.message&&e.message.includes('Invalid or expired')){
+      // Token expired — prompt re-login
+      document.getElementById('loginScreen').style.display='flex';
+      document.getElementById('adminScreen').style.display='none';
+      document.getElementById('errorScreen').style.display='none';
+      waitForGSI();
+    } else {
+      // Show the actual error so we can diagnose
+      showErr('Verify failed: ' + (e.message||'unknown error') + '. Try signing out and back in.');
+    }
   }
 }
 
@@ -475,7 +486,11 @@ async function apiPost(action, data){
   });
   if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
   const j = await r.json();
-  if (j.error) { const e = new Error(j.error); e.status = r.status; throw e; }
+  if (j.error) {
+    // Apps Script always returns HTTP 200 — status is in the JSON
+    const status = j.status || (j.error.includes('expired') || j.error.includes('sign-in') ? 401 : j.error.includes('not on the approved') ? 403 : 500);
+    throw Object.assign(new Error(j.error), { status });
+  }
   return j;
 }
 async function apiGet(action){
