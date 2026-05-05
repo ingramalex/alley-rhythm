@@ -234,7 +234,9 @@ body::after {
   border-bottom: 2px solid var(--rail2);
   display: flex;
   overflow-x: auto; scrollbar-width: none;
-  position: relative;
+  position: sticky;
+  top: 78px;   /* sits just below the site-header height */
+  z-index: 190;
 }
 .nav-bar::after {
   content: '';
@@ -276,7 +278,7 @@ body::after {
   to   { opacity: 1; transform: scaleY(1);    filter: brightness(1); }
 }
 
-.page { max-width: 900px; margin: 0 auto; padding: 24px 16px 80px; }
+.page { max-width: 900px; margin: 0 auto; padding: 24px 16px 100px; }
 
 /* ═══════════ FILTER ROW ═══════════ */
 .filter-row {
@@ -1101,25 +1103,33 @@ function buildMarquee(items){
   return doubled.map(t=>`<span class="marquee-item">${t}</span>`).join('');
 }
 
-// Apply config-driven branding on load
-document.getElementById('leagueNameDisplay').textContent = (LANE_CONFIG.LEAGUE_NAME || 'Bowling Stats').toUpperCase();
-document.title = (LANE_CONFIG.SITE_NAME || 'Alley Rhythm') + ' — Stats';
+// ── Apply config branding immediately on load ──────────────────
+const _cfg = window.LANE_CONFIG || {};
+const _siteName   = (_cfg.SITE_NAME   || 'Alley Rhythm').toUpperCase();
+const _leagueName = (_cfg.LEAGUE_NAME || 'Bowling Stats').toUpperCase();
+const _leagueDay  = (_cfg.LEAGUE_DAY  || 'Weekly').toUpperCase();
 
+// Update header league name and page title right away
+const _lnd = document.getElementById('leagueNameDisplay');
+if (_lnd) _lnd.textContent = _leagueName;
+document.title = _cfg.SITE_NAME || 'Alley Rhythm';
+
+// Build default marquees using real config values
 const defaultTicker = [
-  LANE_CONFIG.SITE_NAME || 'ALLEY RHYTHM',
+  _siteName,
   'UPLOAD YOUR SCORES',
-  (LANE_CONFIG.LEAGUE_NAME || 'BOWLING CREW').toUpperCase(),
+  _leagueName,
   'BOWLING STATS TRACKER',
   'UPLOAD A SCORE TO GET STARTED',
-  `MEETS EVERY ${(LANE_CONFIG.LEAGUE_DAY || 'WEEK').toUpperCase()}`
+  `MEETS EVERY ${_leagueDay}`
 ];
 document.getElementById('topMarquee').innerHTML = buildMarquee(defaultTicker);
 
 const footItems = [
-  `© ${(LANE_CONFIG.SITE_NAME || 'ALLEY RHYTHM').toUpperCase()}  ·  SEASON STATS`,
+  `© ${_siteName}  ·  SEASON STATS`,
   'UPLOAD SCORES AFTER EACH SESSION',
   `WEEKLY EMAIL DIGEST EVERY MONDAY`,
-  `${(LANE_CONFIG.LEAGUE_NAME || 'THE CREW').toUpperCase()} · ${(LANE_CONFIG.LEAGUE_DAY || 'WEEKLY').toUpperCase()} SESSIONS`
+  `${_leagueName} · ${_leagueDay} SESSIONS`
 ];
 document.getElementById('footerTrack').innerHTML = buildMarquee(footItems);
 
@@ -1179,13 +1189,13 @@ function updateHeaderAndMarquee(stats){
   const leader = [...bowlers].sort((a,z)=>z.avg-a.avg)[0];
   const highSeries = Math.max(...bowlers.map(b=>b.highSeries||0));
   const items = [
-    `${(LANE_CONFIG.SITE_NAME||'ALLEY RHYTHM').toUpperCase()} · SEASON STATS`,
+    `${_siteName} · SEASON STATS`,
     leader ? `${leader.name.toUpperCase()} LEADS · ${leader.avg} AVG` : null,
     highGame ? `HIGH GAME THIS SEASON: ${highGame}` : null,
     `${bowlers.length} PLAYERS TRACKED`,
     highSeries ? `BEST SERIES: ${highSeries}` : null,
     `UPLOAD SCORES AFTER EACH SESSION`,
-    `${(LANE_CONFIG.LEAGUE_NAME||'THE CREW').toUpperCase()} · EVERY ${(LANE_CONFIG.LEAGUE_DAY||'WEEK').toUpperCase()}`,
+    `${_leagueName} · EVERY ${_leagueDay}`,
   ].filter(Boolean);
 
   document.getElementById('topMarquee').innerHTML = buildMarquee(items);
