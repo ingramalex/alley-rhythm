@@ -278,7 +278,7 @@ body::after {
   to   { opacity: 1; transform: scaleY(1);    filter: brightness(1); }
 }
 
-.page { max-width: 900px; margin: 0 auto; padding: 24px 16px 100px; }
+.page { max-width: 900px; margin: 0 auto; padding: 24px 16px 40px; }
 
 /* ═══════════ FILTER ROW ═══════════ */
 .filter-row {
@@ -866,7 +866,7 @@ body::after {
 
 /* ═══════════ FOOTER TICKER ═══════════ */
 .footer-bar {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+  position: sticky; bottom: 0; left: 0; right: 0; z-index: 200;
   height: 28px;
   background: var(--void);
   border-top: 2px solid var(--neon-p2);
@@ -911,13 +911,16 @@ body::after {
 </head>
 <body>
 
+<!-- STICKY TOP BLOCK: marquee + header + nav all locked together -->
+<div style="position:sticky;top:0;z-index:300;">
+
 <!-- TOP MARQUEE -->
 <div class="marquee-wrap">
   <div class="marquee-track" id="topMarquee"></div>
 </div>
 
 <!-- HEADER -->
-<div class="site-header">
+<div class="site-header" style="position:relative;top:auto;">
   <div class="header-inner">
     <div class="logo-wrap">
       <div class="logo-line1">ALLEY</div>
@@ -940,7 +943,7 @@ body::after {
 </div>
 
 <!-- NAV -->
-<div class="nav-bar">
+<div class="nav-bar" style="position:relative;top:auto;">
   <div class="nav-inner">
     <button class="ntab active" onclick="goTab('stats',this)">STATS</button>
     <button class="ntab" onclick="goTab('leaders',this)">HIGH SCORES</button>
@@ -950,6 +953,8 @@ body::after {
     <a href="admin.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-r);text-decoration:none;white-space:nowrap;display:flex;align-items:center;">⚙ ADMIN</a>
   </div>
 </div>
+
+</div><!-- end sticky top block -->
 
 <!-- ══════════ STATS VIEW ══════════ -->
 <div id="tab-stats" class="view active">
