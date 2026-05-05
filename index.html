@@ -1231,31 +1231,24 @@ function bowlerCard(p, i, rankCls) {
 
   // ── Core stats ──
   const sparePct      = p.sparePct !== null && p.sparePct !== undefined ? p.sparePct : null;
+  const strikePct     = p.strikePct !== null && p.strikePct !== undefined ? p.strikePct : null;
+  const splitPct      = p.splitPct !== null && p.splitPct !== undefined ? p.splitPct : null;
   const strikeRate    = p.gamesCount > 0 && p.strikes > 0
     ? (p.strikes / p.gamesCount).toFixed(1) : null;
   const missedPerGame = p.gamesCount > 0 && p.missedSpares > 0
     ? (p.missedSpares / p.gamesCount).toFixed(1) : null;
 
-  // ── Potential avg: if they hit 70% spare conv, how much do they gain? ──
-  // Each converted spare saves ~10 pins on avg vs a miss
-  const potentialAvg = (() => {
-    if (sparePct === null || p.gamesCount < 2) return null;
-    const TARGET = 70;
-    if (sparePct >= TARGET) return null; // already there
-    const totalOpps = p.spares + p.missedSpares;
-    const spareOppsPerGame = totalOpps / p.gamesCount;
-    const currentConverted = p.spares / p.gamesCount;
-    const targetConverted  = spareOppsPerGame * (TARGET / 100);
-    const extraSpares = targetConverted - currentConverted;
-    return Math.round(p.avg + extraSpares * 10);
-  })();
+  // ── Potential avg — use server calculated if available ────────
+  const potentialAvg = p.potentialAvg || null;
 
   // ── Biggest opportunity insight ──
   const opp = (() => {
     if (sparePct !== null && sparePct < 50 && (p.missedSpares || 0) > 0)
       return `SPARE CONVERSION AT ${sparePct}% — BIGGEST GAIN AREA`;
-    if (strikeRate && parseFloat(strikeRate) < 2)
-      return 'FIRST BALL — INCREASE STRIKE RATE';
+    if (strikePct !== null && strikePct < 20)
+      return 'STRIKE RATE — FOCUS ON FIRST BALL';
+    if (splitPct !== null && p.splits > 2 && splitPct < 30)
+      return `SPLIT CONVERSION AT ${splitPct}% — TOUGH LEAVES`;
     return null;
   })();
 
@@ -1301,25 +1294,32 @@ function bowlerCard(p, i, rankCls) {
       <div class="bc-section">▶ PERFORMANCE</div>
       <div class="bc-grid">
         <div class="bc-stat">
-          <div class="bc-stat-lbl">SPARE<br>CONVERSION</div>
+          <div class="bc-stat-lbl">SPARE<br>CONV %</div>
           <div class="bc-stat-val" style="color:${spareColor};">
             ${sparePct !== null ? sparePct + '<span class="bc-unit">%</span>' : '—'}
           </div>
           ${sparePct !== null ? `<div class="${sparePct>=60?'bc-trend-up':sparePct>=40?'bc-trend-eq':'bc-trend-dn'}">${sparePct>=70?'✓ SOLID':sparePct>=50?'ROOM TO GROW':'KEY FOCUS'}</div>` : ''}
         </div>
         <div class="bc-stat">
-          <div class="bc-stat-lbl">STRIKE<br>RATE</div>
+          <div class="bc-stat-lbl">STRIKE<br>RATE %</div>
           <div class="bc-stat-val">
-            ${strikeRate !== null ? strikeRate + '<span class="bc-unit">/ game</span>' : '—'}
+            ${strikePct !== null ? strikePct + '<span class="bc-unit">%</span>' : strikeRate !== null ? strikeRate + '<span class="bc-unit">/gm</span>' : '—'}
           </div>
-          ${strikeRate ? `<div class="bc-trend-eq">${Math.round(parseFloat(strikeRate)*10)} TOTAL</div>` : ''}
+          ${p.strikes ? `<div class="bc-trend-eq">${p.strikes} TOTAL</div>` : ''}
         </div>
         <div class="bc-stat">
           <div class="bc-stat-lbl">MISSED<br>SPARES</div>
           <div class="bc-stat-val" style="${(p.missedSpares||0)>0?'color:var(--neon-r);':''}">
-            ${missedPerGame !== null ? missedPerGame + '<span class="bc-unit">/ game</span>' : '—'}
+            ${missedPerGame !== null ? missedPerGame + '<span class="bc-unit">/gm</span>' : '—'}
           </div>
           ${p.missedSpares ? `<div class="bc-trend-dn">${p.missedSpares} TOTAL</div>` : '<div class="bc-trend-eq">NO DATA YET</div>'}
+        </div>
+        <div class="bc-stat">
+          <div class="bc-stat-lbl">SPLIT<br>CONV %</div>
+          <div class="bc-stat-val" style="${splitPct !== null && splitPct >= 30 ? 'color:var(--neon-g);' : splitPct !== null ? 'color:var(--neon-y);' : ''}">
+            ${splitPct !== null ? splitPct + '<span class="bc-unit">%</span>' : '—'}
+          </div>
+          ${p.splits ? `<div class="bc-trend-eq">${p.splitsConverted||0}/${p.splits} SPLITS</div>` : '<div class="bc-trend-eq">NO DATA YET</div>'}
         </div>
         <div class="bc-stat">
           <div class="bc-stat-lbl">BALL<br>SPEED</div>
@@ -1401,9 +1401,10 @@ function renderLeaders(stats){
   const lbCats = [
     { icon:'🏆', title:'SEASON AVG',    rows:[...bowlers].sort((a,z)=>z.avg-a.avg).map(p=>({n:p.name,c:pColor(p.name),v:p.avg})) },
     { icon:'🎯', title:'HIGH GAME',     rows:[...bowlers].sort((a,z)=>z.highGame-a.highGame).map(p=>({n:p.name,c:pColor(p.name),v:p.highGame})) },
-    { icon:'💥', title:'BEST SERIES',   rows:[...bowlers].sort((a,z)=>z.highSeries-a.highSeries).map(p=>({n:p.name,c:pColor(p.name),v:p.highSeries||0})) },
+    { icon:'💥', title:'HIGH SERIES',   rows:[...bowlers].filter(b=>b.highSeries>0).sort((a,z)=>z.highSeries-a.highSeries).map(p=>({n:p.name,c:pColor(p.name),v:p.highSeries})) },
     { icon:'/',  title:'SPARE CONV %',  rows:[...bowlers].filter(b=>b.sparePct!==null&&b.sparePct!==undefined).sort((a,z)=>z.sparePct-a.sparePct).map(p=>({n:p.name,c:pColor(p.name),v:p.sparePct+'%'})) },
-    { icon:'X',  title:'STRIKE RATE',   rows:[...bowlers].filter(b=>b.gamesCount>0&&b.strikes>0).sort((a,z)=>(z.strikes/z.gamesCount)-(a.strikes/a.gamesCount)).map(p=>({n:p.name,c:pColor(p.name),v:(p.strikes/p.gamesCount).toFixed(1)+'/g'})) },
+    { icon:'X',  title:'STRIKE %',      rows:[...bowlers].filter(b=>b.strikePct!==null&&b.strikePct!==undefined).sort((a,z)=>z.strikePct-a.strikePct).map(p=>({n:p.name,c:pColor(p.name),v:p.strikePct+'%'})) },
+    { icon:'🎳', title:'SPLIT CONV %',  rows:[...bowlers].filter(b=>b.splitPct!==null&&b.splits>0).sort((a,z)=>z.splitPct-a.splitPct).map(p=>({n:p.name,c:pColor(p.name),v:p.splitPct+'%'})) },
   ];
 
   el.innerHTML = lbCats.map(cat=>`
