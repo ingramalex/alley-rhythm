@@ -1586,7 +1586,7 @@ function renderAwards(awards, stats){
         <div class="award-winner" style="color:var(--neon-y);text-shadow:0 0 12px var(--neon-y);">
           ${overWinner.name.toUpperCase()}
         </div>
-        <div class="award-stat">+${overWinner.overAvg} pins over their season avg · Bowled ${overWinner.weekAvg} vs ${overWinner.seasonAvg} avg</div>
+        <div class="award-stat">+${overWinner.overAvg} pins over their prior average · Bowled ${overWinner.weekAvg} vs ${overWinner.priorAvg} prior avg</div>
         ${runners ? `<div class="award-runners">Also: ${runners}</div>` : ''}
       </div>`;
     }
