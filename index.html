@@ -907,6 +907,102 @@ body::after {
   opacity: 0.35;
   margin: 24px 0;
 }
+/* ═══════════ AWARDS ═══════════ */
+.award-section { margin-bottom: 28px; }
+.award-banner {
+  border: 2px solid; border-radius: var(--radius-px);
+  padding: 16px 18px; margin-bottom: 10px;
+  box-shadow: 0 0 20px var(--glow), 4px 4px 0 rgba(0,0,0,.5);
+  position: relative; overflow: hidden;
+}
+.award-banner::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--tint) 0%, transparent 60%);
+  pointer-events: none;
+}
+.award-banner.gold  { --glow:rgba(255,230,0,.2);  --tint:rgba(255,230,0,.06);  border-color:var(--neon-y);  }
+.award-banner.cyan  { --glow:rgba(0,255,255,.15);  --tint:rgba(0,255,255,.05);  border-color:var(--neon-c);  }
+.award-banner.green { --glow:rgba(57,255,20,.15);  --tint:rgba(57,255,20,.05);  border-color:var(--neon-g);  }
+.award-banner.pink  { --glow:rgba(255,0,255,.15);  --tint:rgba(255,0,255,.05);  border-color:var(--neon-p);  }
+.award-banner.red   { --glow:rgba(255,34,68,.15);  --tint:rgba(255,34,68,.05);  border-color:var(--neon-r);  }
+.award-banner.legendary { --glow:rgba(255,230,0,.4); --tint:rgba(255,230,0,.1); border-color:var(--neon-y); border-width:3px; }
+
+.award-title {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 9px; letter-spacing: 1px; line-height: 1.6;
+  margin-bottom: 4px;
+}
+.award-banner.gold .award-title  { color:var(--neon-y); text-shadow:0 0 10px var(--neon-y); }
+.award-banner.cyan .award-title  { color:var(--neon-c); text-shadow:0 0 10px var(--neon-c); }
+.award-banner.green .award-title { color:var(--neon-g); text-shadow:0 0 10px var(--neon-g); }
+.award-banner.pink .award-title  { color:var(--neon-p); text-shadow:0 0 10px var(--neon-p); }
+.award-banner.red .award-title   { color:var(--neon-r); text-shadow:0 0 10px var(--neon-r); }
+.award-banner.legendary .award-title { color:var(--neon-y); text-shadow:0 0 16px var(--neon-y), 0 0 32px rgba(255,230,0,.5); font-size:11px; }
+
+.award-winner {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 20px; font-weight: 900; margin-top: 6px;
+}
+.award-stat { font-family: 'Exo 2', sans-serif; font-size: 12px; color: var(--text2); margin-top: 3px; }
+.award-emoji { font-size: 32px; float: right; margin-top: -4px; }
+.award-runners {
+  margin-top: 10px; padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,.08);
+  font-family: 'Exo 2', sans-serif; font-size: 12px; color: var(--dim);
+  display: flex; gap: 12px; flex-wrap: wrap;
+}
+
+/* Milestone badge row on bowler cards */
+.ms-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.ms-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  border: 1px solid; border-radius: 3px;
+  padding: 3px 8px;
+  font-family: 'Press Start 2P', monospace; font-size: 7px; letter-spacing: .5px;
+}
+.ms-badge.legendary { border-color:var(--neon-y); color:var(--neon-y); background:rgba(255,230,0,.08); }
+.ms-badge.epic      { border-color:var(--neon-p); color:var(--neon-p); background:rgba(255,0,255,.06); }
+.ms-badge.rare      { border-color:var(--neon-c); color:var(--neon-c); background:rgba(0,255,255,.05); }
+.ms-badge.uncommon  { border-color:var(--neon-g); color:var(--neon-g); background:rgba(57,255,20,.05); }
+.ms-badge.common    { border-color:var(--rail2);  color:var(--text2);  background:var(--panel2); }
+
+/* 300 perfect game animation */
+@keyframes perfect300 {
+  0%   { transform:scale(1);    filter:brightness(1); }
+  25%  { transform:scale(1.15); filter:brightness(1.8) hue-rotate(20deg); }
+  50%  { transform:scale(1);    filter:brightness(1); }
+  75%  { transform:scale(1.1);  filter:brightness(1.5) hue-rotate(-20deg); }
+  100% { transform:scale(1);    filter:brightness(1); }
+}
+@keyframes rainbow {
+  0%   { color:var(--neon-y); text-shadow:0 0 20px var(--neon-y); }
+  25%  { color:var(--neon-g); text-shadow:0 0 20px var(--neon-g); }
+  50%  { color:var(--neon-c); text-shadow:0 0 20px var(--neon-c); }
+  75%  { color:var(--neon-p); text-shadow:0 0 20px var(--neon-p); }
+  100% { color:var(--neon-y); text-shadow:0 0 20px var(--neon-y); }
+}
+@keyframes confetti-fall {
+  0%   { transform:translateY(-20px) rotate(0deg);   opacity:1; }
+  100% { transform:translateY(60px)  rotate(720deg); opacity:0; }
+}
+.perfect-300 { animation: rainbow 1.5s linear infinite; }
+.perfect-300-badge {
+  animation: perfect300 2s ease-in-out infinite;
+  display: inline-block;
+}
+.confetti-dot {
+  position: absolute; width: 6px; height: 6px; border-radius: 50%;
+  animation: confetti-fall 1.2s ease-in infinite;
+  pointer-events: none;
+}
+
+/* Award grid */
+.award-week-label {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 8px; color: var(--dim); letter-spacing: 2px;
+  margin-bottom: 14px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--rail2);
+}
 </style>
 </head>
 <body>
@@ -947,6 +1043,7 @@ body::after {
   <div class="nav-inner">
     <button class="ntab active" onclick="goTab('stats',this)">STATS</button>
     <button class="ntab" onclick="goTab('leaders',this)">HIGH SCORES</button>
+    <button class="ntab" onclick="goTab('awards',this)">🏆 AWARDS</button>
     <button class="ntab" onclick="goTab('weekly',this)">WEEKLY</button>
     <button class="ntab" onclick="goTab('history',this)">HISTORY</button>
     <a href="upload.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-g);text-decoration:none;white-space:nowrap;display:flex;align-items:center;margin-left:auto;">📸 UPLOAD</a>
@@ -1013,6 +1110,13 @@ body::after {
 
   <div class="lb-arcade-grid" id="lbGrid"></div>
 
+</div>
+</div>
+
+<!-- ══════════ WEEKLY VIEW ══════════ -->
+<div id="tab-awards" class="view">
+<div class="page">
+  <div id="awardsContent"></div>
 </div>
 </div>
 
@@ -1144,27 +1248,29 @@ document.getElementById('footerTrack').innerHTML = buildMarquee(footItems);
 let liveStats = null;
 let liveHistory = null;
 let liveWeekly = null;
+let liveAwards = null;
 
 async function loadAll(){
   try {
-    // Parallel fetch
-    const [stats, history, weekly] = await Promise.all([
+    const [stats, history, weekly, awards] = await Promise.all([
       apiFetch('stats'),
       apiFetch('history'),
       apiFetch('weekly'),
+      apiFetch('awards'),
     ]);
     liveStats   = stats;
     liveHistory = history;
     liveWeekly  = weekly;
+    liveAwards  = awards;
 
     renderStats(stats);
     renderLeaders(stats);
     renderWeekly(weekly);
     renderHistory(history);
+    renderAwards(awards, stats);
     updateHeaderAndMarquee(stats);
   } catch(e) {
     console.error('Failed to load data:', e);
-    // Show empty states on error
     document.getElementById('bowlerCards').innerHTML =
       `<div style="padding:20px;font-family:'Orbitron',sans-serif;font-size:12px;color:var(--neon-r);text-align:center;">
         Could not connect to server.<br>Check your SCRIPT_URL in config.js.
@@ -1274,7 +1380,16 @@ function bowlerCard(p, i, rankCls) {
       <div class="bc-rank ${rankCls}">${i+1}</div>
       <div class="px-av" style="background:${c}12;border-color:${c};color:${c};">${ini}</div>
       <div class="bc-info">
-        <div class="bc-name" style="color:${c};text-shadow:0 0 8px ${c}55;">${p.name.toUpperCase()}</div>
+        <div class="bc-name" style="color:${c};text-shadow:0 0 8px ${c}55;">
+          ${(liveAwards?.milestones||{})[p.name]?.['300'] ? '<span class="perfect-300" style="font-size:12px;">🏆</span> ' : ''}
+          ${p.name.toUpperCase()}
+          ${(() => {
+            // Show highest milestone emoji inline
+            const counts = (liveAwards?.milestones||{})[p.name] || {};
+            const top = MILESTONES.find(m => (counts[m.key]||0) > 0);
+            return top ? `<span style="font-size:12px;margin-left:4px;">${top.emoji}</span>` : '';
+          })()}
+        </div>
         <div class="bc-sub">${p.gamesCount||0} games · ${p.highGame||'—'} best</div>
       </div>
       <div class="bc-right">
@@ -1290,6 +1405,19 @@ function bowlerCard(p, i, rankCls) {
     <div class="bc-body">
 
       ${opp ? `<div class="bc-badge">▶ ${opp}</div>` : ''}
+
+      ${(() => {
+        // Show milestone badges if any
+        const counts = (liveAwards?.milestones||{})[p.name] || {};
+        const badges = MILESTONES.filter(m => (counts[m.key]||0) > 0);
+        if (!badges.length) return '';
+        return `<div class="ms-badges" style="margin-bottom:12px;">
+          ${badges.map(m => `
+            <div class="ms-badge ${m.rarity}">
+              ${m.emoji} ${m.label}${(counts[m.key]||0)>1?' ×'+counts[m.key]:''}
+            </div>`).join('')}
+        </div>`;
+      })()}
 
       <div class="bc-section">▶ PERFORMANCE</div>
       <div class="bc-grid">
@@ -1388,6 +1516,178 @@ function toggleCard(i) {
 /* ════════════════════════════════════════
    LEADERS TAB
 ════════════════════════════════════════ */
+/* ════════════════════════════════════════
+   AWARDS TAB
+════════════════════════════════════════ */
+const MILESTONES = [
+  { min:300, max:300, key:'300', label:'PERFECT 300',  emoji:'🏆', rarity:'legendary' },
+  { min:290, max:299, key:'290', label:'290+ GAME',    emoji:'💎', rarity:'epic'      },
+  { min:275, max:289, key:'275', label:'275+ GAME',    emoji:'🔥', rarity:'epic'      },
+  { min:250, max:274, key:'250', label:'250+ GAME',    emoji:'⚡', rarity:'rare'      },
+  { min:225, max:249, key:'225', label:'225+ GAME',    emoji:'🌟', rarity:'rare'      },
+  { min:200, max:224, key:'200', label:'200+ GAME',    emoji:'✨', rarity:'uncommon'  },
+  { min:175, max:199, key:'175', label:'175+ GAME',    emoji:'🎳', rarity:'common'    },
+];
+
+function renderAwards(awards, stats){
+  const el = document.getElementById('awardsContent');
+  if (!el) return;
+  if (!awards || (!awards.currentWeek && !(awards.milestones && Object.keys(awards.milestones).length))) {
+    el.innerHTML = emptyState('NO AWARD DATA YET<br>UPLOAD SCORES TO START EARNING AWARDS');
+    return;
+  }
+
+  const w   = awards.weekly  || {};
+  const ms  = awards.milestones || {};
+  const all = stats?.bowlers || [];
+  let html  = '';
+
+  // ── WEEKLY AWARDS ────────────────────────────────────────────────
+  if (awards.currentWeek) {
+    html += `<div class="award-week-label">▶ THIS WEEK · ${awards.currentWeek}</div>`;
+
+    // Royal Split Award
+    const splitWinner = (w.splits||[])[0];
+    if (splitWinner) {
+      const runners = (w.splits||[]).slice(1,3).map(b=>`${b.name} (${b.splits})`).join(' · ');
+      html += `<div class="award-banner cyan">
+        <span class="award-emoji">👑</span>
+        <div class="award-title">ROYAL SPLIT AWARD</div>
+        <div class="award-winner" style="color:var(--neon-c);text-shadow:0 0 12px var(--neon-c);">
+          👑 ${splitWinner.name.toUpperCase()}
+        </div>
+        <div class="award-stat">${splitWinner.splits} split${splitWinner.splits!==1?'s':''} this week — the most daring bowler on the lanes</div>
+        ${runners ? `<div class="award-runners">Also: ${runners}</div>` : ''}
+      </div>`;
+    }
+
+    // Best Spare Shooter
+    const spareWinner = (w.spare||[])[0];
+    if (spareWinner && spareWinner.pct > 0) {
+      const runners = (w.spare||[]).slice(1,3).map(b=>`${b.name} (${b.pct}%)`).join(' · ');
+      html += `<div class="award-banner green">
+        <span class="award-emoji">🎯</span>
+        <div class="award-title">BEST SPARE SHOOTER</div>
+        <div class="award-winner" style="color:var(--neon-g);text-shadow:0 0 12px var(--neon-g);">
+          ${spareWinner.name.toUpperCase()}
+        </div>
+        <div class="award-stat">${spareWinner.pct}% conversion this week · ${spareWinner.spares} spares made</div>
+        ${runners ? `<div class="award-runners">Also: ${runners}</div>` : ''}
+      </div>`;
+    }
+
+    // Most Over Average
+    const overWinner = (w.overAvg||[])[0];
+    if (overWinner) {
+      const runners = (w.overAvg||[]).slice(1,3).map(b=>`${b.name} (+${b.overAvg})`).join(' · ');
+      html += `<div class="award-banner gold">
+        <span class="award-emoji">🚀</span>
+        <div class="award-title">MOST OVER AVERAGE</div>
+        <div class="award-winner" style="color:var(--neon-y);text-shadow:0 0 12px var(--neon-y);">
+          ${overWinner.name.toUpperCase()}
+        </div>
+        <div class="award-stat">+${overWinner.overAvg} pins over their season avg · Bowled ${overWinner.weekAvg} vs ${overWinner.seasonAvg} avg</div>
+        ${runners ? `<div class="award-runners">Also: ${runners}</div>` : ''}
+      </div>`;
+    }
+
+    // High Game of the Week
+    if (w.highGame) {
+      const is300 = w.highGame.score === 300;
+      html += `<div class="award-banner ${is300?'legendary':'pink'}">
+        <span class="award-emoji">${is300?'🏆':'⭐'}</span>
+        <div class="award-title">${is300?'PERFECT GAME!!!':'HIGH GAME OF THE WEEK'}</div>
+        <div class="award-winner ${is300?'perfect-300':''}" style="color:${is300?'var(--neon-y)':'var(--neon-p)'};text-shadow:0 0 12px ${is300?'var(--neon-y)':'var(--neon-p)'};">
+          ${w.highGame.name.toUpperCase()} · ${w.highGame.score}
+        </div>
+        ${is300 ? '<div class="award-stat" style="color:var(--neon-y);">🎳 A PERFECT GAME — EVERY FRAME A STRIKE — LEGENDARY! 🎳</div>' : ''}
+      </div>`;
+    }
+  }
+
+  // ── GAME MILESTONE BADGES (Season) ───────────────────────────────
+  const hasMilestones = Object.keys(ms).length > 0;
+  if (hasMilestones) {
+    html += `<div style="margin-top:24px;">
+      <div class="award-week-label">▶ SEASON MILESTONE GAMES</div>`;
+
+    // Check for any 300 games — give them a special spotlight
+    const perfect300Bowlers = Object.entries(ms)
+      .filter(([name, counts]) => (counts['300']||0) > 0);
+    if (perfect300Bowlers.length) {
+      perfect300Bowlers.forEach(([name, counts]) => {
+        html += `<div class="award-banner legendary" style="text-align:center;padding:24px;">
+          <div style="font-size:48px;margin-bottom:10px;" class="perfect-300-badge">🏆</div>
+          <div class="award-title" style="text-align:center;font-size:12px;">PERFECT GAME</div>
+          <div class="award-winner perfect-300" style="text-align:center;font-size:28px;margin-top:8px;">
+            ${name.toUpperCase()}
+          </div>
+          <div class="award-stat" style="text-align:center;margin-top:6px;color:var(--neon-y);">
+            ${counts['300'] > 1 ? counts['300'] + 'x ' : ''}300 — THE PINNACLE OF BOWLING
+          </div>
+        </div>`;
+      });
+    }
+
+    // All other milestone achievements per bowler
+    const bowlerOrder = all.map(b => b.name).filter(n => ms[n]);
+    const shown = new Set();
+    bowlerOrder.forEach(name => {
+      if (shown.has(name)) return; shown.add(name);
+      const counts = ms[name];
+      const badges = MILESTONES.filter(m => (counts[m.key]||0) > 0 && m.key !== '300');
+      if (!badges.length) return;
+      const c = pColor(name);
+      html += `<div class="bc-card" style="margin-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;">
+          <div class="px-av" style="background:${c}15;border-color:${c};color:${c};">${ini2(name)}</div>
+          <div style="flex:1;">
+            <div class="bc-name" style="color:${c};text-shadow:0 0 8px ${c}55;">${name.toUpperCase()}</div>
+            <div class="ms-badges">
+              ${badges.map(m => `
+                <div class="ms-badge ${m.rarity}">
+                  ${m.emoji} ${m.label}${(counts[m.key]||0)>1?' ×'+counts[m.key]:''}
+                </div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  // ── SEASON LEADERS ───────────────────────────────────────────────
+  if ((awards.season?.spare||[]).length || (awards.season?.splits||[]).length) {
+    html += `<div style="margin-top:24px;">
+      <div class="award-week-label">▶ SEASON LEADERS</div>`;
+
+    const ssWinner = (awards.season?.spare||[])[0];
+    if (ssWinner) {
+      const runners = (awards.season?.spare||[]).slice(1,4).map(b=>`${b.name} (${b.pct}%)`).join(' · ');
+      html += `<div class="award-banner green">
+        <span class="award-emoji">🎯</span>
+        <div class="award-title">SEASON SPARE LEADER</div>
+        <div class="award-winner" style="color:var(--neon-g);">${ssWinner.name.toUpperCase()}</div>
+        <div class="award-stat">${ssWinner.pct}% season spare conversion</div>
+        ${runners ? `<div class="award-runners">${runners}</div>` : ''}
+      </div>`;
+    }
+
+    const ssSplit = (awards.season?.splits||[])[0];
+    if (ssSplit) {
+      html += `<div class="award-banner cyan">
+        <span class="award-emoji">👑</span>
+        <div class="award-title">ROYAL SPLIT — SEASON</div>
+        <div class="award-winner" style="color:var(--neon-c);">👑 ${ssSplit.name.toUpperCase()}</div>
+        <div class="award-stat">${ssSplit.splits} splits faced this season</div>
+      </div>`;
+    }
+    html += `</div>`;
+  }
+
+  el.innerHTML = html || emptyState('NO AWARD DATA YET<br>UPLOAD SCORES TO START EARNING AWARDS');
+}
+
 function renderLeaders(stats){
   const bowlers = stats.bowlers || [];
   const el = document.getElementById('lbGrid');
@@ -1503,6 +1803,7 @@ document.getElementById('bowlerCards').innerHTML = loadingState();
 document.getElementById('lbGrid').innerHTML = loadingState();
 document.getElementById('weeklyPanels').innerHTML = loadingState();
 document.getElementById('histPanels').innerHTML = loadingState();
+document.getElementById('awardsContent').innerHTML = loadingState();
 
 loadAll();
 </script>
