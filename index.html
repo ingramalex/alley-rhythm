@@ -41,18 +41,21 @@
 
 html { scroll-behavior: smooth; }
 
+html {
+  height: 100%;
+  overflow: hidden;
+  /* Prevent the entire page from rubber-band scrolling on iOS */
+  overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+}
+
 body {
   background: var(--void);
   color: var(--text);
   font-family: 'Exo 2', sans-serif;
-  /* iOS-safe full height layout */
   height: 100%;
   overflow: hidden;
-}
-
-html {
-  height: 100%;
-  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Wrapper that fills the full screen as a flex column */
@@ -60,8 +63,9 @@ html {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh; /* dynamic viewport height — handles iOS address bar */
+  height: 100dvh;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Top block stays fixed at top */
@@ -76,7 +80,9 @@ html {
   flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
-  -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iOS */
+  -webkit-overflow-scrolling: touch;
+  /* Contain scroll within this element — stops bounce propagating to parent */
+  overscroll-behavior-y: contain;
 }
 
 /* Footer stays pinned at bottom */
