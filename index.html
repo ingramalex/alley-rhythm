@@ -1857,6 +1857,43 @@ document.getElementById('histPanels').innerHTML = loadingState();
 document.getElementById('awardsContent').innerHTML = loadingState();
 
 loadAll();
+
+/* ════════════════════════════════════════
+   iOS RUBBER-BAND BOUNCE FIX
+   overscroll-behavior is ignored by iOS Safari.
+   We must intercept touch events directly and
+   prevent scroll from propagating past the
+   scroll container's boundaries.
+════════════════════════════════════════ */
+(function() {
+  const scrollEl = document.getElementById('scroll-body');
+  if (!scrollEl) return;
+
+  let startY = 0;
+
+  scrollEl.addEventListener('touchstart', function(e) {
+    // Record where the touch started
+    startY = e.touches[0].clientY;
+  }, { passive: true });
+
+  scrollEl.addEventListener('touchmove', function(e) {
+    const y        = e.touches[0].clientY;
+    const scrollTop    = scrollEl.scrollTop;
+    const scrollHeight = scrollEl.scrollHeight;
+    const clientHeight = scrollEl.clientHeight;
+    const atTop    = scrollTop <= 0;
+    const atBottom = scrollTop + clientHeight >= scrollHeight;
+    const movingDown = y > startY; // pulling down = moving finger down
+    const movingUp   = y < startY; // pulling up   = moving finger up
+
+    // Block the event only when:
+    // - At top AND trying to pull further down (would bounce header)
+    // - At bottom AND trying to pull further up (would bounce footer)
+    if ((atTop && movingDown) || (atBottom && movingUp)) {
+      e.preventDefault();
+    }
+  }, { passive: false }); // passive:false required to allow preventDefault
+})();
 </script>
 </body>
 </html>
