@@ -45,8 +45,45 @@ body {
   background: var(--void);
   color: var(--text);
   font-family: 'Exo 2', sans-serif;
-  min-height: 100vh;
+  /* iOS-safe full height layout */
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Wrapper that fills the full screen as a flex column */
+#app-shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh; /* dynamic viewport height — handles iOS address bar */
+  overflow: hidden;
+}
+
+/* Top block stays fixed at top */
+#top-block {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 300;
+}
+
+/* Scrollable content area fills remaining space */
+#scroll-body {
+  flex: 1;
+  overflow-y: auto;
   overflow-x: hidden;
+  -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on iOS */
+}
+
+/* Footer stays pinned at bottom */
+#footer-block {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 200;
 }
 
 /* ── CRT OVERLAY ── */
@@ -278,7 +315,7 @@ body::after {
   to   { opacity: 1; transform: scaleY(1);    filter: brightness(1); }
 }
 
-.page { max-width: 900px; margin: 0 auto; padding: 24px 16px 40px; }
+.page { max-width: 900px; margin: 0 auto; padding: 24px 16px 32px; }
 
 /* ═══════════ FILTER ROW ═══════════ */
 .filter-row {
@@ -866,7 +903,7 @@ body::after {
 
 /* ═══════════ FOOTER TICKER ═══════════ */
 .footer-bar {
-  position: sticky; bottom: 0; left: 0; right: 0; z-index: 200;
+  position: relative;
   height: 28px;
   background: var(--void);
   border-top: 2px solid var(--neon-p2);
@@ -1006,9 +1043,10 @@ body::after {
 </style>
 </head>
 <body>
+<div id="app-shell">
 
-<!-- STICKY TOP BLOCK: marquee + header + nav all locked together -->
-<div style="position:sticky;top:0;z-index:300;">
+<!-- ══ TOP BLOCK (fixed at top) ══ -->
+<div id="top-block">
 
 <!-- TOP MARQUEE -->
 <div class="marquee-wrap">
@@ -1051,7 +1089,10 @@ body::after {
   </div>
 </div>
 
-</div><!-- end sticky top block -->
+</div><!-- end top-block -->
+
+<!-- ══ SCROLLABLE CONTENT ══ -->
+<div id="scroll-body">
 
 <!-- ══════════ STATS VIEW ══════════ -->
 <div id="tab-stats" class="view active">
@@ -1142,10 +1183,14 @@ body::after {
 </div>
 </div>
 
-<!-- FOOTER TICKER -->
+<!-- ══ FOOTER BLOCK (pinned at bottom) ══ -->
+<div id="footer-block">
 <div class="footer-bar">
   <div class="footer-track" id="footerTrack"></div>
 </div>
+</div>
+
+</div><!-- end app-shell -->
 
 <script src="config.js"></script>
 <script>
