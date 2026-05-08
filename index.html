@@ -92,7 +92,107 @@ body {
   z-index: 200;
 }
 
-/* ── CRT OVERLAY ── */
+/* ─── LEAGUE SELECT BUTTON (header) ─── */
+.league-select-btn {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 6px 10px 6px 12px;
+  margin-right: 8px;
+  background: rgba(57,255,20,0.06);
+  border: 1.5px solid var(--neon-g2);
+  border-radius: var(--radius-px);
+  cursor: pointer;
+  flex-shrink: 0;
+  min-width: 0;
+  max-width: 130px;
+  transition: background .15s, border-color .15s;
+  position: relative;
+}
+.league-select-btn:hover {
+  background: rgba(57,255,20,0.12);
+  border-color: var(--neon-g);
+}
+.lsb-top {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  letter-spacing: 1px;
+  color: var(--neon-g);
+  text-shadow: 0 0 6px var(--neon-g);
+  white-space: nowrap;
+  margin-bottom: 3px;
+}
+.lsb-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+/* ─── HEADER LAYOUT ─── */
+.site-header {
+  position: sticky; top: 0; z-index: 200;
+  background: var(--deep);
+  border-bottom: 3px solid var(--neon-g2);
+  box-shadow: 0 0 30px rgba(57,255,20,0.15), 0 4px 0 var(--neon-g2);
+}
+.header-inner {
+  max-width: 900px; margin: 0 auto;
+  padding: 0 10px;
+  display: flex; align-items: center;
+  height: 58px; gap: 0;
+  overflow: hidden;
+}
+.header-readouts {
+  display: flex;
+  align-items: stretch;
+  padding: 0 6px;
+  gap: 0;
+  border-right: 2px solid var(--rail2);
+  flex-shrink: 0;
+}
+.readout {
+  padding: 4px 8px;
+  text-align: center;
+  border-right: 1px solid var(--rail);
+}
+.readout:last-child { border-right: none; }
+.readout-val {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 17px; font-weight: 900; line-height: 1;
+  color: var(--neon-g);
+  text-shadow: 0 0 10px var(--neon-g), 0 0 20px var(--neon-g2);
+}
+.readout-val.hot { color:var(--neon-p); text-shadow:0 0 10px var(--neon-p),0 0 20px var(--neon-p2); }
+.readout-val.warm{ color:var(--neon-y); text-shadow:0 0 10px var(--neon-y),0 0 16px var(--neon-y2); }
+.readout-val.ice { color:var(--neon-c); text-shadow:0 0 10px var(--neon-c),0 0 16px var(--neon-c2); }
+.readout-lbl {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px; color: var(--dim);
+  letter-spacing: 1px; margin-top: 2px;
+}
+.header-spacer { flex: 1; min-width: 4px; }
+.insert-btn {
+  flex-shrink: 0;
+  background: var(--neon-g); color: var(--void);
+  border: none; border-radius: var(--radius-px);
+  padding: 8px 10px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; letter-spacing: 0.5px;
+  cursor: pointer; transition: all 0.1s;
+  box-shadow: 0 0 20px rgba(57,255,20,0.3), 3px 3px 0 var(--neon-g2);
+  text-transform: uppercase; line-height: 1.5;
+  white-space: nowrap;
+}
+.insert-btn:hover { box-shadow:0 0 30px rgba(57,255,20,0.6),3px 3px 0 var(--neon-g2); transform:translate(-1px,-1px); }
+.insert-btn:active { transform:translate(2px,2px);
 body::before {
   content: '';
   position: fixed; inset: 0; z-index: 1000;
@@ -164,121 +264,6 @@ body::after {
 }
 .marquee-item::before { content: '★  '; }
 
-/* ═══════════ HEADER ═══════════ */
-.site-header {
-  position: sticky; top: 0; z-index: 200;
-  background: var(--deep);
-  border-bottom: 3px solid var(--neon-g2);
-  box-shadow: 0 0 30px rgba(57,255,20,0.15), 0 4px 0 var(--neon-g2);
-}
-
-.header-inner {
-  max-width: 900px; margin: 0 auto;
-  padding: 0 12px;
-  display: flex; align-items: center;
-  height: 62px; gap: 0;
-  overflow: hidden;
-}
-
-/* LOGO */
-.logo-wrap {
-  display: flex; flex-direction: column;
-  justify-content: center;
-  padding-right: 12px;
-  border-right: 2px solid var(--rail2);
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.logo-line1 {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 11px;
-  letter-spacing: 1px;
-  line-height: 1;
-  color: var(--neon-g);
-  text-shadow: 0 0 10px var(--neon-g), 0 0 20px var(--neon-g2), 0 0 40px var(--neon-g2);
-}
-
-.logo-line2 {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 7px;
-  letter-spacing: 2px;
-  color: var(--neon-p);
-  text-shadow: 0 0 8px var(--neon-p), 0 0 16px var(--neon-p2);
-  text-transform: uppercase;
-  max-width: 90px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* LIVE SCORE READOUTS */
-.header-readouts {
-  display: flex;
-  align-items: stretch;
-  padding: 0 10px;
-  gap: 0;
-  border-right: 2px solid var(--rail2);
-  flex-shrink: 0;
-}
-
-.readout {
-  padding: 6px 10px;
-  text-align: center;
-  border-right: 1px solid var(--rail);
-  position: relative;
-}
-.readout:last-child { border-right: none; }
-
-.readout-val {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 18px;
-  font-weight: 900;
-  line-height: 1;
-  color: var(--neon-g);
-  text-shadow: 0 0 10px var(--neon-g), 0 0 20px var(--neon-g2);
-}
-.readout-val.hot { color: var(--neon-p); text-shadow: 0 0 10px var(--neon-p), 0 0 20px var(--neon-p2); }
-.readout-val.warm { color: var(--neon-y); text-shadow: 0 0 10px var(--neon-y), 0 0 16px var(--neon-y2); }
-.readout-val.ice { color: var(--neon-c); text-shadow: 0 0 10px var(--neon-c), 0 0 16px var(--neon-c2); }
-
-.readout-lbl {
-  font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
-  color: var(--dim);
-  letter-spacing: 1px;
-  margin-top: 3px;
-  text-transform: uppercase;
-}
-
-.header-spacer { flex: 1; min-width: 4px; }
-
-.insert-btn {
-  flex-shrink: 0;
-  background: var(--neon-g);
-  color: var(--void);
-  border: none;
-  border-radius: var(--radius-px);
-  padding: 8px 10px;
-  font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
-  letter-spacing: 0.5px;
-  cursor: pointer;
-  transition: all 0.1s;
-  box-shadow: 0 0 20px rgba(57,255,20,0.3), 3px 3px 0 var(--neon-g2);
-  text-transform: uppercase;
-  line-height: 1.4;
-  white-space: nowrap;
-}
-.insert-btn:hover {
-  box-shadow: 0 0 30px rgba(57,255,20,0.6), 3px 3px 0 var(--neon-g2);
-  transform: translate(-1px,-1px);
-}
-.insert-btn:active {
-  transform: translate(2px,2px);
-  box-shadow: 0 0 10px rgba(57,255,20,0.3), 1px 1px 0 var(--neon-g2);
-}
-
 /* ═══════════ NAV ═══════════ */
 .nav-bar {
   background: var(--panel);
@@ -286,7 +271,7 @@ body::after {
   display: flex;
   overflow-x: auto; scrollbar-width: none;
   position: sticky;
-  top: 78px;   /* sits just below the site-header height */
+  top: 58px;   /* matches new header height */
   z-index: 190;
 }
 .nav-bar::after {
@@ -1134,11 +1119,11 @@ body::after {
 <!-- HEADER -->
 <div class="site-header" style="position:relative;top:auto;">
   <div class="header-inner">
-    <div class="logo-wrap">
-      <div class="logo-line1">ALLEY</div>
-      <div class="logo-line1" style="margin-top:-2px;">RHYTHM</div>
-      <div class="logo-line2" id="leagueNameDisplay">Bowling Stats</div>
-    </div>
+    <!-- League selector — tappable, prominent -->
+    <button class="league-select-btn" onclick="showLeagueSwitcher()">
+      <div class="lsb-top">⇄ LEAGUE</div>
+      <div class="lsb-name" id="leagueNameDisplay">Bowling Stats</div>
+    </button>
     <div class="header-readouts">
       <div class="readout">
         <div class="readout-val" id="hdr-avg">—</div>
@@ -1150,8 +1135,7 @@ body::after {
       </div>
     </div>
     <div class="header-spacer"></div>
-    <button class="lc-switch-btn" onclick="showLeagueSwitcher()" style="margin-right:6px;font-size:9px;white-space:nowrap;flex-shrink:0;">⇄</button>
-    <button class="insert-btn" onclick="window.location.href='upload.html'">📸 UPLOAD<br>SCORE</button>
+    <button class="insert-btn" onclick="window.location.href='upload.html'">📸<br>UPLOAD</button>
   </div>
 </div>
 
@@ -2049,9 +2033,29 @@ function selectLeague(leagueId, league) {
   // Update upload/admin links to pass leagueId
   updateLeagueLinks(leagueId);
 
-  // Hide switcher and reload data
+  // ── Clear ALL data displays before loading new league ──────────
+  const loading = loadingState();
+  const clear   = id => { const el=document.getElementById(id); if(el) el.innerHTML=loading; };
+  clear('bowlerCards');
+  clear('lbGrid');
+  clear('awardsContent');
+  clear('weeklyPanels');
+  clear('histPanels');
+
+  // Reset header stats to dashes
+  ['hdr-avg','hdr-high','stat-avg','stat-high','stat-sessions','stat-games'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = '—';
+  });
+
+  // Reset live globals so stale data can't bleed through
+  liveStats   = null;
+  liveHistory = null;
+  liveWeekly  = null;
+  liveAwards  = null;
+
+  // Hide switcher and load fresh data for new league
   hideLeagueSwitcher();
-  document.getElementById('bowlerCards').innerHTML = loadingState();
   loadAll();
 }
 
