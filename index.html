@@ -1046,9 +1046,73 @@ body::after {
   margin-bottom: 14px; padding-bottom: 6px;
   border-bottom: 1px solid var(--rail2);
 }
+/* ═══════════ LEAGUE SWITCHER ═══════════ */
+.league-card {
+  border: 2px solid var(--lc-primary, var(--rail));
+  border-radius: var(--radius-px);
+  padding: 20px;
+  cursor: pointer;
+  background: var(--panel);
+  box-shadow: 0 0 16px var(--lc-glow, transparent), 4px 4px 0 rgba(0,0,0,.6);
+  transition: border-color .2s, box-shadow .2s, transform .1s;
+  position: relative; overflow: hidden;
+}
+.league-card::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--lc-tint, transparent) 0%, transparent 50%);
+  pointer-events: none;
+}
+.league-card:hover { transform: translateY(-2px); box-shadow: 0 0 24px var(--lc-glow, transparent), 4px 6px 0 rgba(0,0,0,.6); }
+.league-card.lc-active { border-width: 3px; }
+.lc-name {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px; font-weight: 900;
+  color: var(--lc-primary, var(--text));
+  text-shadow: 0 0 12px var(--lc-glow, transparent);
+  letter-spacing: 2px;
+}
+.lc-day {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; letter-spacing: 2px;
+  color: var(--dim); margin-top: 4px;
+}
+.lc-badge {
+  position: absolute; top: 12px; right: 14px;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; letter-spacing: 1px;
+  color: var(--lc-primary, var(--neon-g));
+  background: rgba(0,0,0,.5);
+  padding: 3px 8px; border-radius: 3px;
+  border: 1px solid var(--lc-primary, var(--rail));
+}
+.lc-switch-btn {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px; letter-spacing: 1px;
+  color: var(--dim); background: none; border: none;
+  cursor: pointer; padding: 0;
+}
+.lc-switch-btn:hover { color: var(--text); }
 </style>
 </head>
 <body>
+<!-- ══ LEAGUE SWITCHER SCREEN ══ -->
+<div id="league-switcher" style="display:none;position:fixed;inset:0;z-index:1000;background:var(--void);overflow-y:auto;">
+  <div style="max-width:480px;margin:0 auto;padding:32px 20px 48px;">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--neon-g);text-shadow:0 0 20px var(--neon-g),0 0 40px var(--neon-g2);letter-spacing:4px;">ALLEY</div>
+      <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--neon-g);text-shadow:0 0 20px var(--neon-g),0 0 40px var(--neon-g2);letter-spacing:4px;margin-top:-4px;">RHYTHM</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim);letter-spacing:3px;margin-top:6px;">SELECT YOUR LEAGUE</div>
+    </div>
+    <div id="leagueList" style="display:flex;flex-direction:column;gap:12px;">
+      <div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING LEAGUES...</div>
+    </div>
+    <div style="text-align:center;margin-top:24px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:1px;">POWERED BY ALLEYRHYTHM.COM</div>
+    </div>
+  </div>
+</div>
+
 <div id="app-shell">
 
 <!-- ══ TOP BLOCK (fixed at top) ══ -->
@@ -1078,6 +1142,7 @@ body::after {
       </div>
     </div>
     <div class="header-spacer"></div>
+    <button class="lc-switch-btn" onclick="showLeagueSwitcher()" style="margin-right:8px;">⇄ LEAGUES</button>
     <button class="insert-btn" onclick="window.location.href='upload.html'">📸 UPLOAD<br>SCORE</button>
   </div>
 </div>
@@ -1250,7 +1315,8 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
   : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
 
 async function apiFetch(action){
-  const r = await fetch(`${SCRIPT_URL}?action=${action}`);
+  const leagueId = window._activeLeagueId || 'BlameItOnTheLane';
+  const r = await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(leagueId)}`);
   if(!r.ok) throw new Error('API error '+r.status);
   return r.json();
 }
@@ -1880,7 +1946,132 @@ document.getElementById('weeklyPanels').innerHTML = loadingState();
 document.getElementById('histPanels').innerHTML = loadingState();
 document.getElementById('awardsContent').innerHTML = loadingState();
 
-loadAll();
+/* ════════════════════════════════════════
+   LEAGUE SWITCHER
+════════════════════════════════════════ */
+window._activeLeagueId   = null;
+window._activeLeagueMeta = null;
+
+const LEAGUE_THEMES = {
+  // Fallback theme colors if league has none set
+  default: { primary:'#39ff14', secondary:'#ff00ff', accent:'#00ffff' }
+};
+
+function applyLeagueTheme(theme) {
+  const p = theme.primary   || '#39ff14';
+  const s = theme.secondary || '#ff00ff';
+  const a = theme.accent    || '#00ffff';
+  const root = document.documentElement;
+  root.style.setProperty('--neon-g',  p);
+  root.style.setProperty('--neon-g2', p + '88');
+  root.style.setProperty('--neon-p',  s);
+  root.style.setProperty('--neon-p2', s + '88');
+  root.style.setProperty('--neon-c',  a);
+  // Update header league name
+  const lnd = document.getElementById('leagueNameDisplay');
+  if (lnd) lnd.textContent = (theme.name || window._activeLeagueMeta?.name || 'Bowling Stats').toUpperCase();
+}
+
+function showLeagueSwitcher() {
+  document.getElementById('league-switcher').style.display = 'block';
+  renderLeagueList();
+}
+function hideLeagueSwitcher() {
+  document.getElementById('league-switcher').style.display = 'none';
+}
+
+async function renderLeagueList() {
+  const el = document.getElementById('leagueList');
+  el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING...</div>`;
+  try {
+    const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r=>r.json());
+    const leagues = data.leagues || [];
+    if (!leagues.length) {
+      el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">NO LEAGUES FOUND<br>Run initializeHub() in Apps Script</div>`;
+      return;
+    }
+    el.innerHTML = leagues.map(league => {
+      const theme = league.theme || LEAGUE_THEMES.default;
+      const p = theme.primary || '#39ff14';
+      const isActive = window._activeLeagueId === league.leagueId;
+      return `<div class="league-card ${isActive?'lc-active':''}"
+        style="--lc-primary:${p};--lc-glow:${p}55;--lc-tint:${p}08;"
+        onclick="selectLeague('${league.leagueId}', ${JSON.stringify(JSON.stringify(league))})">
+        ${isActive ? '<div class="lc-badge">● ACTIVE</div>' : ''}
+        <div class="lc-name">${(league.name||'').toUpperCase()}</div>
+        <div class="lc-day">${league.day ? league.day.toUpperCase() + ' LEAGUE' : 'BOWLING LEAGUE'}</div>
+      </div>`;
+    }).join('');
+  } catch(err) {
+    el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;color:var(--neon-r);padding:24px;font-size:11px;">Could not load leagues<br>${err.message}</div>`;
+  }
+}
+
+function selectLeague(leagueId, leagueJsonStr) {
+  const league = JSON.parse(leagueJsonStr);
+  window._activeLeagueId   = leagueId;
+  window._activeLeagueMeta = league;
+
+  // Persist in localStorage
+  localStorage.setItem('ar_leagueId',   leagueId);
+  localStorage.setItem('ar_leagueMeta', JSON.stringify(league));
+
+  // Apply theme
+  applyLeagueTheme(league.theme || LEAGUE_THEMES.default);
+
+  // Update upload/admin links to pass leagueId
+  updateLeagueLinks(leagueId);
+
+  // Hide switcher and reload data
+  hideLeagueSwitcher();
+  document.getElementById('bowlerCards').innerHTML = loadingState();
+  loadAll();
+}
+
+function updateLeagueLinks(leagueId) {
+  // Pass leagueId as URL param to upload and admin pages
+  document.querySelectorAll('a[href="upload.html"],a[href="admin.html"]').forEach(a => {
+    const base = a.getAttribute('href').split('?')[0];
+    a.setAttribute('href', base + '?leagueId=' + encodeURIComponent(leagueId));
+  });
+  document.querySelectorAll('button[onclick*="upload.html"]').forEach(b => {
+    b.setAttribute('onclick', `window.location.href='upload.html?leagueId=${encodeURIComponent(leagueId)}'`);
+  });
+}
+
+async function initLeague() {
+  // Restore last selected league from localStorage
+  const savedId   = localStorage.getItem('ar_leagueId');
+  const savedMeta = localStorage.getItem('ar_leagueMeta');
+
+  if (savedId) {
+    window._activeLeagueId   = savedId;
+    window._activeLeagueMeta = savedMeta ? JSON.parse(savedMeta) : null;
+    if (window._activeLeagueMeta && window._activeLeagueMeta.theme) {
+      applyLeagueTheme(window._activeLeagueMeta.theme);
+    }
+    updateLeagueLinks(savedId);
+    loadAll();
+  } else {
+    // First visit — fetch leagues and show switcher, or auto-select if only one
+    try {
+      const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r=>r.json());
+      const leagues = data.leagues || [];
+      if (leagues.length === 1) {
+        // Auto-select the only league
+        selectLeague(leagues[0].leagueId, JSON.stringify(leagues[0]));
+      } else {
+        showLeagueSwitcher();
+      }
+    } catch(err) {
+      // Fall back to BlameItOnTheLane if can't load list
+      window._activeLeagueId = 'BlameItOnTheLane';
+      loadAll();
+    }
+  }
+}
+
+initLeague();
 
 /* ════════════════════════════════════════
    iOS RUBBER-BAND BOUNCE FIX

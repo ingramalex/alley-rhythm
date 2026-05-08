@@ -219,6 +219,7 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
     <button class="ntab active" onclick="goTab('sessions',this)">SESSIONS</button>
     <button class="ntab" onclick="goTab('roster',this)">ROSTER</button>
     <button class="ntab" onclick="goTab('overview',this)">OVERVIEW</button>
+    <button class="ntab" id="tab-btn-leagues" onclick="goTab('leagues',this)" style="display:none;">⚙ LEAGUES</button>
   </div>
 
   <!-- SESSIONS TAB -->
@@ -307,6 +308,68 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn-sec" onclick="exportData()">EXPORT ALL DATA (JSON)</button>
       <button class="btn-sec" onclick="toast('Opens your Google Sheet — link in Apps Script')">OPEN GOOGLE SHEET</button>
+    </div>
+
+  </div>
+  </div>
+
+  <!-- LEAGUES TAB (super admin only) -->
+  <div id="tab-leagues" class="view">
+  <div class="page">
+
+    <div class="sec-lbl">▶ LEAGUE MANAGEMENT</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:20px;line-height:1.6;">
+      Create and manage leagues. Each league gets its own isolated Google Sheet. Users select their league on the main site.
+    </div>
+
+    <!-- Create League Form -->
+    <div style="background:var(--panel2);border:2px solid var(--neon-g2);border-radius:var(--r);padding:18px;margin-bottom:24px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-g);letter-spacing:1px;margin-bottom:16px;">▶ CREATE NEW LEAGUE</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">LEAGUE NAME *</div>
+          <input id="nl-name" type="text" placeholder="Sunday Night Crew" style="width:100%;box-sizing:border-box;background:var(--void);border:1px solid var(--rail2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;padding:10px;border-radius:4px;">
+        </div>
+        <div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">LEAGUE DAY</div>
+          <input id="nl-day" type="text" placeholder="Sunday" style="width:100%;box-sizing:border-box;background:var(--void);border:1px solid var(--rail2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;padding:10px;border-radius:4px;">
+        </div>
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">ADMIN EMAILS (comma-separated)</div>
+        <input id="nl-admins" type="text" placeholder="admin@gmail.com, coach@gmail.com" style="width:100%;box-sizing:border-box;background:var(--void);border:1px solid var(--rail2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;padding:10px;border-radius:4px;">
+      </div>
+
+      <div style="margin-bottom:12px;">
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">BOWLERS (comma-separated)</div>
+        <input id="nl-bowlers" type="text" placeholder="Alice, Bob, Charlie" style="width:100%;box-sizing:border-box;background:var(--void);border:1px solid var(--rail2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;padding:10px;border-radius:4px;">
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">PRIMARY COLOR</div>
+          <input id="nl-color1" type="color" value="#39ff14" style="width:100%;height:40px;border:1px solid var(--rail2);background:var(--void);border-radius:4px;cursor:pointer;">
+        </div>
+        <div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">SECONDARY COLOR</div>
+          <input id="nl-color2" type="color" value="#ff00ff" style="width:100%;height:40px;border:1px solid var(--rail2);background:var(--void);border-radius:4px;cursor:pointer;">
+        </div>
+        <div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">ACCENT COLOR</div>
+          <input id="nl-color3" type="color" value="#00ffff" style="width:100%;height:40px;border:1px solid var(--rail2);background:var(--void);border-radius:4px;cursor:pointer;">
+        </div>
+      </div>
+
+      <button class="btn-main" onclick="createLeague()" style="width:100%;">▶ CREATE LEAGUE</button>
+      <div id="createLeagueStatus" style="margin-top:10px;font-family:'Exo 2',sans-serif;font-size:13px;"></div>
+    </div>
+
+    <!-- Existing Leagues -->
+    <div class="sec-lbl">▶ EXISTING LEAGUES</div>
+    <div id="leaguesList">
+      <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--dim);padding:16px 0;">Loading leagues...</div>
     </div>
 
   </div>
@@ -423,22 +486,21 @@ async function verifyAdmin(){
       showErr('Your account does not have admin permissions. Make sure your email is in ADMIN_EMAILS in Code.gs.');
       return;
     }
+    _isSuperAdmin = r.isSuperAdmin || false;
+    // Show leagues tab only for super admins
+    const leaguesTab = document.getElementById('tab-btn-leagues');
+    if (leaguesTab) leaguesTab.style.display = _isSuperAdmin ? 'inline-block' : 'none';
     showAdmin();
   }catch(e){
     console.error('Admin verify error:', e);
-    // Clear stale session — likely an expired token
     sessionStorage.removeItem('ar_token');
     sessionStorage.removeItem('ar_user');
-    if(e.status===403||e.status===401){
-      showErr(e.message||'Access denied.');
-    } else if(e.message&&e.message.includes('Invalid or expired')){
-      // Token expired — prompt re-login
+    if(e.message&&e.message.includes('Invalid or expired')){
       document.getElementById('loginScreen').style.display='flex';
       document.getElementById('adminScreen').style.display='none';
       document.getElementById('errorScreen').style.display='none';
       waitForGSI();
     } else {
-      // Show the actual error so we can diagnose
       showErr('Verify failed: ' + (e.message||'unknown error') + '. Try signing out and back in.');
     }
   }
@@ -478,8 +540,15 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
   ? LANE_CONFIG.SCRIPT_URL
   : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
 
+// Read leagueId from URL → localStorage → default
+const _activeLeagueId = new URLSearchParams(window.location.search).get('leagueId')
+  || localStorage.getItem('ar_leagueId')
+  || 'BlameItOnTheLane';
+
+let _isSuperAdmin = false;
+
 async function apiPost(action, data){
-  const payload = JSON.stringify({action, token:currentIdToken, ...data});
+  const payload = JSON.stringify({action, token:currentIdToken, leagueId:_activeLeagueId, ...data});
   const r = await fetch(SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -494,7 +563,7 @@ async function apiPost(action, data){
   return j;
 }
 async function apiGet(action){
-  const r=await fetch(`${SCRIPT_URL}?action=${action}`);
+  const r=await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(_activeLeagueId)}`);
   return r.json();
 }
 
@@ -755,6 +824,78 @@ function toast(msg,isErr=false){
   t.textContent=msg;t.className=isErr?'err':'';t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3000);
 }
+
+/* ── LEAGUES (super admin only) ── */
+async function loadLeagues(){
+  if(!_isSuperAdmin) return;
+  const el=document.getElementById('leaguesList');
+  if(!el) return;
+  try{
+    const r=await fetch(`${SCRIPT_URL}?action=list_leagues`);
+    const data=await r.json();
+    const leagues=data.leagues||[];
+    if(!leagues.length){
+      el.innerHTML='<div style="color:var(--dim);font-family:\'Exo 2\',sans-serif;font-size:13px;padding:16px 0;">No leagues found. Create one above.</div>';
+      return;
+    }
+    el.innerHTML=leagues.map(l=>{
+      const p=(l.theme&&l.theme.primary)||'#39ff14';
+      return `<div style="border:2px solid ${p};border-radius:var(--r);padding:16px;margin-bottom:10px;background:var(--panel);">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:${p};">${l.name}</div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-top:4px;">
+              ${l.leagueId} &nbsp;·&nbsp; ${l.day||'—'} &nbsp;·&nbsp; ${l.plan||'free'}
+            </div>
+          </div>
+          <div style="width:16px;height:16px;border-radius:50%;background:${p};box-shadow:0 0 10px ${p};flex-shrink:0;"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML='<div style="color:var(--neon-r);font-family:\'Exo 2\',sans-serif;font-size:13px;">Error: '+e.message+'</div>';
+  }
+}
+
+async function createLeague(){
+  const name=document.getElementById('nl-name').value.trim();
+  if(!name){toast('League name is required');return;}
+  const admins=document.getElementById('nl-admins').value.split(',').map(e=>e.trim()).filter(Boolean);
+  const bowlers=document.getElementById('nl-bowlers').value.split(',').map(b=>b.trim()).filter(Boolean);
+  const day=document.getElementById('nl-day').value.trim();
+  const p=document.getElementById('nl-color1').value;
+  const s=document.getElementById('nl-color2').value;
+  const a=document.getElementById('nl-color3').value;
+  const statusEl=document.getElementById('createLeagueStatus');
+  statusEl.style.color='var(--neon-y)';
+  statusEl.textContent='Creating league... this may take 10-20 seconds while Google creates a new Sheet.';
+  try{
+    const r=await apiPost('create_league',{
+      leagueName:name, leagueDay:day,
+      adminEmails:admins, approvedEmails:admins,
+      bowlers,
+      theme:{primary:p,secondary:s,accent:a,name:name.toUpperCase()},
+      plan:'free'
+    });
+    statusEl.style.color='var(--neon-g)';
+    statusEl.innerHTML=`✅ League created!<br>
+      ID: <strong style="color:var(--neon-g);">${r.leagueId}</strong><br>
+      <a href="${r.sheetUrl}" target="_blank" style="color:var(--neon-c);">View Google Sheet →</a><br>
+      <span style="color:var(--dim);font-size:12px;">Users select this league on the main page automatically.</span>`;
+    ['nl-name','nl-day','nl-admins','nl-bowlers'].forEach(id=>{document.getElementById(id).value='';});
+    loadLeagues();
+  }catch(e){
+    statusEl.style.color='var(--neon-r)';
+    statusEl.textContent='Error: '+e.message;
+  }
+}
+
+// Hook into goTab to load leagues when that tab is opened
+const _origGoTab=window.goTab;
+window.goTab=function(name,btn){
+  if(_origGoTab) _origGoTab(name,btn);
+  if(name==='leagues') loadLeagues();
+};
 </script>
 <!-- GSI loads AFTER config.js is parsed so GOOGLE_CLIENT_ID is available -->
 <script src="https://accounts.google.com/gsi/client" async defer></script>

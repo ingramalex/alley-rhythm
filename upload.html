@@ -339,8 +339,13 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
   ? LANE_CONFIG.SCRIPT_URL
   : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
 
+// Read leagueId from URL param → localStorage → default
+const _activeLeagueId = new URLSearchParams(window.location.search).get('leagueId')
+  || localStorage.getItem('ar_leagueId')
+  || 'BlameItOnTheLane';
+
 async function apiPost(action, data) {
-  const payload = JSON.stringify({ action, token: currentIdToken, ...data });
+  const payload = JSON.stringify({ action, token: currentIdToken, leagueId: _activeLeagueId, ...data });
   const r = await fetch(SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -349,14 +354,14 @@ async function apiPost(action, data) {
   if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
   const j = await r.json();
   if (j.error) {
-    const status = j.status || (j.error.includes('expired') || j.error.includes('sign-in') ? 401 : j.error.includes('not on the approved') ? 403 : 500);
+    const status = j.status || (j.error.includes('expired') || j.error.includes('sign-in') ? 401 : j.error.includes('not approved') ? 403 : 500);
     throw Object.assign(new Error(j.error), { status });
   }
   return j;
 }
 
 async function apiGet(action){
-  const r=await fetch(`${SCRIPT_URL}?action=${action}`);
+  const r=await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(_activeLeagueId)}`);
   return r.json();
 }
 
