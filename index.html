@@ -174,23 +174,25 @@ body::after {
 
 .header-inner {
   max-width: 900px; margin: 0 auto;
-  padding: 0 16px;
+  padding: 0 12px;
   display: flex; align-items: center;
-  height: 66px; gap: 0;
+  height: 62px; gap: 0;
+  overflow: hidden;
 }
 
 /* LOGO */
 .logo-wrap {
   display: flex; flex-direction: column;
   justify-content: center;
-  padding-right: 20px;
+  padding-right: 12px;
   border-right: 2px solid var(--rail2);
-  gap: 3px;
+  gap: 2px;
+  flex-shrink: 0;
 }
 
 .logo-line1 {
   font-family: 'Press Start 2P', monospace;
-  font-size: 13px;
+  font-size: 11px;
   letter-spacing: 1px;
   line-height: 1;
   color: var(--neon-g);
@@ -199,24 +201,29 @@ body::after {
 
 .logo-line2 {
   font-family: 'Orbitron', sans-serif;
-  font-size: 8px;
-  letter-spacing: 4px;
+  font-size: 7px;
+  letter-spacing: 2px;
   color: var(--neon-p);
   text-shadow: 0 0 8px var(--neon-p), 0 0 16px var(--neon-p2);
   text-transform: uppercase;
+  max-width: 90px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* LIVE SCORE READOUTS */
 .header-readouts {
   display: flex;
   align-items: stretch;
-  padding: 0 20px;
+  padding: 0 10px;
   gap: 0;
   border-right: 2px solid var(--rail2);
+  flex-shrink: 0;
 }
 
 .readout {
-  padding: 6px 16px;
+  padding: 6px 10px;
   text-align: center;
   border-right: 1px solid var(--rail);
   position: relative;
@@ -225,7 +232,7 @@ body::after {
 
 .readout-val {
   font-family: 'Orbitron', sans-serif;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 900;
   line-height: 1;
   color: var(--neon-g);
@@ -237,30 +244,31 @@ body::after {
 
 .readout-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: 6px;
   color: var(--dim);
   letter-spacing: 1px;
   margin-top: 3px;
   text-transform: uppercase;
 }
 
-.header-spacer { flex: 1; }
+.header-spacer { flex: 1; min-width: 4px; }
 
 .insert-btn {
-  margin-right: 16px;
+  flex-shrink: 0;
   background: var(--neon-g);
   color: var(--void);
   border: none;
   border-radius: var(--radius-px);
-  padding: 10px 18px;
+  padding: 8px 10px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 9px;
-  letter-spacing: 1px;
+  font-size: 7px;
+  letter-spacing: 0.5px;
   cursor: pointer;
   transition: all 0.1s;
   box-shadow: 0 0 20px rgba(57,255,20,0.3), 3px 3px 0 var(--neon-g2);
   text-transform: uppercase;
   line-height: 1.4;
+  white-space: nowrap;
 }
 .insert-btn:hover {
   box-shadow: 0 0 30px rgba(57,255,20,0.6), 3px 3px 0 var(--neon-g2);
@@ -1142,7 +1150,7 @@ body::after {
       </div>
     </div>
     <div class="header-spacer"></div>
-    <button class="lc-switch-btn" onclick="showLeagueSwitcher()" style="margin-right:8px;">⇄ LEAGUES</button>
+    <button class="lc-switch-btn" onclick="showLeagueSwitcher()" style="margin-right:6px;font-size:9px;white-space:nowrap;flex-shrink:0;">⇄</button>
     <button class="insert-btn" onclick="window.location.href='upload.html'">📸 UPLOAD<br>SCORE</button>
   </div>
 </div>
@@ -1339,7 +1347,6 @@ const _leagueDay  = (_cfg.LEAGUE_DAY  || 'Weekly').toUpperCase();
 const _lnd = document.getElementById('leagueNameDisplay');
 if (_lnd) _lnd.textContent = _leagueName;
 document.title = _cfg.SITE_NAME || 'Alley Rhythm';
-
 // Build default marquees using real config values
 const defaultTicker = [
   _siteName,
@@ -1957,7 +1964,7 @@ const LEAGUE_THEMES = {
   default: { primary:'#39ff14', secondary:'#ff00ff', accent:'#00ffff' }
 };
 
-function applyLeagueTheme(theme) {
+function applyLeagueTheme(theme, leagueName) {
   const p = theme.primary   || '#39ff14';
   const s = theme.secondary || '#ff00ff';
   const a = theme.accent    || '#00ffff';
@@ -1967,9 +1974,12 @@ function applyLeagueTheme(theme) {
   root.style.setProperty('--neon-p',  s);
   root.style.setProperty('--neon-p2', s + '88');
   root.style.setProperty('--neon-c',  a);
-  // Update header league name
+  // Update header league name from the league registry, not config
+  const displayName = leagueName || theme.name || (_cfg.LEAGUE_NAME) || 'Bowling Stats';
   const lnd = document.getElementById('leagueNameDisplay');
-  if (lnd) lnd.textContent = (theme.name || window._activeLeagueMeta?.name || 'Bowling Stats').toUpperCase();
+  if (lnd) lnd.textContent = displayName.toUpperCase();
+  // Update page title
+  document.title = (leagueName || _cfg.SITE_NAME || 'Alley Rhythm') + ' — Stats';
 }
 
 function showLeagueSwitcher() {
@@ -2017,7 +2027,7 @@ function selectLeague(leagueId, leagueJsonStr) {
   localStorage.setItem('ar_leagueMeta', JSON.stringify(league));
 
   // Apply theme
-  applyLeagueTheme(league.theme || LEAGUE_THEMES.default);
+  applyLeagueTheme(league.theme || LEAGUE_THEMES.default, league.name);
 
   // Update upload/admin links to pass leagueId
   updateLeagueLinks(leagueId);
@@ -2048,7 +2058,7 @@ async function initLeague() {
     window._activeLeagueId   = savedId;
     window._activeLeagueMeta = savedMeta ? JSON.parse(savedMeta) : null;
     if (window._activeLeagueMeta && window._activeLeagueMeta.theme) {
-      applyLeagueTheme(window._activeLeagueMeta.theme);
+      applyLeagueTheme(window._activeLeagueMeta.theme, window._activeLeagueMeta.name);
     }
     updateLeagueLinks(savedId);
     loadAll();
