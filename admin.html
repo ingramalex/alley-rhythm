@@ -479,8 +479,8 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
   : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
 
 async function apiPost(action, data){
-  // text/plain avoids iOS Safari CORS preflight that blocks application/json
-  const payload = JSON.stringify({action, token:currentIdToken, ...data});
+  const leagueId = (window.LANE_CONFIG && LANE_CONFIG.LEAGUE_ID) || 'sunday-crew';
+  const payload = JSON.stringify({action, token:currentIdToken, leagueId, ...data});
   const r = await fetch(SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -489,14 +489,14 @@ async function apiPost(action, data){
   if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
   const j = await r.json();
   if (j.error) {
-    // Apps Script always returns HTTP 200 — status is in the JSON
-    const status = j.status || (j.error.includes('expired') || j.error.includes('sign-in') ? 401 : j.error.includes('not on the approved') ? 403 : 500);
+    const status = j.status || (j.error.includes('expired') || j.error.includes('sign-in') ? 401 : j.error.includes('not approved') ? 403 : 500);
     throw Object.assign(new Error(j.error), { status });
   }
   return j;
 }
 async function apiGet(action){
-  const r=await fetch(`${SCRIPT_URL}?action=${action}`);
+  const leagueId = (window.LANE_CONFIG && LANE_CONFIG.LEAGUE_ID) || 'sunday-crew';
+  const r=await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(leagueId)}`);
   return r.json();
 }
 
@@ -528,17 +528,27 @@ function renderSessions(){
 
   const now=Date.now();
   el.innerHTML=sessionsData.map((s,i)=>{
-    const isRecent=s.uploadedAt&&(now-new Date(s.uploadedAt).getTime())<3600000*24; // within 24h
-    const bowlers=s.bowlers||[];
-    const totalPins=bowlers.reduce((sum,b)=>sum+(b.series||0),0);
-    const isDeleted=s._deleted;
+    // Use pre-formatted date from server, fall back to raw if needed
+    const displayDate = s.date || String(s.rawDate||'Unknown date');
+    const displayTime = s.uploadedAt || '';
+    const isRecent    = s.date && (now - new Date(s.rawDate||s.date).getTime()) < 3600000*24;
+
+    const bowlers  = s.bowlers || [];
+    // Use server-calculated totalPins if available, otherwise sum locally
+    const totalPins = s.totalPins > 0 ? s.totalPins
+      : bowlers.reduce((sum,b) => sum+(b.series||0), 0);
+    const playerCount = s.playerCount || bowlers.length;
+    const isDeleted = s._deleted;
+
+    // Build team label
+    const teamLabel = [s.teamLeft, s.teamRight].filter(Boolean).join(' vs ') || s.teamName || 'SESSION';
 
     return `
     <div class="sess-card${s.open?' open':''}${isDeleted?' deleted':''}" id="sc_${s.id}">
       <div class="sc-top" onclick="toggleSession('${s.id}')">
         <div>
-          <div class="sc-date${isRecent?' recent':''}">${s.date}${isRecent?' <span style="font-size:10px;color:var(--neon-g);">● NEW</span>':''}</div>
-          <div class="sc-meta">${s.teamName||'SESSION'} · ${bowlers.length} PLAYERS · ${s.uploadedBy||''}</div>
+          <div class="sc-date${isRecent?' recent':''}">${displayDate}${displayTime?' · '+displayTime:''}${isRecent?' <span style="font-size:10px;color:var(--neon-g);">● NEW</span>':''}</div>
+          <div class="sc-meta">${teamLabel} · ${playerCount} PLAYERS · ${s.uploadedBy||''}</div>
         </div>
         <div class="sc-top-right">
           <div class="sc-total">${totalPins} PINS</div>
@@ -550,7 +560,7 @@ function renderSessions(){
         </div>
       </div>
       <div class="sc-body">
-        ${bowlers.map(b=>{
+        ${bowlers.length ? bowlers.map(b=>{
           const c=pColor(b.matchedName||b.name||'');
           const games=(b.games||[]).map(g=>`<span class="s-tile ${g>=200?'lit':''}">${g}</span>`).join('');
           const ser=b.series?`<span class="s-tile ser">${b.series}</span>`:'';
@@ -559,8 +569,10 @@ function renderSessions(){
             <div style="flex:1;">${games}</div>
             ${ser}
           </div>`;
-        }).join('')}
-        ${s.uploadedBy?`<div style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:.5px;">UPLOADED BY: ${s.uploadedBy} · ${s.uploadedAt||''}</div>`:''}
+        }).join('') : '<div style="font-family:\'Exo 2\',sans-serif;font-size:13px;color:var(--dim);padding:8px 0;">No bowler data available</div>'}
+        <div style="margin-top:10px;font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:.5px;">
+          UPLOADED BY: ${s.uploadedBy||'unknown'}${displayTime?' · '+displayTime:''}
+        </div>
       </div>
     </div>`;
   }).join('');

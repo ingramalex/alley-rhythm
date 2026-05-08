@@ -340,8 +340,8 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
   : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
 
 async function apiPost(action, data) {
-  // text/plain avoids iOS Safari CORS preflight that blocks application/json
-  const payload = JSON.stringify({ action, token: currentIdToken, ...data });
+  const leagueId = (window.LANE_CONFIG && LANE_CONFIG.LEAGUE_ID) || 'sunday-crew';
+  const payload = JSON.stringify({ action, token: currentIdToken, leagueId, ...data });
   const r = await fetch(SCRIPT_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -357,7 +357,8 @@ async function apiPost(action, data) {
 }
 
 async function apiGet(action){
-  const r=await fetch(`${SCRIPT_URL}?action=${action}`);
+  const leagueId = (window.LANE_CONFIG && LANE_CONFIG.LEAGUE_ID) || 'sunday-crew';
+  const r=await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(leagueId)}`);
   return r.json();
 }
 

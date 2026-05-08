@@ -1250,7 +1250,8 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
   : 'https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec';
 
 async function apiFetch(action){
-  const r = await fetch(`${SCRIPT_URL}?action=${action}`);
+  const leagueId = (window.LANE_CONFIG && LANE_CONFIG.LEAGUE_ID) || 'sunday-crew';
+  const r = await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(leagueId)}`);
   if(!r.ok) throw new Error('API error '+r.status);
   return r.json();
 }
@@ -1652,6 +1653,30 @@ function renderAwards(awards, stats){
           ${w.highGame.name.toUpperCase()} · ${w.highGame.score}
         </div>
         ${is300 ? '<div class="award-stat" style="color:var(--neon-y);">🎳 A PERFECT GAME — EVERY FRAME A STRIKE — LEGENDARY! 🎳</div>' : ''}
+      </div>`;
+    }
+
+    // WTF Award
+    const huhWinner = (w.huh||[])[0];
+    if (huhWinner) {
+      const runners = (w.huh||[]).slice(1,3).map(b=>`${b.name} (${b.swing})`).join(' · ');
+      // Build game score display showing the swing visually
+      const scoreDisplay = huhWinner.games
+        .map((g,i) => {
+          const isHigh = g === huhWinner.high;
+          const isLow  = g === huhWinner.low;
+          return `<span style="color:${isHigh?'var(--neon-g)':isLow?'var(--neon-r)':'var(--text2)'};font-size:${isHigh||isLow?'20px':'16px'};font-weight:${isHigh||isLow?'900':'400'};">${g}</span>`;
+        })
+        .join('<span style="color:var(--dim);margin:0 6px;font-size:14px;">→</span>');
+      html += `<div class="award-banner red">
+        <span class="award-emoji">🤯</span>
+        <div class="award-title">WTF AWARD</div>
+        <div class="award-winner" style="color:var(--neon-r);text-shadow:0 0 12px var(--neon-r);">
+          ${huhWinner.name.toUpperCase()}
+        </div>
+        <div style="margin:8px 0;font-family:'Orbitron',sans-serif;">${scoreDisplay}</div>
+        <div class="award-stat">${huhWinner.swing} pin swing · High ${huhWinner.high}, Low ${huhWinner.low}</div>
+        ${runners ? `<div class="award-runners">Also: ${runners}</div>` : ''}
       </div>`;
     }
   }
