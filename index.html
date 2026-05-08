@@ -2000,25 +2000,42 @@ async function renderLeagueList() {
       el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">NO LEAGUES FOUND<br>Run initializeHub() in Apps Script</div>`;
       return;
     }
+
+    // Store leagues in a map so onclick can look them up by ID — avoids JSON-in-HTML quoting issues
+    window._leagueRegistry = {};
+    leagues.forEach(l => window._leagueRegistry[l.leagueId] = l);
+
     el.innerHTML = leagues.map(league => {
       const theme = league.theme || LEAGUE_THEMES.default;
       const p = theme.primary || '#39ff14';
       const isActive = window._activeLeagueId === league.leagueId;
       return `<div class="league-card ${isActive?'lc-active':''}"
         style="--lc-primary:${p};--lc-glow:${p}55;--lc-tint:${p}08;"
-        onclick="selectLeague('${league.leagueId}', ${JSON.stringify(JSON.stringify(league))})">
+        data-league-id="${league.leagueId}"
+        onclick="selectLeagueById(this.getAttribute('data-league-id'))">
         ${isActive ? '<div class="lc-badge">● ACTIVE</div>' : ''}
         <div class="lc-name">${(league.name||'').toUpperCase()}</div>
         <div class="lc-day">${league.day ? league.day.toUpperCase() + ' LEAGUE' : 'BOWLING LEAGUE'}</div>
       </div>`;
     }).join('');
+
+    // Also add a close/cancel button so user can dismiss without switching
+    el.innerHTML += `<div style="text-align:center;margin-top:16px;">
+      <button onclick="hideLeagueSwitcher()" style="background:none;border:1px solid var(--rail2);color:var(--dim);font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;padding:10px 20px;border-radius:4px;cursor:pointer;">✕ CANCEL</button>
+    </div>`;
+
   } catch(err) {
     el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;color:var(--neon-r);padding:24px;font-size:11px;">Could not load leagues<br>${err.message}</div>`;
   }
 }
 
-function selectLeague(leagueId, leagueJsonStr) {
-  const league = JSON.parse(leagueJsonStr);
+function selectLeagueById(leagueId) {
+  const league = (window._leagueRegistry || {})[leagueId];
+  if (!league) { console.error('League not found in registry:', leagueId); return; }
+  selectLeague(leagueId, league);
+}
+
+function selectLeague(leagueId, league) {
   window._activeLeagueId   = leagueId;
   window._activeLeagueMeta = league;
 
