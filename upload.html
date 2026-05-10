@@ -202,6 +202,20 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
     <div id="vResult"></div>
     <div id="dupeZone" style="display:none;"></div>
     <div id="bowlerZone" style="display:none;"></div>
+
+    <!-- Location field -->
+    <div id="locationZone" style="display:none;margin-bottom:16px;">
+      <div class="sec-lbl" style="margin-bottom:8px;">📍 BOWLING LOCATION</div>
+      <input id="locationInput" type="text" placeholder="e.g. Du Bowl Lanes"
+        style="width:100%;box-sizing:border-box;background:#0a0d14;border:2px solid var(--rail2);
+               color:var(--text);font-family:'Exo 2',sans-serif;font-size:15px;
+               padding:12px 14px;border-radius:6px;outline:none;"
+        onfocus="this.style.borderColor='var(--neon-g)'"
+        onblur="this.style.borderColor='var(--rail2)'"
+        oninput="saveLastLocation(this.value)">
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;" id="locationSuggestions"></div>
+    </div>
+
     <div id="saveRow" style="display:none;" class="save-row">
       <button class="btn-main" onclick="saveSession()" id="saveBtn" style="flex:1;">✓ SAVE SESSION</button>
       <button class="btn-sec" onclick="resetUpload()">CANCEL</button>
@@ -630,6 +644,7 @@ function renderAll(validation,analysis,dupeCheck){
     renderBowlers(analysis);
     document.getElementById('bowlerZone').style.display='block';
     document.getElementById('saveRow').style.display='none';
+    showLocationZone();
     pendingSession={...analysis,dupeAcknowledged:false};
     return;
   }
@@ -637,6 +652,7 @@ function renderAll(validation,analysis,dupeCheck){
   renderBowlers(analysis);
   document.getElementById('bowlerZone').style.display='block';
   document.getElementById('saveRow').style.display='flex';
+  showLocationZone();
   pendingSession=analysis;
 }
 
@@ -646,6 +662,47 @@ function proceedDupe(){
     document.getElementById('dupeZone').style.display='none';
     document.getElementById('saveRow').style.display='flex';
     showToast('⚠ UPLOADING AS NEW SESSION',false,'wrn');
+  }
+}
+
+/* ── LOCATION HELPERS ── */
+const KNOWN_LOCATIONS = ['Du Bowl Lanes','Crestwood Bowl'];
+
+function showLocationZone(){
+  const zone = document.getElementById('locationZone');
+  const input = document.getElementById('locationInput');
+  const suggestions = document.getElementById('locationSuggestions');
+  if (!zone || !input) return;
+
+  // Pre-fill with last used location
+  const last = localStorage.getItem('ar_lastLocation') || 'Du Bowl Lanes';
+  input.value = last;
+
+  // Show suggestion chips for known locations
+  suggestions.innerHTML = KNOWN_LOCATIONS.map(loc =>
+    `<button onclick="pickLocation('${loc}')"
+      style="background:${loc===last?'rgba(57,255,20,0.15)':'var(--panel2)'};
+             border:1px solid ${loc===last?'var(--neon-g)':'var(--rail2)'};
+             color:${loc===last?'var(--neon-g)':'var(--text2)'};
+             font-family:'Exo 2',sans-serif;font-size:12px;
+             padding:6px 12px;border-radius:20px;cursor:pointer;white-space:nowrap;">
+      📍 ${loc}
+    </button>`
+  ).join('');
+
+  zone.style.display = 'block';
+}
+
+function pickLocation(loc){
+  document.getElementById('locationInput').value = loc;
+  saveLastLocation(loc);
+  // Update chip styles
+  showLocationZone();
+}
+
+function saveLastLocation(val){
+  if (val && val.trim()) {
+    localStorage.setItem('ar_lastLocation', val.trim());
   }
 }
 
@@ -716,7 +773,7 @@ function previewName(i,val){
   if(av&&val.trim()){av.textContent=val.trim().slice(0,2).toUpperCase();}
 }
 
-/* ── SAVE — collects confirmed names for ALL edited rows ── */
+/* ── SAVE — collects confirmed names and location ── */
 async function saveSession(){
   if(!pendingSession)return;
   const btn=document.getElementById('saveBtn');
@@ -728,8 +785,13 @@ async function saveSession(){
     if(inp&&inp.value.trim())b.confirmedName=inp.value.trim();
   });
 
+  // Collect location
+  const locationInput = document.getElementById('locationInput');
+  const location = locationInput ? locationInput.value.trim() : '';
+  if (location) localStorage.setItem('ar_lastLocation', location);
+
   try{
-    const r=await apiPost('save_session',{session:pendingSession});
+    const r=await apiPost('save_session',{session:{...pendingSession, location}});
     showToast('SESSION SAVED!');
     sessionHistory.unshift({id:r.sessionId,date:new Date().toLocaleString(),bowlers:pendingSession.bowlers});
     renderRecent();

@@ -1587,6 +1587,18 @@ function bowlerCard(p, i, rankCls) {
         </div>
       </div>
 
+      ${p.locations && p.locations.length ? `
+      <div class="bc-section">▶ LOCATIONS</div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${p.locations.map(loc => `
+        <div style="display:flex;justify-content:space-between;align-items:center;
+                    background:var(--panel2);border:1px solid var(--rail);
+                    border-radius:var(--radius-px);padding:8px 12px;">
+          <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text);">📍 ${loc.name}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--neon-c);">${loc.games} GAME${loc.games!==1?'S':''}</div>
+        </div>`).join('')}
+      </div>` : ''}
+
       ${sparePct !== null ? `
       <div class="bc-section">▶ SPARE CONVERSION</div>
       <div class="bc-bar-row">
@@ -1910,11 +1922,14 @@ function renderHistory(history){
   el.innerHTML = sessions.map((s,i)=>{
     const bowlers = s.bowlers || [];
     const pins = bowlers.reduce((sum,b)=>sum+(b.series||0),0);
+    const locationBadge = s.location
+      ? `<span style="display:inline-block;background:rgba(0,255,255,0.08);border:1px solid rgba(0,255,255,0.3);border-radius:3px;padding:2px 7px;font-size:9px;color:var(--neon-c);letter-spacing:1px;margin-left:6px;">📍 ${s.location}</span>`
+      : '';
     return `<div class="hs-panel ${i===0?'ho':''}">
       <div class="hs-top" onclick="this.parentElement.classList.toggle('ho')">
         <div>
-          <div class="hs-date" style="color:${i===0?'var(--neon-g)':'var(--text)'};">${s.date}${s.teamName?'  //  '+s.teamName:''}</div>
-          <div class="hs-meta">${bowlers.length} PLAYERS  ·  ${pins} TOTAL PINS</div>
+          <div class="hs-date" style="color:${i===0?'var(--neon-g)':'var(--text)'};">${s.date}${s.teamName?'  //  '+s.teamName:''}${locationBadge}</div>
+          <div class="hs-meta">${bowlers.length} PLAYERS  ·  ${pins} TOTAL PINS${s.location?' · '+s.location:''}</div>
         </div>
         <span class="chv">▾</span>
       </div>
