@@ -1519,7 +1519,11 @@ function bowlerCard(p, i, rankCls) {
             return top ? `<span style="font-size:12px;margin-left:4px;">${top.emoji}</span>` : '';
           })()}
         </div>
-        <div class="bc-sub">${p.gamesCount||0} games · ${p.highGame||'—'} best</div>
+        <div class="bc-sub">
+          ${p.gamesCount||0} games · ${p.highGame||'—'} best
+          ${p.blindWeeks ? `<span style="color:orange;margin-left:6px;">😴 ${p.blindWeeks} absent</span>` : ''}
+          ${p.hdcpAvg ? `<span style="color:var(--neon-g);margin-left:6px;font-size:10px;">+hdcp avg ${p.hdcpAvg}</span>` : ''}
+        </div>
       </div>
       <div class="bc-right">
         <div>
@@ -1597,13 +1601,21 @@ function bowlerCard(p, i, rankCls) {
           <div class="bc-stat-val" style="color:var(--neon-y);">${p.highSeries||'—'}</div>
         </div>
         <div class="bc-stat">
+          <div class="bc-stat-lbl">SCRATCH<br>AVG</div>
+          <div class="bc-stat-val">${p.avg||'—'}</div>
+        </div>
+        ${p.hdcpAvg ? `<div class="bc-stat">
+          <div class="bc-stat-lbl">HDCP<br>AVG</div>
+          <div class="bc-stat-val" style="color:var(--neon-g);">${p.hdcpAvg}<span class="bc-unit"> +hdcp</span></div>
+        </div>` : `<div class="bc-stat">
           <div class="bc-stat-lbl">TOP 3<br>AVG</div>
           <div class="bc-stat-val">${p.top3Avg||'—'}</div>
-        </div>
-        <div class="bc-stat">
-          <div class="bc-stat-lbl">FIRST 3<br>AVG</div>
-          <div class="bc-stat-val">${p.first3Avg||'—'}</div>
-        </div>
+        </div>`}
+        ${p.blindWeeks ? `<div class="bc-stat">
+          <div class="bc-stat-lbl">ABSENT<br>WEEKS</div>
+          <div class="bc-stat-val" style="color:orange;">😴 ${p.blindWeeks}</div>
+          <div class="bc-trend-eq">SCORE PENDING</div>
+        </div>` : ''}
       </div>
 
       ${p.locations && p.locations.length ? `
