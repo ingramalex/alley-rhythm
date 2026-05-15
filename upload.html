@@ -714,28 +714,36 @@ function saveLastLocation(val){
 ── */
 function renderBowlers(analysis){
   const bz=document.getElementById('bowlerZone');
+  const hasBlind = (analysis.bowlers||[]).some(b=>b.isBlind);
   let html=`
     <div class="sec-lbl">▶ DETECTED BOWLERS</div>
+    ${hasBlind ? `<div style="background:rgba(255,165,0,0.12);border:1px solid orange;border-radius:6px;padding:10px 14px;margin-bottom:12px;font-family:'Exo 2',sans-serif;font-size:13px;color:orange;line-height:1.6;">
+      ⚠️ One or more bowlers are marked <strong>BLIND</strong> (absent). Their score will be saved as 0 and can be updated by an admin once they bowl their makeup game.
+    </div>` : ''}
     <div style="font-family:'Exo 2',sans-serif;font-size:12px;color:var(--text2);margin-bottom:12px;line-height:1.6;">
       Review all names. If the screen cut off a name (e.g. <strong style="color:var(--neon-c);">WAYN</strong> → correct to 
-      <strong style="color:var(--neon-c);">Wayne</strong>), update it below — the app will remember this mapping permanently.
+      <strong style="color:var(--neon-c);">Wayne</strong>), update it below.
     </div>`;
 
   (analysis.bowlers||[]).forEach((b,i)=>{
     const raw=     (b.rawName    ||'').trim();
     const matched= (b.matchedName||raw||'?').trim();
-    const c=pColor(matched);
+    const c = b.isBlind ? '#ff9900' : pColor(matched);
+    const isBlind = b.isBlind || false;
 
-    // Truncated = screen showed something different from what we matched
     const isTrunc= raw && raw.toUpperCase()!==matched.toUpperCase();
     const isNew=   b.isNew;
     const needsEdit= isNew||isTrunc;
-    const rowClass= isNew?'is-new':isTrunc?'is-trunc':'';
+    const rowClass= isBlind?'is-blind':isNew?'is-new':isTrunc?'is-trunc':'';
 
-    const games=(b.games||[]).map(g=>`<span class="s-tile ${g>=200?'lit':''}">${g}</span>`).join('');
-    const ser=  b.series?`<span class="s-tile ser">${b.series}</span>`:'';
+    // Show scratch score + handicap badge
+    const scratch = isBlind ? 0 : ((b.scratchScore != null ? b.scratchScore : (b.games||[])[0]) || 0);
+    const hdcp    = b.handicapScore;
+    const scoreDisplay = isBlind
+      ? `<span class="s-tile" style="background:#2a1a00;border-color:orange;color:orange;">BLIND</span>`
+      : `<span class="s-tile ${scratch>=200?'lit':''}">${scratch}</span>${hdcp ? `<span class="s-tile" style="background:#0a1a0a;border-color:var(--neon-g2);color:var(--neon-g);font-size:11px;">+${hdcp-scratch}hdcp</span>` : ''}`;
 
-    const editSection=needsEdit?`
+    const editSection=needsEdit&&!isBlind?`
       <div class="name-edit-section">
         <div class="ne-label">
           ${isNew
@@ -752,15 +760,17 @@ function renderBowlers(analysis){
       </div>`:'';
 
     html+=`
-    <div class="b-row ${rowClass}" id="brow_${i}">
-      <div class="px-av" style="background:${c}15;border-color:${c};color:${c};" id="bav_${i}">${ini2(matched)}</div>
+    <div class="b-row ${rowClass}" id="brow_${i}" ${isBlind?'style="border-color:orange;opacity:0.85;"':''}>
+      <div class="px-av" style="background:${c}15;border-color:${c};color:${c};" id="bav_${i}">${isBlind?'😴':ini2(matched)}</div>
       <div style="flex:1;min-width:0;">
-        <div class="b-name" style="color:${c};text-shadow:0 0 8px ${c}55;" id="bname_${i}">${matched.toUpperCase()}</div>
-        ${isTrunc&&!isNew?`<div class="b-raw">SCREEN: "${raw.toUpperCase()}"</div>`:''}
-        ${b.ballSpeed?`<div class="b-spd">⚡ ${b.ballSpeed} MPH</div>`:''}
+        <div class="b-name" style="color:${c};text-shadow:0 0 8px ${c}55;" id="bname_${i}">
+          ${matched.toUpperCase()}${isBlind?' <span style="font-size:10px;color:orange;letter-spacing:1px;">(BLIND)</span>':''}
+        </div>
+        ${isTrunc&&!isNew&&!isBlind?`<div class="b-raw">SCREEN: "${raw.toUpperCase()}"</div>`:''}
+        ${b.ballSpeed&&!isBlind?`<div class="b-spd">⚡ ${b.ballSpeed} MPH</div>`:''}
         ${editSection}
       </div>
-      <div class="s-tiles">${games}${ser}</div>
+      <div class="s-tiles">${scoreDisplay}</div>
     </div>`;
   });
   bz.innerHTML=html;
