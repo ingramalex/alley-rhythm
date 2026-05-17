@@ -1053,6 +1053,43 @@ body::after {
   pointer-events: none;
 }
 
+/* ═══════════ GUTTER GAZETTE RECAP ═══════════ */
+.recap-card {
+  background: var(--panel);
+  border: 2px solid var(--neon-g);
+  border-radius: var(--radius-px);
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 0 20px rgba(57,255,20,.15), 4px 4px 0 rgba(0,0,0,.6);
+}
+.recap-masthead {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--neon-g);
+  text-shadow: 0 0 12px var(--neon-g);
+  letter-spacing: 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--rail);
+  padding-bottom: 8px;
+  margin-bottom: 6px;
+}
+.recap-dateline {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 6px;
+  color: var(--dim);
+  letter-spacing: 2px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.recap-body {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.8;
+}
+.recap-body p { margin: 0 0 12px; }
+
 /* Award grid */
 .award-week-label {
   font-family: 'Press Start 2P', monospace;
@@ -1248,6 +1285,7 @@ body::after {
 <!-- ══════════ WEEKLY VIEW ══════════ -->
 <div id="tab-weekly" class="view">
 <div class="page">
+  <div id="recapBlock"></div>
   <div class="sec-head">
     <span class="sec-title">▶ WEEKLY RESULTS</span>
     <div class="sec-line"></div>
@@ -1294,6 +1332,17 @@ function goTab(name, btn){
   document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
+}
+
+function renderRecap(r) {
+  const el = document.getElementById('recapBlock');
+  if (!el || !r.recap) return;
+  el.innerHTML = `
+    <div class="recap-card">
+      <div class="recap-masthead">THE GUTTER GAZETTE</div>
+      <div class="recap-dateline">WEEK OF ${(r.week||'').replace(/-/g,'.')} &nbsp;·&nbsp; BLAME IT ON THE LANE</div>
+      <div class="recap-body">${r.recap.replace(/\n\n/g,'</p><p>').replace(/\n/g,' ')}</div>
+    </div>`;
 }
 
 function emptyState(msg){
@@ -1447,6 +1496,9 @@ async function loadAll(){
     renderHistory(history);
     renderAwards(awards, stats);
     updateHeaderAndMarquee(stats);
+
+    // Load recap separately — slower AI call, non-blocking
+    apiFetch('recap').then(r => { if (r && r.recap) renderRecap(r); }).catch(()=>{});
   } catch(e) {
     console.error('Failed to load data:', e);
     document.getElementById('bowlerCards').innerHTML =

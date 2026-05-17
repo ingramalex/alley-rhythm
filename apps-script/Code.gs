@@ -325,6 +325,7 @@ function doGet(e) {
       history:                  () => getSessionHistory(ss),
       weekly:                   () => getWeeklySummary(ss),
       awards:                   () => getAwards(ss),
+      recap:                    () => generateWeeklyRecap(ss, leagueId),
       recent_sessions_for_dupe: () => getRecentSessionsForDupe(ss),
       admin_sessions:           () => getAdminSessions(ss),
       admin_roster:             () => getAdminRoster(ss),
@@ -1911,6 +1912,104 @@ function clearAllData() {
 
   SpreadsheetApp.flush();
   Logger.log('✅ All test data cleared. Roster re-seeded. Ready for live use!');
+}
+
+// ── Weekly recap (Blame It On The Lane only) ─────────────────────────────────
+function generateWeeklyRecap(ss, leagueId) {
+  if (leagueId !== 'BlameItOnTheLane') return { recap: null };
+
+  const awards = getAwards(ss);
+  const currentWeek = awards.currentWeek;
+  if (!currentWeek) return { recap: null };
+
+  // Return cached recap if it exists for this week
+  const cacheKey = 'recap_' + currentWeek;
+  const cached = PropertiesService.getScriptProperties().getProperty(cacheKey);
+  if (cached) return JSON.parse(cached);
+
+  const w = awards.weekly;
+  const weekly = getWeeklySummary(ss);
+  const currentWeekData = (weekly.weeks || []).find(wk => wk.week === currentWeek) || {};
+  const bowlers = currentWeekData.bowlers || [];
+
+  // Build a plain-English data summary for the AI
+  const lines = [];
+  lines.push('League: Blame It On The Lane (group of friends, adult bowling league)');
+  lines.push('Week: ' + currentWeek);
+  lines.push('');
+
+  if (bowlers.length) {
+    lines.push('BOWLER SCORES THIS WEEK:');
+    bowlers.forEach(b => {
+      const games = (b.games || []).join(', ');
+      const avg = b.avg || '?';
+      lines.push(`  ${b.name}: games [${games}], avg ${avg}`);
+    });
+  }
+
+  if (w.highGame) lines.push(`\nHIGH GAME: ${w.highGame.name} with a ${w.highGame.score}`);
+
+  if (w.overAvg && w.overAvg.length) {
+    lines.push('\nBOWLED OVER THEIR AVERAGE:');
+    w.overAvg.forEach(b => lines.push(`  ${b.name}: ${b.weekAvg} avg this week vs ${b.priorAvg} season avg (+${b.overAvg})`));
+  }
+
+  if (w.huh && w.huh.length) {
+    const h = w.huh[0];
+    lines.push(`\nBIGGEST SWING (Huh?! Award): ${h.name} — games ${h.games.join(', ')}, swing of ${h.swing} pins`);
+  }
+
+  if (w.splits && w.splits.length) {
+    lines.push('\nSPLITS (unlucky):');
+    w.splits.forEach(b => lines.push(`  ${b.name}: ${b.splits} split${b.splits !== 1 ? 's' : ''}`));
+  }
+
+  if (w.spare && w.spare.length) {
+    lines.push('\nSPARE SHOOTING:');
+    w.spare.forEach(b => lines.push(`  ${b.name}: ${b.pct}% conversion (${b.spares} made, ${b.misses} missed)`));
+  }
+
+  const dataSummary = lines.join('\n');
+
+  const recapPrompt = `You are the snarky, hilarious beat reporter for a bowling league newsletter called "The Gutter Gazette." Write a weekly recap in the style of a sports news story — 3 short punchy paragraphs.
+
+Rules:
+- Give genuine praise to the top performers
+- Playfully trash talk the worst performers (keep it friendly — these are close friends)
+- Call out split disasters by name and be merciless
+- Reference specific scores and stats to make it feel real
+- Use bowling puns and sports clichés but keep it fresh
+- End with a one-liner prediction or challenge for next week
+- Write in second person about the players ("Steve rolled...") NOT first person
+- Keep it under 200 words total
+- Do NOT use markdown headers, bullet points, or formatting — just flowing prose paragraphs separated by line breaks
+
+Here is the data:\n\n${dataSummary}`;
+
+  const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
+  const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
+    method: 'post',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01'
+    },
+    payload: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 400,
+      messages: [{ role: 'user', content: recapPrompt }]
+    }),
+    muteHttpExceptions: true
+  });
+
+  const result = JSON.parse(response.getContentText());
+  const recapText = (result.content && result.content[0] && result.content[0].text) || null;
+
+  const out = { recap: recapText, week: currentWeek };
+  if (recapText) {
+    PropertiesService.getScriptProperties().setProperty(cacheKey, JSON.stringify(out));
+  }
+  return out;
 }
 
 // ── Manual stat correction ────────────────────────────────────────────────────
