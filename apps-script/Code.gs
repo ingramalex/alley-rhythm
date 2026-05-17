@@ -1154,8 +1154,17 @@ function getSessionHistory(ss) {
   });
 
   const sessions=data.slice(1).filter(r=>r[0]).reverse().slice(0,60).map(r=>{
-    let bowlers=[];
-    try{bowlers=(JSON.parse(r[col('RawJSON')])||{}).bowlers||[];}catch(e){}
+    let rawBowlers=[];
+    try{rawBowlers=(JSON.parse(r[col('RawJSON')])||{}).bowlers||[];}catch(e){}
+    // Deduplicate bowlers by name — team scorecards can list the same bowler on both sides
+    const bowlerMap={};
+    rawBowlers.forEach(b=>{
+      const key=(b.matchedName||b.name||'').trim().toLowerCase();
+      if(!key) return;
+      if(!bowlerMap[key]) { bowlerMap[key]={...b}; }
+      else { bowlerMap[key].games=[...(bowlerMap[key].games||[]),...(b.games||[])]; }
+    });
+    const bowlers=Object.values(bowlerMap);
     const date = r[col('Date')];
     return { id:r[col('SessionID')], date, weekKey:r[col('WeekKey')],
       screenType:r[col('ScreenType')], teamLeft:r[col('TeamLeft')], teamRight:r[col('TeamRight')],
