@@ -1380,53 +1380,52 @@ let liveWeekly = null;
 let liveAwards = null;
 
 // ── Period filter helpers ─────────────────────────────────────────
-function getWeekKeyJS(date) {
-  const d = new Date(date); d.setHours(0,0,0,0);
-  const day = d.getDay();
-  d.setDate(d.getDate() + (day === 0 ? -6 : 1 - day));
-  return d.toISOString().slice(0,10);
-}
+// Uses liveWeekly (already fetched) so no backend redeployment needed.
+function buildFilteredStats(numWeeks) {
+  if (!numWeeks) return liveStats;
+  const weeks = (liveWeekly && liveWeekly.weeks) ? liveWeekly.weeks : [];
+  // weeks are sorted newest-first from server
+  const sliced = weeks.slice(0, numWeeks);
+  if (!sliced.length) return liveStats;
 
-function recentWeekKeys(n) {
-  const keys = new Set();
-  const now = new Date();
-  for (let i = 0; i < n; i++) {
-    const d = new Date(now); d.setDate(d.getDate() - i * 7);
-    keys.add(getWeekKeyJS(d));
-  }
-  return keys;
-}
+  const bowlerMap = {};
+  sliced.forEach(w => {
+    (w.bowlers || []).forEach(b => {
+      const key = (b.name || '').trim().toLowerCase();
+      if (!key) return;
+      if (!bowlerMap[key]) bowlerMap[key] = { name: b.name, allGames: [], weeklyGames: [] };
+      bowlerMap[key].allGames.push(...(b.games || []));
+      if (b.games && b.games.length) bowlerMap[key].weeklyGames.push(b.games);
+    });
+  });
 
-function filterBowlers(bowlers, numWeeks) {
-  if (!numWeeks) return bowlers;
-  const validKeys = recentWeekKeys(numWeeks);
-  return bowlers.map(b => {
-    const gbd = b.gamesByDate || {};
-    const filtered = Object.entries(gbd).filter(([wk]) => validKeys.has(wk));
-    const games = filtered.flatMap(([,g]) => g);
-    if (!games.length) return null;
-    const avg = Math.round(games.reduce((a,v) => a+v, 0) / games.length);
-    const highGame = Math.max(...games);
+  const filteredBowlers = Object.values(bowlerMap).map(b => {
+    if (!b.allGames.length) return null;
+    const orig = (liveStats.bowlers || []).find(
+      s => (s.name || '').trim().toLowerCase() === (b.name || '').trim().toLowerCase()
+    ) || {};
+    const avg = Math.round(b.allGames.reduce((a,v) => a+v, 0) / b.allGames.length);
+    const highGame = Math.max(...b.allGames);
     let highSeries = 0;
-    filtered.forEach(([,g]) => { const t = g.reduce((a,v)=>a+v,0); if(t>highSeries) highSeries=t; });
-    return { ...b, avg, highGame, highSeries, gamesCount: games.length };
+    b.weeklyGames.forEach(g => { const t = g.reduce((a,v)=>a+v,0); if(t>highSeries) highSeries=t; });
+    return { ...orig, avg, highGame, highSeries, gamesCount: b.allGames.length };
   }).filter(Boolean);
+
+  return { ...liveStats, bowlers: filteredBowlers };
 }
 
 function setStatsFilter(numWeeks, el) {
   if (!liveStats) return;
   document.querySelectorAll('#tab-stats .fcoin').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  const filtered = { ...liveStats, bowlers: filterBowlers(liveStats.bowlers, numWeeks) };
-  renderStats(filtered);
+  renderStats(buildFilteredStats(numWeeks));
 }
 
 function setLeadersFilter(numWeeks, el) {
   if (!liveStats) return;
   document.querySelectorAll('#tab-leaders .fcoin').forEach(c => c.classList.remove('active'));
   el.classList.add('active');
-  const filtered = { ...liveStats, bowlers: filterBowlers(liveStats.bowlers, numWeeks) };
-  renderLeaders(filtered);
+  renderLeaders(buildFilteredStats(numWeeks));
 }
 
 async function loadAll(){
