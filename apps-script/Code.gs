@@ -609,6 +609,13 @@ TYPE "scorecard" — Frame-by-frame scoring. Often shows TWO teams side by side 
   - Only count a split when you can clearly see a red highlight on the actual first-ball number in the UPPER frame symbol area
   - When in doubt, do NOT count it as a split
 
+  ROW ISOLATION — CRITICAL:
+  Each bowler occupies their OWN horizontal row on the scorecard. You MUST read splits, strikes, and spares ONLY from the frames in that bowler's row.
+  - Before counting any splits for a bowler, visually confirm you are in the correct row by matching the name on the LEFT to the frames on the RIGHT of that SAME horizontal band.
+  - NEVER count splits from another bowler's row, even if red circles are visible nearby.
+  - Process each bowler row completely and independently before moving to the next bowler.
+  - If you are uncertain which row a frame belongs to, do NOT count its splits.
+
   Extract per bowler: rawName (exactly as in LEFT column of their row), final total scores (FAR RIGHT of that same row), ballSpeed (m.p.h. at bottom bar for that screen), strikes, spares, missedSpares, splits, splitsConverted.
 
   BLIND BOWLERS — IMPORTANT:
@@ -1904,10 +1911,10 @@ function clearAllData() {
 // 1. Set BOWLER_NAME, DATE_STR (or leave blank for most recent), and CORRECTIONS
 // 2. Run → correctBowlerStats
 function correctBowlerStats() {
-  const BOWLER_NAME = 'Steve';  // exact name as stored in sheet
+  const BOWLER_NAME = 'Mark';   // exact name as stored in sheet
   const DATE_STR    = '';       // e.g. '2026-05-15' — blank = most recent row for this bowler
   const CORRECTIONS = {
-    Splits:          4,    // set to correct value
+    Splits:          7,    // set to correct value
     SplitsConverted: null  // set to correct value, or null to leave unchanged
   };
 
