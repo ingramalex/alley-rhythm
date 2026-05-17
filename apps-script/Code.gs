@@ -867,6 +867,11 @@ function mergeIntoExisting(existing, b, screenType, hdr, col) {
 
   } else if (screenType==='scorecard') {
     const score=(b.games||[])[0];
+    // Track how many scorecards have been merged so we can cap accumulation
+    const scorecardCount = sources.filter(s => s === 'scorecard').length;
+    const maxGames = ['Game1','Game2','Game3','Game4'].filter(s => Number(get(s)) > 0).length;
+    // Only accumulate stats if this scorecard slot hasn't been filled yet
+    const allowAccumulate = scorecardCount < 4 && (!score || maxGames < 4);
     if(score) {
       for(const s of ['Game1','Game2','Game3','Game4']) {
         if(!get(s)) { set(s,score); break; }
@@ -874,13 +879,20 @@ function mergeIntoExisting(existing, b, screenType, hdr, col) {
       }
     }
     if(b.ballSpeed && !get('BallSpeedMPH')) set('BallSpeedMPH', b.ballSpeed);
-    // Accumulate per-game stats from scorecard uploads
-    if(b.strikes     != null) set('Strikes',          (Number(get('Strikes'))||0)         + (Number(b.strikes)||0));
-    if(b.spares      != null) set('Spares',            (Number(get('Spares'))||0)          + (Number(b.spares)||0));
-    if(b.missedSpares!= null) set('MissedSpares',      (Number(get('MissedSpares'))||0)    + (Number(b.missedSpares)||0));
-    if(b.splits      != null) set('Splits',            (Number(get('Splits'))||0)          + (Number(b.splits)||0));
-    if(b.splitsConverted!=null) set('SplitsConverted', (Number(get('SplitsConverted'))||0) + (Number(b.splitsConverted)||0));
-    if(!sources.includes('scorecard')) sources.push('scorecard');
+    if(allowAccumulate) {
+      // Cap each stat field so a single game can contribute at most 10 (max frames)
+      const capStat = (field, val) => {
+        if (val == null) return;
+        const capped = Math.min(Number(val) || 0, 10);
+        set(field, (Number(get(field)) || 0) + capped);
+      };
+      capStat('Strikes',         b.strikes);
+      capStat('Spares',          b.spares);
+      capStat('MissedSpares',    b.missedSpares);
+      capStat('Splits',          b.splits);
+      capStat('SplitsConverted', b.splitsConverted);
+    }
+    sources.push('scorecard'); // track each upload separately (allows up to 4)
 
   } else if (screenType==='stats') {
     if(b.ballSpeed && !get('BallSpeedMPH')) set('BallSpeedMPH', b.ballSpeed);
@@ -1885,4 +1897,56 @@ function clearAllData() {
 
   SpreadsheetApp.flush();
   Logger.log('✅ All test data cleared. Roster re-seeded. Ready for live use!');
+}
+
+// ── Manual stat correction ────────────────────────────────────────────────────
+// Run this from the Apps Script editor to fix a bowler's stats for a specific date.
+// Usage: set the variables below, then Run → correctBowlerStats
+function correctBowlerStats() {
+  const BOWLER_NAME    = 'Steve';       // exact name as stored in sheet
+  const DATE_STR       = '';            // e.g. '2026-05-15' — leave blank for most recent row
+  const CORRECTIONS    = {
+    Splits:          4,   // set to correct value
+    SplitsConverted: null // set to correct value, or null to leave unchanged
+  };
+
+  const hub = SpreadsheetApp.getActiveSpreadsheet();
+  const hubData = hub.getSheetByName(CONFIG.HUB).getDataRange().getValues();
+  const hcol = n => hubData[0].indexOf(n);
+
+  const results = [];
+  for (let li = 1; li < hubData.length; li++) {
+    const sheetId = hubData[li][hcol('SheetID')];
+    if (!sheetId) continue;
+    const ss = SpreadsheetApp.openById(sheetId);
+    const sh = ss.getSheetByName(CONFIG.SHEETS.GAMES);
+    const data = sh.getDataRange().getValues();
+    const hdr = data[0]; const col = n => hdr.indexOf(n);
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowName = (row[col('BowlerName')] || '').trim();
+      const rowDate = (row[col('Date')] instanceof Date)
+        ? row[col('Date')].toISOString().slice(0,10)
+        : String(row[col('Date')] || '').slice(0,10);
+      if (rowName.toLowerCase() !== BOWLER_NAME.toLowerCase()) continue;
+      if (DATE_STR && rowDate !== DATE_STR) continue;
+
+      Object.entries(CORRECTIONS).forEach(([field, val]) => {
+        if (val === null) return;
+        const c = col(field);
+        if (c > -1) {
+          sh.getRange(i + 1, c + 1).setValue(val);
+          results.push(`Row ${i+1}: set ${field} = ${val} for ${rowName} on ${rowDate}`);
+        }
+      });
+    }
+  }
+
+  SpreadsheetApp.flush();
+  if (results.length) {
+    Logger.log('✅ Corrections applied:\n' + results.join('\n'));
+  } else {
+    Logger.log('⚠️ No matching rows found. Check BOWLER_NAME and DATE_STR.');
+  }
 }
