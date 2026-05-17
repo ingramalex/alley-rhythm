@@ -1121,6 +1121,7 @@ function getPublicStats(ss) {
       potentialAvg,
       avgSpeed:        b.speeds.length ? (b.speeds.reduce((a,c)=>a+c,0)/b.speeds.length).toFixed(1) : null,
       recentGames:     b.games.slice(-16),
+      gamesByDate:     b.gamesByDate,
       locations,
       primaryLocation,
     };
