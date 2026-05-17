@@ -1089,6 +1089,16 @@ body::after {
   line-height: 1.8;
 }
 .recap-body p { margin: 0 0 12px; }
+.recap-loading {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--neon-g);
+  letter-spacing: 2px;
+  text-align: center;
+  padding: 18px;
+  animation: blink 1.2s step-start infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
 
 /* Award grid */
 .award-week-label {
@@ -1498,7 +1508,12 @@ async function loadAll(){
     updateHeaderAndMarquee(stats);
 
     // Load recap separately — slower AI call, non-blocking
-    apiFetch('recap').then(r => { if (r && r.recap) renderRecap(r); }).catch(()=>{});
+    const recapEl = document.getElementById('recapBlock');
+    if (recapEl) recapEl.innerHTML = `<div class="recap-loading">📰 GENERATING THIS WEEK'S GUTTER GAZETTE...</div>`;
+    apiFetch('recap').then(r => {
+      if (r && r.recap) renderRecap(r);
+      else if (recapEl) recapEl.innerHTML = '';
+    }).catch(() => { if (recapEl) recapEl.innerHTML = ''; });
   } catch(e) {
     console.error('Failed to load data:', e);
     document.getElementById('bowlerCards').innerHTML =
