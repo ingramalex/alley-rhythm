@@ -1900,53 +1900,57 @@ function clearAllData() {
 }
 
 // ── Manual stat correction ────────────────────────────────────────────────────
-// Run this from the Apps Script editor to fix a bowler's stats for a specific date.
-// Usage: set the variables below, then Run → correctBowlerStats
+// Run from the Apps Script editor to fix a bowler's stats for a specific date.
+// 1. Set BOWLER_NAME, DATE_STR (or leave blank for most recent), and CORRECTIONS
+// 2. Run → correctBowlerStats
 function correctBowlerStats() {
-  const BOWLER_NAME    = 'Steve';       // exact name as stored in sheet
-  const DATE_STR       = '';            // e.g. '2026-05-15' — leave blank for most recent row
-  const CORRECTIONS    = {
-    Splits:          4,   // set to correct value
-    SplitsConverted: null // set to correct value, or null to leave unchanged
+  const BOWLER_NAME = 'Steve';  // exact name as stored in sheet
+  const DATE_STR    = '';       // e.g. '2026-05-15' — blank = most recent row for this bowler
+  const CORRECTIONS = {
+    Splits:          4,    // set to correct value
+    SplitsConverted: null  // set to correct value, or null to leave unchanged
   };
 
-  const hub = SpreadsheetApp.getActiveSpreadsheet();
-  const hubData = hub.getSheetByName(CONFIG.HUB).getDataRange().getValues();
-  const hcol = n => hubData[0].indexOf(n);
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sh = ss.getSheetByName(CONFIG.SHEETS.GAMES);
+  if (!sh) { Logger.log('❌ Games sheet not found'); return; }
 
+  const data = sh.getDataRange().getValues();
+  const hdr  = data[0];
+  const col  = n => hdr.indexOf(n);
   const results = [];
-  for (let li = 1; li < hubData.length; li++) {
-    const sheetId = hubData[li][hcol('SheetID')];
-    if (!sheetId) continue;
-    const ss = SpreadsheetApp.openById(sheetId);
-    const sh = ss.getSheetByName(CONFIG.SHEETS.GAMES);
-    const data = sh.getDataRange().getValues();
-    const hdr = data[0]; const col = n => hdr.indexOf(n);
+  let lastMatchRow = -1;
 
-    for (let i = 1; i < data.length; i++) {
-      const row = data[i];
-      const rowName = (row[col('BowlerName')] || '').trim();
-      const rowDate = (row[col('Date')] instanceof Date)
-        ? row[col('Date')].toISOString().slice(0,10)
-        : String(row[col('Date')] || '').slice(0,10);
-      if (rowName.toLowerCase() !== BOWLER_NAME.toLowerCase()) continue;
-      if (DATE_STR && rowDate !== DATE_STR) continue;
-
-      Object.entries(CORRECTIONS).forEach(([field, val]) => {
-        if (val === null) return;
-        const c = col(field);
-        if (c > -1) {
-          sh.getRange(i + 1, c + 1).setValue(val);
-          results.push(`Row ${i+1}: set ${field} = ${val} for ${rowName} on ${rowDate}`);
-        }
-      });
-    }
+  for (let i = 1; i < data.length; i++) {
+    const rowName = (data[i][col('BowlerName')] || '').trim();
+    if (rowName.toLowerCase() !== BOWLER_NAME.toLowerCase()) continue;
+    const rowDate = (data[i][col('Date')] instanceof Date)
+      ? data[i][col('Date')].toISOString().slice(0,10)
+      : String(data[i][col('Date')] || '').slice(0,10);
+    if (DATE_STR && rowDate !== DATE_STR) continue;
+    lastMatchRow = i;
   }
+
+  if (lastMatchRow === -1) {
+    Logger.log('⚠️ No matching rows found. Check BOWLER_NAME and DATE_STR.');
+    return;
+  }
+
+  const rowDate = (data[lastMatchRow][col('Date')] instanceof Date)
+    ? data[lastMatchRow][col('Date')].toISOString().slice(0,10)
+    : String(data[lastMatchRow][col('Date')] || '').slice(0,10);
+
+  Object.entries(CORRECTIONS).forEach(([field, val]) => {
+    if (val === null) return;
+    const c = col(field);
+    if (c > -1) {
+      sh.getRange(lastMatchRow + 1, c + 1).setValue(val);
+      results.push(`Row ${lastMatchRow+1}: set ${field} = ${val} for ${BOWLER_NAME} on ${rowDate}`);
+    }
+  });
 
   SpreadsheetApp.flush();
-  if (results.length) {
-    Logger.log('✅ Corrections applied:\n' + results.join('\n'));
-  } else {
-    Logger.log('⚠️ No matching rows found. Check BOWLER_NAME and DATE_STR.');
-  }
+  Logger.log(results.length
+    ? '✅ Corrections applied:\n' + results.join('\n')
+    : '⚠️ Nothing changed — all corrections were null.');
 }
