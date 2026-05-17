@@ -975,7 +975,8 @@ function getPublicStats(ss) {
   const stats = {};
 
   data.slice(1).filter(r => r[col('BowlerName')]).forEach(r => {
-    const name    = r[col('BowlerName')];
+    const name    = (r[col('BowlerName')] || '').trim();
+    if (!name) return;
     const date    = r[col('Date')] || '';
     // Always recompute weekKey from date — avoids stale stored values
     const weekKey = date ? getWeekKey(new Date(date)) : (r[col('WeekKey')] || '');
@@ -1181,7 +1182,8 @@ function getWeeklySummary(ss) {
   data.slice(1).filter(r=>r[col('BowlerName')]).forEach(r=>{
     const date=r[col('Date')]||'';
     const wk = date ? getWeekKey(new Date(date)) : (r[col('WeekKey')]||'');
-    const name=r[col('BowlerName')];
+    const name=(r[col('BowlerName')]||'').trim();
+    if(!name) return;
     if(!weeks[wk]) weeks[wk]={week:wk,bowlers:{},allGames:[]};
     if(!weeks[wk].bowlers[name]) weeks[wk].bowlers[name]={
       name, games:[], splits:0, spares:0, missedSpares:0, strikes:0, totalPins:0
