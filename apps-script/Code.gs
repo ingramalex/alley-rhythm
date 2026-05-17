@@ -609,12 +609,19 @@ TYPE "scorecard" — Frame-by-frame scoring. Often shows TWO teams side by side 
   - Only count a split when you can clearly see a red highlight on the actual first-ball number in the UPPER frame symbol area
   - When in doubt, do NOT count it as a split
 
-  ROW ISOLATION — CRITICAL:
-  Each bowler occupies their OWN horizontal row on the scorecard. You MUST read splits, strikes, and spares ONLY from the frames in that bowler's row.
-  - Before counting any splits for a bowler, visually confirm you are in the correct row by matching the name on the LEFT to the frames on the RIGHT of that SAME horizontal band.
-  - NEVER count splits from another bowler's row, even if red circles are visible nearby.
-  - Process each bowler row completely and independently before moving to the next bowler.
-  - If you are uncertain which row a frame belongs to, do NOT count its splits.
+  ROW ISOLATION — CRITICAL FOR ALL STATS:
+  Each bowler occupies their OWN horizontal row on the scorecard. Every stat — strikes, spares, missedSpares, splits, splitsConverted, games, and total score — must be read EXCLUSIVELY from that bowler's own row of frames.
+
+  MANDATORY PROCESS — follow this for EVERY bowler:
+  1. Identify the bowler's name in the LEFT column.
+  2. Trace that name's horizontal band ALL THE WAY across to the RIGHT — this is the ONLY row you read for that bowler.
+  3. Count strikes, spares, missed spares, and splits ONLY within that horizontal band.
+  4. Record the total score from the FAR RIGHT of that SAME band.
+  5. Do NOT look up, down, or sideways into adjacent rows at any point.
+  6. Fully complete one bowler before starting the next.
+
+  NEVER mix rows: if you are not certain a frame belongs to the current bowler's row, skip it — do not guess.
+  A wrong row assignment will corrupt EVERY stat for BOTH bowlers involved.
 
   Extract per bowler: rawName (exactly as in LEFT column of their row), final total scores (FAR RIGHT of that same row), ballSpeed (m.p.h. at bottom bar for that screen), strikes, spares, missedSpares, splits, splitsConverted.
 
