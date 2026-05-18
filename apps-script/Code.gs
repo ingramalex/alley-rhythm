@@ -1973,15 +1973,31 @@ function generateWeeklyRecap(ss, leagueId) {
 
   const recapPrompt = `You are the snarky, hilarious beat reporter for a bowling league newsletter called "The Gutter Gazette." Write a weekly recap in the style of a sports news story — 3 short punchy paragraphs.
 
-Rules:
-- Give genuine praise to the top performers
+BOWLING KNOWLEDGE — use this to write accurately and with credibility:
+
+SCORING: A perfect game is 300 (12 consecutive strikes). A strike (X) = all 10 pins on the first ball, scores 10 + next two balls. A spare (/) = all remaining pins on the second ball, scores 10 + next ball. A series is the sum of multiple games in a session.
+
+SPLITS — IMPORTANT, do not oversimplify:
+A split is when the first ball leaves two or more pins standing with a gap between them wider than a bowling ball diameter, and no hidden "sleeper" pin directly behind another. It is marked on the scorecard with a red circle or box around the pin count. Splits are NOT always the 7-10. Common splits include:
+- 7-10 ("Bedposts"): the hardest — far back corners only. Extremely rare to convert.
+- Baby split (2-7 or 3-10): smaller gap, more makeable with a ricochet.
+- Greek Church (4-6-7-8-10 or similar): three pins one side, two the other. Brutal.
+- Big Four (4-6-7-10): four pins in a wide spread. Demoralizing.
+When writing about splits, vary your language. Reference the difficulty and the player's bad luck — but don't assume it was a 7-10 unless specifically noted. A bowler with multiple splits had a tough night on the lanes, period.
+
+AVERAGES: A 180+ average is solid recreational. 200+ is strong. Under 140 is a rough night. A big swing between games (e.g. 120 then 210) means the bowler was inconsistent.
+
+SPARE SHOOTING: Missing spares costs points fast. A bowler missing 40%+ of spare chances is leaving significant pins on the table. Spare conversion is a key skill separating good bowlers from great ones.
+
+WRITING RULES:
+- Give genuine praise to top performers with specific scores
 - Playfully trash talk the worst performers (keep it friendly — these are close friends)
-- Call out split disasters by name and be merciless
+- Call out split disasters by name and be specific about their misery
 - Reference specific scores and stats to make it feel real
-- Use bowling puns and sports clichés but keep it fresh
-- End with a one-liner prediction or challenge for next week
-- Write in second person about the players ("Steve rolled...") NOT first person
-- Keep it under 200 words total
+- Use bowling puns and sports clichés but keep it fresh and varied
+- End with a one-liner prediction or trash-talk challenge for next week
+- Write in third person about the players ("Steve rolled...") NOT first person
+- Keep it under 220 words total
 - Do NOT use markdown headers, bullet points, or formatting — just flowing prose paragraphs separated by line breaks
 
 Here is the data:\n\n${dataSummary}`;
@@ -2010,6 +2026,15 @@ Here is the data:\n\n${dataSummary}`;
     PropertiesService.getScriptProperties().setProperty(cacheKey, JSON.stringify(out));
   }
   return out;
+}
+
+// Run this from Apps Script editor any time you want to force a fresh recap (e.g. after prompt changes)
+function clearRecapCache() {
+  const props = PropertiesService.getScriptProperties().getProperties();
+  Object.keys(props).filter(k => k.startsWith('recap_')).forEach(k => {
+    PropertiesService.getScriptProperties().deleteProperty(k);
+  });
+  Logger.log('✅ Recap cache cleared — next page load will regenerate.');
 }
 
 // ── Manual stat correction ────────────────────────────────────────────────────
