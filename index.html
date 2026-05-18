@@ -24,7 +24,7 @@
 <meta name="twitter:description" content="Live bowling stats · Weekly awards · Strike & spare tracking">
 <meta name="twitter:image" content="https://www.alleyrhythm.com/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:ital,wght@0,300;0,400;0,600;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════
    ALLEY RHYTHM — RETRO ARCADE THEME
@@ -1053,42 +1053,95 @@ body::after {
   pointer-events: none;
 }
 
-/* ═══════════ GUTTER GAZETTE RECAP ═══════════ */
+/* ═══════════ GUTTER GAZETTE — 8-BIT NEWSPRINT ═══════════ */
 .recap-card {
-  background: var(--panel);
-  border: 2px solid var(--neon-g);
-  border-radius: var(--radius-px);
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: 0 0 20px rgba(57,255,20,.15), 4px 4px 0 rgba(0,0,0,.6);
+  background: #07090f;
+  border: 3px solid var(--neon-g);
+  box-shadow: 4px 4px 0 #22cc00, 8px 8px 0 rgba(57,255,20,.15);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+/* Scanline overlay */
+.recap-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent 0px, transparent 3px,
+    rgba(0,0,0,.18) 3px, rgba(0,0,0,.18) 4px
+  );
+  pointer-events: none;
+  z-index: 3;
 }
 .recap-masthead {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 18px;
-  font-weight: 900;
-  color: var(--neon-g);
-  text-shadow: 0 0 12px var(--neon-g);
-  letter-spacing: 6px;
-  text-align: center;
-  border-bottom: 1px solid var(--rail);
-  padding-bottom: 8px;
-  margin-bottom: 6px;
-}
-.recap-dateline {
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
-  color: var(--dim);
-  letter-spacing: 2px;
+  font-size: 13px;
+  color: #000;
+  background: var(--neon-g);
   text-align: center;
-  margin-bottom: 14px;
+  padding: 12px 16px;
+  letter-spacing: 4px;
+  text-shadow: 1px 1px 0 #22cc00;
+  image-rendering: pixelated;
+}
+.recap-edition-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 12px;
+  background: #0d1008;
+  border-bottom: 2px solid var(--neon-g);
+}
+.recap-edition-text {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  color: var(--neon-g);
+  letter-spacing: 1px;
+}
+.recap-headline {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 7px;
+  color: var(--neon-g);
+  text-align: center;
+  padding: 10px 16px;
+  line-height: 2;
+  border-bottom: 1px dashed #1e3010;
+  text-shadow: 0 0 8px var(--neon-g);
+  background: #09100a;
 }
 .recap-body {
-  font-family: 'Orbitron', sans-serif;
-  font-size: 11px;
-  color: var(--text2);
-  line-height: 1.8;
+  font-family: 'VT323', monospace;
+  font-size: 20px;
+  color: #c8f0a0;
+  line-height: 1.55;
+  padding: 14px 18px 18px;
+  position: relative;
+  z-index: 2;
 }
 .recap-body p { margin: 0 0 12px; }
+.recap-body p:first-of-type::first-letter {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 32px;
+  line-height: 1;
+  float: left;
+  margin: 4px 8px 0 0;
+  color: var(--neon-g);
+  text-shadow: 2px 2px 0 #22cc00;
+}
+.recap-footer {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  color: #1e3010;
+  text-align: center;
+  padding: 6px;
+  border-top: 1px solid #1e3010;
+  letter-spacing: 2px;
+  background: #07090f;
+  position: relative;
+  z-index: 2;
+}
 .recap-loading {
   font-family: 'Press Start 2P', monospace;
   font-size: 7px;
@@ -1097,6 +1150,23 @@ body::after {
   text-align: center;
   padding: 18px;
   animation: blink 1.2s step-start infinite;
+}
+/* ── Gazette new-issue badge on WEEKLY nav tab ── */
+.gazette-badge {
+  display: inline-block;
+  font-family: 'Press Start 2P', monospace;
+  font-size: 5px;
+  background: var(--neon-g);
+  color: #000;
+  padding: 2px 4px;
+  margin-left: 5px;
+  vertical-align: middle;
+  animation: gazette-pulse 1s step-start infinite;
+  letter-spacing: 0;
+}
+@keyframes gazette-pulse {
+  0%, 100% { opacity: 1; background: var(--neon-g); }
+  50%       { opacity: 0.6; background: #22cc00; }
 }
 @keyframes blink { 50% { opacity: 0; } }
 
@@ -1342,17 +1412,51 @@ function goTab(name, btn){
   document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
+  // Clear gazette badge when user navigates to weekly tab
+  if (name === 'weekly') {
+    const recap = document.querySelector('.recap-card');
+    const week = recap ? recap.dataset.week : null;
+    clearGazetteBadge(week || localStorage.getItem('ar_gazette_seen'));
+    // Scroll to top of recap if navigated from badge
+    if (recap) recap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function renderRecap(r) {
   const el = document.getElementById('recapBlock');
   if (!el || !r.recap) return;
+  const week = (r.week || '').replace(/-/g, '.');
+  const body = '<p>' + r.recap.replace(/\n\n+/g, '</p><p>').replace(/\n/g, ' ') + '</p>';
   el.innerHTML = `
-    <div class="recap-card">
-      <div class="recap-masthead">THE GUTTER GAZETTE</div>
-      <div class="recap-dateline">WEEK OF ${(r.week||'').replace(/-/g,'.')} &nbsp;·&nbsp; BLAME IT ON THE LANE</div>
-      <div class="recap-body">${r.recap.replace(/\n\n/g,'</p><p>').replace(/\n/g,' ')}</div>
+    <div class="recap-card" data-week="${r.week||''}" id="gutterGazette">
+      <div class="recap-masthead">⬛ THE GUTTER GAZETTE ⬛</div>
+      <div class="recap-edition-bar">
+        <span class="recap-edition-text">WEEK OF ${week}</span>
+        <span class="recap-edition-text">BLAME IT ON THE LANE</span>
+        <span class="recap-edition-text">POWERED BY AI</span>
+      </div>
+      <div class="recap-headline">📰 THIS WEEK AT DUBOWL — LANE REPORT</div>
+      <div class="recap-body">${body}</div>
+      <div class="recap-footer">▓▓▓ THE GUTTER GAZETTE · EST. 2024 · ALL THE NEWS THAT'S FIT TO PRINT ▓▓▓</div>
     </div>`;
+  showGazetteBadge(r.week);
+}
+
+function showGazetteBadge(week) {
+  const seen = localStorage.getItem('ar_gazette_seen');
+  if (seen === week) return;
+  const btn = document.querySelector('.ntab[onclick*="weekly"]');
+  if (btn && !btn.querySelector('.gazette-badge')) {
+    const badge = document.createElement('span');
+    badge.className = 'gazette-badge';
+    badge.textContent = 'NEW';
+    btn.appendChild(badge);
+  }
+}
+
+function clearGazetteBadge(week) {
+  localStorage.setItem('ar_gazette_seen', week || '');
+  document.querySelectorAll('.gazette-badge').forEach(b => b.remove());
 }
 
 function emptyState(msg){
