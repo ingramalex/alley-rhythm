@@ -1077,39 +1077,46 @@ body::after {
 }
 .recap-masthead {
   font-family: 'Press Start 2P', monospace;
-  font-size: 13px;
+  font-size: clamp(9px, 2.5vw, 13px);
   color: #000;
   background: var(--neon-g);
   text-align: center;
-  padding: 12px 16px;
-  letter-spacing: 4px;
+  padding: 9px 12px;
+  letter-spacing: 3px;
   text-shadow: 1px 1px 0 #22cc00;
-  image-rendering: pixelated;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .recap-edition-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 5px 12px;
+  padding: 4px 10px;
   background: #0d1008;
   border-bottom: 2px solid var(--neon-g);
+  gap: 8px;
 }
 .recap-edition-text {
   font-family: 'Press Start 2P', monospace;
   font-size: 5px;
   color: var(--neon-g);
   letter-spacing: 1px;
+  white-space: nowrap;
 }
 .recap-headline {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: clamp(5px, 1.8vw, 7px);
   color: var(--neon-g);
   text-align: center;
-  padding: 10px 16px;
-  line-height: 2;
+  padding: 7px 12px;
+  line-height: 1.8;
   border-bottom: 1px dashed #1e3010;
   text-shadow: 0 0 8px var(--neon-g);
   background: #09100a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .recap-body {
   font-family: 'VT323', monospace;
@@ -1429,11 +1436,10 @@ function renderRecap(r) {
   const body = '<p>' + r.recap.replace(/\n\n+/g, '</p><p>').replace(/\n/g, ' ') + '</p>';
   el.innerHTML = `
     <div class="recap-card" data-week="${r.week||''}" id="gutterGazette">
-      <div class="recap-masthead">⬛ THE GUTTER GAZETTE ⬛</div>
+      <div class="recap-masthead">THE GUTTER GAZETTE</div>
       <div class="recap-edition-bar">
-        <span class="recap-edition-text">WEEK OF ${week}</span>
+        <span class="recap-edition-text">WK: ${week}</span>
         <span class="recap-edition-text">BLAME IT ON THE LANE</span>
-        <span class="recap-edition-text">POWERED BY AI</span>
       </div>
       <div class="recap-headline">📰 THIS WEEK AT DUBOWL — LANE REPORT</div>
       <div class="recap-body">${body}</div>
