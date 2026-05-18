@@ -1996,6 +1996,10 @@ The group plays a side card game each session: every bowler puts in $1 per game.
 
 Reference Rick's "two cards" call, the card game stakes, and Rick & Chris's reactions when it fits naturally — don't force it every week, but use it for color and to make the recap feel like it's written for THIS specific group.
 
+More league color to use sparingly and naturally:
+- Jessica (Jess) has a habit of inviting too many new people to bowl. If there are new or unfamiliar bowlers mentioned in the data, it's probably her doing again.
+- Jake is the bowling manager at DuBowl (where they bowl) and is notoriously late every Sunday. Feel free to take a jab at Jake when it fits — he's earned it.
+
 WRITING RULES:
 - Give genuine praise to top performers with specific scores
 - Playfully trash talk the worst performers (keep it friendly — these are close friends)
