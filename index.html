@@ -2161,7 +2161,7 @@ function renderWeekly(weekly){
     return;
   }
 
-  el.innerHTML = [...weeks].reverse().map((w,i)=>`
+  el.innerHTML = [...weeks].sort((a,z)=>new Date(z.week)-new Date(a.week)).map((w,i)=>`
     <div class="wk-panel ${i===0?'wo':''}">
       <div class="wk-top" onclick="this.parentElement.classList.toggle('wo')">
         <div>
@@ -2199,7 +2199,7 @@ function renderHistory(history){
     return;
   }
 
-  el.innerHTML = sessions.map((s,i)=>{
+  el.innerHTML = [...sessions].sort((a,z)=>new Date(z.date)-new Date(a.date)).map((s,i)=>{
     const bowlers = s.bowlers || [];
     const pins = bowlers.reduce((sum,b)=>sum+(b.series||0),0);
     const locationBadge = s.location
