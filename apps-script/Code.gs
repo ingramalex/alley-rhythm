@@ -1932,6 +1932,15 @@ function generateWeeklyRecap(ss, leagueId) {
   const currentWeekData = (weekly.weeks || []).find(wk => wk.week === currentWeek) || {};
   const bowlers = currentWeekData.bowlers || [];
 
+  // Pull previous recaps for narrative continuity (last 3 weeks)
+  const allProps = PropertiesService.getScriptProperties().getProperties();
+  const previousRecaps = Object.entries(allProps)
+    .filter(([k]) => k.startsWith('recap_') && k !== cacheKey)
+    .map(([k, v]) => { try { return JSON.parse(v); } catch(e) { return null; } })
+    .filter(r => r && r.recap && r.week)
+    .sort((a, b) => new Date(b.week) - new Date(a.week))
+    .slice(0, 3);
+
   // Build a plain-English data summary for the AI
   const lines = [];
   lines.push('League: Blame It On The Lane (group of friends, adult bowling league)');
@@ -1970,6 +1979,11 @@ function generateWeeklyRecap(ss, leagueId) {
   }
 
   const dataSummary = lines.join('\n');
+
+  const previousStories = previousRecaps.length
+    ? '\n\nPREVIOUS GUTTER GAZETTE STORIES (for narrative continuity — reference ongoing storylines, running jokes, redemption arcs, and rivalries):\n' +
+      previousRecaps.map(r => `--- Week of ${r.week} ---\n${r.recap}`).join('\n\n')
+    : '';
 
   const recapPrompt = `You are the snarky, hilarious beat reporter for a bowling league newsletter called "The Gutter Gazette." Write a weekly recap in the style of a sports news story — 3 short punchy paragraphs.
 
@@ -2010,8 +2024,10 @@ WRITING RULES:
 - Write in third person about the players ("Steve rolled...") NOT first person
 - Keep it under 220 words total
 - Do NOT use markdown headers, bullet points, or formatting — just flowing prose paragraphs separated by line breaks
+- If previous stories are provided, build on ongoing storylines — reference redemption arcs, slumps, rivalries, streaks, and running jokes from past weeks. Make it feel like a continuing season narrative, not a one-off story.
+- Keep callbacks subtle — don't just repeat last week, evolve the story.
 
-Here is the data:\n\n${dataSummary}`;
+Here is this week's data:\n\n${dataSummary}${previousStories}`;
 
   const apiKey = PropertiesService.getScriptProperties().getProperty('ANTHROPIC_API_KEY');
   const response = UrlFetchApp.fetch('https://api.anthropic.com/v1/messages', {
