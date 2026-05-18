@@ -321,6 +321,7 @@ function doGet(e) {
     const ss = getLeagueSpreadsheet(leagueId);
 
     const map = {
+      all:                      () => getAllData(ss),
       stats:                    () => getPublicStats(ss),
       history:                  () => getSessionHistory(ss),
       weekly:                   () => getWeeklySummary(ss),
@@ -993,9 +994,20 @@ function getWeekKey(date) {
 // ═══════════════════════════════════════════════════════════════
 //  PUBLIC DATA APIs
 // ═══════════════════════════════════════════════════════════════
-function getPublicStats(ss) {
-  const sh  = ss.getSheetByName(CONFIG.SHEETS.GAMES);
-  const data = sh.getDataRange().getValues();
+// Single endpoint — reads each sheet once, returns all data in one response
+function getAllData(ss) {
+  const gameData    = ss.getSheetByName(CONFIG.SHEETS.GAMES).getDataRange().getValues();
+  const sessionData = ss.getSheetByName(CONFIG.SHEETS.SESSIONS).getDataRange().getValues();
+  return {
+    stats:   getPublicStats(ss, gameData),
+    weekly:  getWeeklySummary(ss, gameData),
+    awards:  getAwards(ss, gameData),
+    history: getSessionHistory(ss, sessionData, gameData),
+  };
+}
+
+function getPublicStats(ss, gameData) {
+  const data = gameData || ss.getSheetByName(CONFIG.SHEETS.GAMES).getDataRange().getValues();
   const hdr  = data[0];
   const col  = n => hdr.indexOf(n);
 
@@ -1168,13 +1180,12 @@ function getLeaderboard() {
   };
 }
 
-function getSessionHistory(ss) {
-  const sh=ss.getSheetByName(CONFIG.SHEETS.SESSIONS);
-  const data=sh.getDataRange().getValues(); const hdr=data[0]; const col=n=>hdr.indexOf(n);
+function getSessionHistory(ss, sessionData, gameData) {
+  const data = sessionData || ss.getSheetByName(CONFIG.SHEETS.SESSIONS).getDataRange().getValues();
+  const hdr=data[0]; const col=n=>hdr.indexOf(n);
 
   // Build location lookup from Games sheet by date
-  const gameSh = ss.getSheetByName(CONFIG.SHEETS.GAMES);
-  const gData  = gameSh.getDataRange().getValues();
+  const gData = gameData || ss.getSheetByName(CONFIG.SHEETS.GAMES).getDataRange().getValues();
   const gh = gData[0]; const gc = n => gh.indexOf(n);
   const locationByDate = {};
   gData.slice(1).filter(r=>r[gc('Date')]).forEach(r => {
@@ -1203,9 +1214,9 @@ function getSessionHistory(ss) {
   return { sessions };
 }
 
-function getWeeklySummary(ss) {
-  const sh=ss.getSheetByName(CONFIG.SHEETS.GAMES);
-  const data=sh.getDataRange().getValues(); const hdr=data[0]; const col=n=>hdr.indexOf(n);
+function getWeeklySummary(ss, gameData) {
+  const data = gameData || ss.getSheetByName(CONFIG.SHEETS.GAMES).getDataRange().getValues();
+  const hdr=data[0]; const col=n=>hdr.indexOf(n);
   const weeks={};
   data.slice(1).filter(r=>r[col('BowlerName')]).forEach(r=>{
     const date=r[col('Date')]||'';
@@ -1240,9 +1251,8 @@ function getWeeklySummary(ss) {
 // ═══════════════════════════════════════════════════════════════
 //  AWARDS ENGINE
 // ═══════════════════════════════════════════════════════════════
-function getAwards(ss) {
-  const sh   = ss.getSheetByName(CONFIG.SHEETS.GAMES);
-  const data = sh.getDataRange().getValues();
+function getAwards(ss, gameData) {
+  const data = gameData || ss.getSheetByName(CONFIG.SHEETS.GAMES).getDataRange().getValues();
   const hdr  = data[0]; const col = n => hdr.indexOf(n);
 
   // ── Build season stats — track prior weeks separately for over-avg ─

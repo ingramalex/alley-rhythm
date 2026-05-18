@@ -1487,29 +1487,52 @@ function setLeadersFilter(numWeeks, el) {
   renderLeaders(buildFilteredStats(numWeeks));
 }
 
-async function loadAll(){
-  try {
-    const [stats, history, weekly, awards] = await Promise.all([
-      apiFetch('stats'),
-      apiFetch('history'),
-      apiFetch('weekly'),
-      apiFetch('awards'),
-    ]);
-    liveStats   = stats;
-    liveHistory = history;
-    liveWeekly  = weekly;
-    liveAwards  = awards;
+const CACHE_KEY_PREFIX = 'ar_cache_';
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
-    renderStats(stats);
-    renderLeaders(stats);
-    renderWeekly(weekly);
-    renderHistory(history);
-    renderAwards(awards, stats);
-    updateHeaderAndMarquee(stats);
+function getCached(leagueId) {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY_PREFIX + leagueId);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL_MS) return null;
+    return data;
+  } catch(e) { return null; }
+}
+
+function setCache(leagueId, data) {
+  try { localStorage.setItem(CACHE_KEY_PREFIX + leagueId, JSON.stringify({ ts: Date.now(), data })); }
+  catch(e) {}
+}
+
+function applyAllData(d) {
+  liveStats   = d.stats;
+  liveHistory = d.history;
+  liveWeekly  = d.weekly;
+  liveAwards  = d.awards;
+  renderStats(d.stats);
+  renderLeaders(d.stats);
+  renderWeekly(d.weekly);
+  renderHistory(d.history);
+  renderAwards(d.awards, d.stats);
+  updateHeaderAndMarquee(d.stats);
+}
+
+async function loadAll(){
+  const leagueId = window._activeLeagueId || 'BlameItOnTheLane';
+  try {
+    // Show cached data instantly if available
+    const cached = getCached(leagueId);
+    if (cached) applyAllData(cached);
+
+    // Always fetch fresh data in background
+    const fresh = await apiFetch('all');
+    setCache(leagueId, fresh);
+    applyAllData(fresh);
 
     // Load recap separately — slower AI call, non-blocking
     const recapEl = document.getElementById('recapBlock');
-    if (recapEl) recapEl.innerHTML = `<div class="recap-loading">📰 GENERATING THIS WEEK'S GUTTER GAZETTE...</div>`;
+    if (recapEl && !cached) recapEl.innerHTML = `<div class="recap-loading">📰 GENERATING THIS WEEK'S GUTTER GAZETTE...</div>`;
     apiFetch('recap').then(r => {
       if (r && r.recap) renderRecap(r);
       else if (recapEl) recapEl.innerHTML = '';
@@ -2140,10 +2163,17 @@ function hideLeagueSwitcher() {
 
 async function renderLeagueList() {
   const el = document.getElementById('leagueList');
-  el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING...</div>`;
+  // Use embedded league list from config — instant, no API call needed
+  const configLeagues = (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) ? LANE_CONFIG.LEAGUES : null;
   try {
-    const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r=>r.json());
-    const leagues = data.leagues || [];
+    let leagues;
+    if (configLeagues && configLeagues.length) {
+      leagues = configLeagues;
+    } else {
+      el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING...</div>`;
+      const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r=>r.json());
+      leagues = data.leagues || [];
+    }
     if (!leagues.length) {
       el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">NO LEAGUES FOUND<br>Run initializeHub() in Apps Script</div>`;
       return;

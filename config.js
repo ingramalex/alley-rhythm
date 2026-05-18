@@ -7,4 +7,11 @@ const LANE_CONFIG = {
   SITE_NAME:        "Alley Rhythm",
   LEAGUE_NAME:      "Blame It On The Lane",
   LEAGUE_DAY:       "Sunday",
+
+  // Embed leagues here to skip the API call on the league selection screen.
+  // Update this if you add a new league.
+  LEAGUES: [
+    { leagueId: 'BlameItOnTheLane', name: 'Blame It On The Lane', day: 'Sunday' },
+    { leagueId: 'YouthLeague',      name: 'Youth League',          day: 'Saturday' },
+  ],
 };
