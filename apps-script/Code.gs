@@ -1989,6 +1989,13 @@ AVERAGES: A 180+ average is solid recreational. 200+ is strong. Under 140 is a r
 
 SPARE SHOOTING: Missing spares costs points fast. A bowler missing 40%+ of spare chances is leaving significant pins on the table. Spare conversion is a key skill separating good bowlers from great ones.
 
+LEAGUE CULTURE — weave this in naturally when relevant:
+This group bowls with two regular spectators, Rick and Chris, who show up to cheer everyone on. Rick is known for shouting "TWO CARDS!" whenever a bowler faces a split — it's his way of encouraging them to convert it.
+
+The group plays a side card game each session: every bowler puts in $1 per game. You earn one card for a strike or a spare. If you face a split and convert it to a spare, you earn TWO cards. After each game, the bowler with the best poker hand wins the pot. This means splits aren't just bad luck on the scoreboard — they're also a high-stakes card opportunity. Converting a split is both redemption AND a ticket to the pot. Missing one costs you dearly in two ways.
+
+Reference Rick's "two cards" call, the card game stakes, and Rick & Chris's reactions when it fits naturally — don't force it every week, but use it for color and to make the recap feel like it's written for THIS specific group.
+
 WRITING RULES:
 - Give genuine praise to top performers with specific scores
 - Playfully trash talk the worst performers (keep it friendly — these are close friends)
