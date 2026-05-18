@@ -2295,23 +2295,51 @@ function renderLeagueCards(leagues) {
   </div>`;
 }
 
+const LEAGUES_CACHE_KEY = 'ar_leagues_cache';
+const LEAGUES_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+
+function getCachedLeagues() {
+  try {
+    const raw = localStorage.getItem(LEAGUES_CACHE_KEY);
+    if (!raw) return null;
+    const { ts, leagues } = JSON.parse(raw);
+    if (Date.now() - ts > LEAGUES_CACHE_TTL) return null;
+    return leagues;
+  } catch(e) { return null; }
+}
+
+function setCachedLeagues(leagues) {
+  try { localStorage.setItem(LEAGUES_CACHE_KEY, JSON.stringify({ ts: Date.now(), leagues })); }
+  catch(e) {}
+}
+
 async function renderLeagueList() {
   const el = document.getElementById('leagueList');
-  // Show config leagues instantly, then refresh from API in background
   const configLeagues = (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) ? LANE_CONFIG.LEAGUES : null;
-  if (configLeagues && configLeagues.length) {
+  const cachedLeagues = getCachedLeagues();
+
+  // Priority: localStorage cache → config → loading spinner
+  if (cachedLeagues && cachedLeagues.length) {
+    renderLeagueCards(cachedLeagues);
+  } else if (configLeagues && configLeagues.length) {
     renderLeagueCards(configLeagues);
   } else {
     el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING...</div>`;
   }
-  // Always fetch live list in background — picks up new leagues automatically
+
+  // Only fetch from API if cache is stale — don't fire on every open
+  if (cachedLeagues) return;
+
   try {
     const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r => r.json());
     const live = data.leagues || [];
-    if (live.length) renderLeagueCards(live);
+    if (live.length) {
+      setCachedLeagues(live);
+      renderLeagueCards(live);
+    }
   } catch(err) {
-    if (!configLeagues || !configLeagues.length) {
-      el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;color:var(--neon-r);padding:24px;font-size:11px;">Could not load leagues<br>${err.message}</div>`;
+    if (!cachedLeagues && (!configLeagues || !configLeagues.length)) {
+      el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;color:var(--neon-r);padding:24px;font-size:11px;">Could not load leagues</div>`;
     }
   }
 }
