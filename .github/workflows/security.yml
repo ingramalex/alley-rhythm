@@ -55,15 +55,15 @@ jobs:
             'sk-[A-Za-z0-9]{32,}'
             'password\s*=\s*["\x27][^"\x27]{6}'
             'secret\s*=\s*["\x27][^"\x27]{6}'
-            'Bearer [A-Za-z0-9\-._~+\/]+=*'
-            '-----BEGIN.*PRIVATE KEY-----'
+            'Bearer [A-Za-z0-9_.~+/=-]+=*'
+            'BEGIN.*PRIVATE KEY'
             'ANTHROPIC_API_KEY\s*=\s*["\x27]?sk-ant'
           )
           FOUND=0
           # Known-safe public identifiers already in the codebase
           SAFE_PATTERNS="AKfycbyC94fi|288728154445|G-NP60T2YF3J"
           for pat in "${PATTERNS[@]}"; do
-            matches=$(git log --all -p --since="7 days ago" | grep -E "$pat" | \
+            matches=$(git log --all -p --since="7 days ago" | grep -E -- "$pat" | \
               grep -vE "$SAFE_PATTERNS" || true)
             if [ -n "$matches" ]; then
               echo "⚠️ Potential secret pattern found: \`$pat\`" >> $GITHUB_STEP_SUMMARY
