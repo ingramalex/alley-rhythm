@@ -1,0 +1,109 @@
+name: Daily Security Scan
+
+on:
+  schedule:
+    - cron: '5 13 * * *'   # 8:05 AM CT daily
+  workflow_dispatch:
+
+jobs:
+  npm-audit:
+    name: Dependency vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Run npm audit
+        run: |
+          echo "## 🔒 Alley Rhythm — Security Scan $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### npm audit" >> $GITHUB_STEP_SUMMARY
+          npm audit --json > audit.json || true
+          CRITICAL=$(node -e "const a=require('./audit.json'); console.log(a.metadata?.vulnerabilities?.critical || 0)")
+          HIGH=$(node -e "const a=require('./audit.json'); console.log(a.metadata?.vulnerabilities?.high || 0)")
+          MODERATE=$(node -e "const a=require('./audit.json'); console.log(a.metadata?.vulnerabilities?.moderate || 0)")
+          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 Critical | $CRITICAL |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟠 High     | $HIGH |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 Moderate | $MODERATE |" >> $GITHUB_STEP_SUMMARY
+          if [ "$CRITICAL" -gt 0 ] || [ "$HIGH" -gt 0 ]; then
+            echo "❌ Critical or high vulnerabilities found." >> $GITHUB_STEP_SUMMARY
+            npm audit
+            exit 1
+          fi
+          echo "✅ No critical or high vulnerabilities." >> $GITHUB_STEP_SUMMARY
+
+  secret-scan:
+    name: Scan for accidentally committed secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for secrets in recent commits
+        run: |
+          echo "### Secret scan" >> $GITHUB_STEP_SUMMARY
+          PATTERNS=(
+            'AIzaSy[A-Za-z0-9_-]{33}'
+            'AKIA[0-9A-Z]{16}'
+            'sk-[A-Za-z0-9]{32,}'
+            'password\s*=\s*["\x27][^"\x27]{6}'
+            'secret\s*=\s*["\x27][^"\x27]{6}'
+            'Bearer [A-Za-z0-9\-._~+\/]+=*'
+            '-----BEGIN.*PRIVATE KEY-----'
+            'ANTHROPIC_API_KEY\s*=\s*["\x27]?sk-ant'
+          )
+          FOUND=0
+          # Known-safe public identifiers already in the codebase
+          SAFE_PATTERNS="AKfycbyC94fi|288728154445|G-NP60T2YF3J"
+          for pat in "${PATTERNS[@]}"; do
+            matches=$(git log --all -p --since="7 days ago" | grep -E "$pat" | \
+              grep -vE "$SAFE_PATTERNS" || true)
+            if [ -n "$matches" ]; then
+              echo "⚠️ Potential secret pattern found: \`$pat\`" >> $GITHUB_STEP_SUMMARY
+              FOUND=1
+            fi
+          done
+
+          # Specifically check that ANTHROPIC_API_KEY is only in Script Properties, not committed
+          if git log --all -p --since="30 days ago" | grep -q 'ANTHROPIC_API_KEY.*sk-ant'; then
+            echo "🚨 Anthropic API key may have been committed! Check git history immediately." >> $GITHUB_STEP_SUMMARY
+            FOUND=1
+          fi
+
+          if [ "$FOUND" -eq 0 ]; then
+            echo "✅ No unexpected secrets detected in recent commits." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Review flagged patterns above immediately." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+      - name: Verify Apps Script API key is not hardcoded
+        run: |
+          echo "### Apps Script key check" >> $GITHUB_STEP_SUMMARY
+          # The ANTHROPIC_API_KEY must only be in Google Script Properties, never in Code.gs
+          if grep -q 'sk-ant' apps-script/Code.gs 2>/dev/null; then
+            echo "🚨 Anthropic API key is hardcoded in Code.gs — remove immediately!" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "✅ Anthropic key not found hardcoded in Code.gs." >> $GITHUB_STEP_SUMMARY
+
+      - name: Check .gitignore coverage
+        run: |
+          echo "### .gitignore coverage" >> $GITHUB_STEP_SUMMARY
+          MISSING=0
+          for f in ".env" ".env.local" "*.pem" "*.key" "credentials.json" "service-account.json"; do
+            if ! grep -qF "$f" .gitignore 2>/dev/null; then
+              echo "⚠️ \`$f\` not in .gitignore" >> $GITHUB_STEP_SUMMARY
+              MISSING=1
+            fi
+          done
+          if [ "$MISSING" -eq 0 ]; then
+            echo "✅ .gitignore covers common sensitive file types." >> $GITHUB_STEP_SUMMARY
+          fi

@@ -1,0 +1,51 @@
+name: Daily Health Check
+
+on:
+  schedule:
+    - cron: '0 13 * * *'   # 8:00 AM CT daily
+  workflow_dispatch:
+
+jobs:
+  health:
+    name: Site & API health
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run health checks
+        run: |
+          echo "## 🎳 Alley Rhythm — Health Check $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | Service | HTTP | Latency |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|---------|------|---------|" >> $GITHUB_STEP_SUMMARY
+
+          FAILED=0
+
+          check() {
+            local label="$1"
+            local url="$2"
+            local threshold="${3:-5}"
+            local start=$(date +%s%N)
+            local status=$(curl -o /dev/null -s -w "%{http_code}" --max-time 10 "$url")
+            local elapsed=$(( ($(date +%s%N) - start) / 1000000 ))
+            if [ "$status" = "200" ] && [ "$elapsed" -lt $(( threshold * 1000 )) ]; then
+              echo "| ✅ PASS | $label | $status | ${elapsed}ms |" >> $GITHUB_STEP_SUMMARY
+            elif [ "$status" = "200" ]; then
+              echo "| ⚠️ SLOW | $label | $status | ${elapsed}ms (>${threshold}s) |" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "| ❌ FAIL | $label | $status | ${elapsed}ms |" >> $GITHUB_STEP_SUMMARY
+              FAILED=1
+            fi
+          }
+
+          check "alleyrhythm.com" "https://alleyrhythm.com" 5
+          check "Apps Script backend (list_leagues)" "https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec?action=list_leagues" 8
+          check "Apps Script backend (stats)" "https://script.google.com/macros/s/AKfycbyC94fiIbIMsXxUKT-hD1Wxcq8nj2apLHeYugxPdcYelvQ3WlwZMmMbOfkN_N_eOE1yJQ/exec?action=stats&leagueId=BlameItOnTheLane" 10
+          check "upload.html page" "https://alleyrhythm.com/upload.html" 5
+          check "admin.html page" "https://alleyrhythm.com/admin.html" 5
+
+          if [ "$FAILED" -gt 0 ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "❌ One or more services are DOWN. Check immediately." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All services healthy." >> $GITHUB_STEP_SUMMARY
