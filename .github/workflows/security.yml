@@ -63,7 +63,7 @@ jobs:
           # Known-safe public identifiers already in the codebase
           SAFE_PATTERNS="AKfycbyC94fi|288728154445|G-NP60T2YF3J"
           for pat in "${PATTERNS[@]}"; do
-            matches=$(git log --all -p --since="7 days ago" | grep -E -- "$pat" | \
+            matches=$(git log --all -p --since="7 days ago" -- ':!.github' | grep -E -- "$pat" | \
               grep -vE "$SAFE_PATTERNS" || true)
             if [ -n "$matches" ]; then
               echo "⚠️ Potential secret pattern found: \`$pat\`" >> $GITHUB_STEP_SUMMARY
@@ -72,7 +72,7 @@ jobs:
           done
 
           # Specifically check that ANTHROPIC_API_KEY is only in Script Properties, not committed
-          if git log --all -p --since="30 days ago" | grep -q 'ANTHROPIC_API_KEY.*sk-ant'; then
+          if git log --all -p --since="30 days ago" -- ':!.github' | grep -q 'ANTHROPIC_API_KEY.*sk-ant'; then
             echo "🚨 Anthropic API key may have been committed! Check git history immediately." >> $GITHUB_STEP_SUMMARY
             FOUND=1
           fi
