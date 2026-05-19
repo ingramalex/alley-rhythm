@@ -5,6 +5,9 @@ on:
     - cron: '5 13 * * *'   # 8:05 AM CT daily
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   npm-audit:
     name: Dependency vulnerability scan
