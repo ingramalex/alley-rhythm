@@ -104,7 +104,11 @@ function computeFilteredBowlers(weeks, numWeeks, allBowlers) {
     const avg = Math.round(b.allGames.reduce((a, v) => a + v, 0) / b.allGames.length);
     const highGame = Math.max(...b.allGames);
     let highSeries = 0;
-    b.weeklyGames.forEach(g => { const t = g.reduce((a, v) => a + v, 0); if (t > highSeries) highSeries = t; });
+    b.weeklyGames.forEach(g => {
+      const top3 = [...g].sort((a, z) => z - a).slice(0, 3);
+      const t = top3.reduce((a, v) => a + v, 0);
+      if (t > highSeries) highSeries = t;
+    });
     return { ...orig, avg, highGame, highSeries, gamesCount: b.allGames.length };
   }).filter(Boolean);
 }

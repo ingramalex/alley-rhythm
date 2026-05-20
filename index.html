@@ -1511,7 +1511,7 @@ const defaultTicker = [
   _leagueName,
   'BOWLING STATS TRACKER',
   'UPLOAD A SCORE TO GET STARTED',
-  `MEETS EVERY ${_leagueDay}`
+  `MEETS EVERY ${_leagueDay === 'WEEKLY' ? 'WEEK' : _leagueDay}`
 ];
 document.getElementById('topMarquee').innerHTML = buildMarquee(defaultTicker);
 

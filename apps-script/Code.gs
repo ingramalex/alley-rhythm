@@ -1093,12 +1093,13 @@ function getPublicStats(ss, gameData) {
     // ── High Game: single highest game score ──────────────────────
     const highGame = sorted[0] || 0;
 
-    // ── High Series: highest sum of games bowled on same day ──────
-    // A "series" is all games bowled in one session (same date)
+    // ── High Series: best 3 games from any single session ────────
+    // Sort each session's scores descending, sum top 3, keep the max
     let highSeries = 0;
     Object.values(b.gamesByDate).forEach(dayGames => {
-      const dayTotal = dayGames.reduce((a, c) => a + c, 0);
-      if (dayTotal > highSeries) highSeries = dayTotal;
+      const top3 = [...dayGames].sort((a, z) => z - a).slice(0, 3);
+      const total = top3.reduce((a, c) => a + c, 0);
+      if (total > highSeries) highSeries = total;
     });
 
     // ── Strike %: Strikes / Total First Ball Frames × 100 ────────
