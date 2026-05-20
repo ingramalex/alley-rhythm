@@ -114,24 +114,31 @@ body {
 /* ─── LEAGUE SELECT BUTTON (header) ─── */
 .league-select-btn {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   padding: 6px 10px 6px 12px;
   margin-right: 8px;
   background: rgba(57,255,20,0.06);
   border: 1.5px solid var(--neon-g2);
   border-radius: var(--radius-px);
   cursor: pointer;
-  flex-shrink: 0;
+  flex: 1;
   min-width: 0;
-  max-width: 130px;
+  max-width: 260px;
   transition: background .15s, border-color .15s;
   position: relative;
 }
 .league-select-btn:hover {
   background: rgba(57,255,20,0.12);
   border-color: var(--neon-g);
+}
+.lsb-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 }
 .lsb-top {
   font-family: 'Press Start 2P', monospace;
@@ -152,7 +159,15 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 120px;
+  width: 100%;
+}
+.lsb-chevron {
+  font-size: 14px;
+  color: var(--neon-g);
+  text-shadow: 0 0 6px var(--neon-g);
+  flex-shrink: 0;
+  opacity: 0.8;
+  line-height: 1;
 }
 
 /* ─── HEADER LAYOUT ─── */
@@ -167,7 +182,6 @@ body {
   padding: 0 10px;
   display: flex; align-items: center;
   height: 58px; gap: 0;
-  overflow: hidden;
 }
 .header-readouts {
   display: flex;
@@ -1267,8 +1281,11 @@ body::after {
   <div class="header-inner">
     <!-- League selector — tappable, prominent -->
     <button class="league-select-btn" onclick="showLeagueSwitcher()">
-      <div class="lsb-top">⇄ LEAGUE</div>
-      <div class="lsb-name" id="leagueNameDisplay">Bowling Stats</div>
+      <div class="lsb-info">
+        <div class="lsb-top">LEAGUE</div>
+        <div class="lsb-name" id="leagueNameDisplay">Bowling Stats</div>
+      </div>
+      <div class="lsb-chevron">▾</div>
     </button>
     <div class="header-readouts">
       <div class="readout">
@@ -1280,8 +1297,6 @@ body::after {
         <div class="readout-lbl">HIGH</div>
       </div>
     </div>
-    <div class="header-spacer"></div>
-    <button class="insert-btn" onclick="window.location.href='upload.html'">📸<br>UPLOAD</button>
   </div>
 </div>
 
