@@ -274,9 +274,9 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
   <div id="tab-users" class="view">
   <div class="page">
 
-    <div class="sec-lbl">▶ AUTHORIZED USERS</div>
-    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6;">
-      Uploaders can sign in and submit scores. Admins can also access this panel. Add anyone who bowls or helps track scores.
+    <div class="sec-lbl">▶ AUTHORIZED USERS — THIS LEAGUE</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:10px;line-height:1.6;">
+      Users listed here can sign in and upload scores for <strong style="color:var(--text);">this league only</strong>. Super admins (set in <code style="color:var(--neon-g);font-family:monospace;">Code.gs → SUPER_ADMIN_EMAILS</code>) can access and upload to all leagues regardless of this list.
     </div>
     <div id="usersList">
       <div class="loading"><div class="ld-icon">⚙</div><div class="ld-txt">LOADING USERS...</div></div>
@@ -340,6 +340,15 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
     <div style="display:flex;gap:10px;flex-wrap:wrap;">
       <button class="btn-main" onclick="sendTestEmail()">SEND TEST EMAIL</button>
       <button class="btn-sec" onclick="toast('Open Apps Script → Triggers to configure schedule')">VIEW TRIGGER SETTINGS</button>
+    </div>
+
+    <div class="sec-lbl" style="margin-top:32px;">▶ GUTTER GAZETTE</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
+      Click when everyone's done bowling for the week. The Gazette generates from all scores uploaded so far and is published to the Weekly tab.
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <button class="btn-main" onclick="generateGazette()">📰 GENERATE GAZETTE</button>
+      <div id="gazetteStatus" style="font-family:'Exo 2',sans-serif;font-size:13px;"></div>
     </div>
 
     <div class="sec-lbl" style="margin-top:32px;">▶ DATA EXPORT</div>
@@ -849,6 +858,19 @@ async function loadOverview(){
     document.getElementById('ov-bowlers').textContent=data.bowlerCount||0;
     document.getElementById('ov-weeks').textContent=data.weekCount||0;
   }catch(e){console.warn('Overview load failed');}
+}
+
+async function generateGazette(){
+  const status=document.getElementById('gazetteStatus');
+  status.style.color='var(--dim)';status.textContent='⚙ Generating... (may take 10–20 seconds)';
+  try{
+    const r=await apiPost('generate_recap',{});
+    if(r&&r.recap){
+      status.style.color='var(--neon-g)';status.textContent='✓ Gazette published to Weekly tab!';
+    } else {
+      status.style.color='var(--neon-y)';status.textContent='⚠ No recap returned — check that scores exist for this week.';
+    }
+  }catch(e){status.style.color='var(--neon-r)';status.textContent='⚠ Failed: '+e.message;}
 }
 
 async function sendTestEmail(){

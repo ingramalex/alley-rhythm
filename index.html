@@ -1711,6 +1711,7 @@ function bowlerCard(p, i, rankCls) {
         <div class="bc-sub">
           ${p.gamesCount||0} games · ${p.highGame||'—'} best
           ${p.blindWeeks ? `<span style="color:orange;margin-left:6px;">😴 ${p.blindWeeks} absent</span>` : ''}
+          ${(window._activeLeagueMeta||{}).useHandicap && p.hdcpAvg ? `<span style="color:var(--neon-g);margin-left:6px;font-size:10px;">+hdcp avg ${p.hdcpAvg}</span>` : ''}
         </div>
       </div>
       <div class="bc-right">

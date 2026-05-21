@@ -11,7 +11,7 @@ const LANE_CONFIG = {
   // Embed leagues here to skip the API call on the league selection screen.
   // Update this if you add a new league.
   LEAGUES: [
-    { leagueId: 'BlameItOnTheLane', name: 'Blame It On The Lane', day: 'Sunday' },
-    { leagueId: 'YouthLeague',      name: 'Youth League',          day: 'Saturday' },
+    { leagueId: 'BlameItOnTheLane', name: 'Blame It On The Lane', day: 'Sunday',   useHandicap: false },
+    { leagueId: 'YouthLeague',      name: 'Youth League',          day: 'Saturday', useHandicap: true  },
   ],
 };

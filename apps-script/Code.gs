@@ -326,7 +326,7 @@ function doGet(e) {
       history:                  () => getSessionHistory(ss),
       weekly:                   () => getWeeklySummary(ss),
       awards:                   () => getAwards(ss),
-      recap:                    () => generateWeeklyRecap(ss, leagueId),
+      recap:                    () => getWeeklyRecapCache(ss, leagueId),
       recent_sessions_for_dupe: () => getRecentSessionsForDupe(ss),
       admin_sessions:           () => getAdminSessions(ss),
       admin_roster:             () => getAdminRoster(ss),
@@ -401,7 +401,8 @@ function doPost(e) {
     const meta = getLeagueMeta(leagueId);
 
     const adminOnly = { list_users:1, add_user:1, remove_user:1, update_user:1,
-                        admin_delete_session:1, admin_remove_bowler:1, send_test_email:1 };
+                        admin_delete_session:1, admin_remove_bowler:1, send_test_email:1,
+                        generate_recap:1 };
     if (adminOnly[action] && role !== 'admin') return json({ error: 'Admin access required.' }, 403);
 
     const handlers = {
@@ -419,6 +420,7 @@ function doPost(e) {
       admin_remove_bowler:  () => adminRemoveBowler(body.name, user, ss),
       add_bowler:           () => addBowlerToRoster(body.name, user, ss),
       send_test_email:      () => { sendLeagueWeeklyEmail(ss, meta); return { success: true }; },
+      generate_recap:       () => generateWeeklyRecap(ss, leagueId),
       export_all:           () => exportAllData(ss),
     };
     if (!handlers[action]) return json({ error: 'Unknown action: ' + action }, 400);
@@ -1052,7 +1054,9 @@ function getPublicStats(ss, gameData) {
         s.games.push(v);
         s.totalPins += v;
         s.totalGames++;
-        if (h > 0) s.hdcpGames.push(h);
+        // Only count handicap when it actually differs from scratch
+        // (equal values = lane system echoing scratch into the hdcp column)
+        if (h > 0 && h !== v) s.hdcpGames.push(h);
       }
     });
 
@@ -1932,7 +1936,19 @@ function clearAllData() {
   Logger.log('✅ All test data cleared. Roster re-seeded. Ready for live use!');
 }
 
-// ── Weekly recap (Blame It On The Lane only) ─────────────────────────────────
+// ── Read-only: returns cached recap without generating a new one ──────────────
+// Called by the public GET endpoint so the Gazette never auto-fires on page load.
+function getWeeklyRecapCache(ss, leagueId) {
+  if (leagueId !== 'BlameItOnTheLane') return { recap: null };
+  const awards = getAwards(ss);
+  const currentWeek = awards.currentWeek;
+  if (!currentWeek) return { recap: null };
+  const cached = PropertiesService.getScriptProperties().getProperty('recap_' + currentWeek);
+  return cached ? JSON.parse(cached) : { recap: null };
+}
+
+// ── Weekly recap generator — called by admin POST only ────────────────────────
+// Generates (or regenerates) the Gazette for the current week and caches it.
 function generateWeeklyRecap(ss, leagueId) {
   if (leagueId !== 'BlameItOnTheLane') return { recap: null };
 
@@ -1940,27 +1956,9 @@ function generateWeeklyRecap(ss, leagueId) {
   const currentWeek = awards.currentWeek;
   if (!currentWeek) return { recap: null };
 
-  // Return cached recap if it exists for this week
+  // Always regenerate when called by admin — clear any stale cache first
   const cacheKey = 'recap_' + currentWeek;
-  const cached = PropertiesService.getScriptProperties().getProperty(cacheKey);
-  if (cached) return JSON.parse(cached);
-
-  // ── Minimum sessions guard ─────────────────────────────────────
-  // Don't generate the Gazette until at least 2 separate score uploads
-  // exist for this week — prevents a premature recap after the very
-  // first scorecard is uploaded mid-session.
-  const gamesSh = ss.getSheetByName(CONFIG.SHEETS.GAMES);
-  if (gamesSh) {
-    const gData = gamesSh.getDataRange().getValues();
-    const ghdr  = gData[0];
-    const wkCol  = ghdr.indexOf('WeekKey');
-    const sidCol = ghdr.indexOf('SessionID');
-    if (wkCol > -1) {
-      const thisWeekRows = gData.slice(1).filter(r => r[wkCol] === currentWeek);
-      const uniqueSessions = new Set(thisWeekRows.map(r => sidCol > -1 ? r[sidCol] : '').filter(Boolean));
-      if (uniqueSessions.size < 2) return { recap: null };
-    }
-  }
+  PropertiesService.getScriptProperties().deleteProperty(cacheKey);
 
   const w = awards.weekly;
   const weekly = getWeeklySummary(ss);
