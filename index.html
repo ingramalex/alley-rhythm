@@ -1486,8 +1486,14 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
 async function apiFetch(action){
   const leagueId = window._activeLeagueId || 'BlameItOnTheLane';
   const r = await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(leagueId)}`);
-  if(!r.ok) throw new Error('API error '+r.status);
-  return r.json();
+  // Always parse the body — even error responses carry a JSON {error} field
+  let j;
+  try { j = await r.json(); } catch(_){ j = {}; }
+  if(!r.ok || j.error){
+    const msg = j.error || ('API error ' + r.status);
+    throw Object.assign(new Error(msg), { status: r.status, serverError: j.error });
+  }
+  return j;
 }
 
 /* ════════════════════════════════════════
@@ -1589,9 +1595,27 @@ async function loadAll(){
     }).catch(() => { if (recapEl) recapEl.innerHTML = ''; });
   } catch(e) {
     console.error('Failed to load data:', e);
+    const msg = e.message || '';
+    const isNotFound  = msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('inactive');
+    const isNetErr    = e instanceof TypeError; // fetch() itself failed — true network error
+    const label = isNotFound
+      ? `⛳ LEAGUE NOT SET UP YET<br>
+         <span style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);font-weight:400;line-height:1.7;display:block;margin-top:8px;">
+           This league hasn't been created in the backend yet.<br>
+           Ask a super admin to open <strong style="color:var(--neon-r);">Admin → ⚙ LEAGUES → CREATE</strong>.
+         </span>`
+      : isNetErr
+      ? `📡 COULD NOT REACH SERVER<br>
+         <span style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);font-weight:400;line-height:1.7;display:block;margin-top:8px;">
+           Check your internet connection and try again.
+         </span>`
+      : `⚠ ERROR LOADING DATA<br>
+         <span style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);font-weight:400;line-height:1.7;display:block;margin-top:8px;">
+           ${msg}
+         </span>`;
     document.getElementById('bowlerCards').innerHTML =
-      `<div style="padding:20px;font-family:'Orbitron',sans-serif;font-size:12px;color:var(--neon-r);text-align:center;">
-        Could not connect to server.<br>Check your SCRIPT_URL in config.js.
+      `<div style="padding:28px 20px;font-family:'Press Start 2P',monospace;font-size:10px;color:var(--neon-r);text-align:center;line-height:1.8;">
+        ${label}
       </div>`;
   }
 }
