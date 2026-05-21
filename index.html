@@ -2273,27 +2273,52 @@ async function renderLeagueList() {
   const configLeagues = (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) ? LANE_CONFIG.LEAGUES : null;
   const cachedLeagues = getCachedLeagues();
 
-  // Priority: localStorage cache → config → loading spinner
-  if (cachedLeagues && cachedLeagues.length) {
-    renderLeagueCards(cachedLeagues);
-  } else if (configLeagues && configLeagues.length) {
-    renderLeagueCards(configLeagues);
+  // Show something immediately: config entries are fastest (embedded in page),
+  // fall back to localStorage cache, then a spinner.
+  const immediate = (configLeagues && configLeagues.length) ? configLeagues
+                  : (cachedLeagues && cachedLeagues.length) ? cachedLeagues
+                  : null;
+  if (immediate) {
+    renderLeagueCards(immediate);
   } else {
     el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING...</div>`;
   }
 
-  // Only fetch from API if cache is stale — don't fire on every open
-  if (cachedLeagues) return;
-
+  // Always fetch from the API — it is the authoritative source of leagueIds and
+  // theme colours (config entries intentionally omit themes).
+  // We avoid a visible re-render flash by only touching the DOM when IDs changed.
   try {
     const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r => r.json());
     const live = data.leagues || [];
-    if (live.length) {
-      setCachedLeagues(live);
+    if (!live.length) return;
+    setCachedLeagues(live);
+
+    // Compare current registry keys against live keys
+    const currentIds = Object.keys(window._leagueRegistry || {}).sort().join(',');
+    const liveIds    = live.map(l => l.leagueId).sort().join(',');
+
+    if (currentIds !== liveIds) {
+      // IDs changed (e.g. stale config had wrong slug) — full re-render needed
       renderLeagueCards(live);
+    } else {
+      // IDs match — just refresh registry data (picks up themes, plan, etc.)
+      // without replacing DOM elements the user may be about to click
+      live.forEach(l => { window._leagueRegistry[l.leagueId] = l; });
+    }
+
+    // Re-apply active league theme now that we have the server's colour data.
+    // The config entry has no theme colours; the API response does.
+    const activeId = window._activeLeagueId;
+    if (activeId && window._leagueRegistry[activeId]) {
+      const freshMeta = window._leagueRegistry[activeId];
+      if (freshMeta.theme) {
+        applyLeagueTheme(freshMeta.theme, freshMeta.name);
+        window._activeLeagueMeta = freshMeta;
+        localStorage.setItem('ar_leagueMeta', JSON.stringify(freshMeta));
+      }
     }
   } catch(err) {
-    if (!cachedLeagues && (!configLeagues || !configLeagues.length)) {
+    if (!immediate) {
       el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;color:var(--neon-r);padding:24px;font-size:11px;">Could not load leagues</div>`;
     }
   }
@@ -2327,6 +2352,9 @@ function selectLeague(leagueId, league) {
   clear('awardsContent');
   clear('weeklyPanels');
   clear('histPanels');
+  // Clear Gutter Gazette so the previous league's recap doesn't linger
+  const recapEl = document.getElementById('recapBlock');
+  if (recapEl) recapEl.innerHTML = '';
 
   // Reset header stats to dashes
   ['hdr-avg','hdr-high','stat-avg','stat-high','stat-sessions','stat-games'].forEach(id => {
@@ -2346,8 +2374,10 @@ function selectLeague(leagueId, league) {
 }
 
 function updateLeagueLinks(leagueId) {
-  // Pass leagueId as URL param to upload and admin pages
-  document.querySelectorAll('a[href="upload.html"],a[href="admin.html"]').forEach(a => {
+  // Use [href*=] (contains) not [href=] (exact) — after the first update the
+  // href already has ?leagueId=... appended, so an exact-match selector stops
+  // working on every subsequent league switch.
+  document.querySelectorAll('a[href*="upload.html"],a[href*="admin.html"]').forEach(a => {
     const base = a.getAttribute('href').split('?')[0];
     a.setAttribute('href', base + '?leagueId=' + encodeURIComponent(leagueId));
   });
