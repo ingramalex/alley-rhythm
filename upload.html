@@ -132,6 +132,8 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-g2);box-shadow:
     <div class="login-box-lbl">INSERT COIN TO CONTINUE</div>
     <!-- Button rendered by JS after GSI loads, using client_id from config.js -->
     <div id="googleSignInBtn"></div>
+    <!-- Spinner shown while verifying — hidden by default -->
+    <div id="authSpinner" style="display:none;font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-g);letter-spacing:1px;line-height:2.2;text-align:center;padding:8px 0;">⚙ VERIFYING...<br><span style="font-size:7px;color:var(--dim);">ONE MOMENT</span></div>
     <div style="margin-top:14px;font-family:'Orbitron',sans-serif;font-size:10px;color:var(--dim);letter-spacing:.5px;line-height:1.7;">
       🔒 UPLOAD ACCESS IS INVITE-ONLY<br>
       <a href="index.html" style="color:var(--dim);">← VIEW PUBLIC STATS</a>
@@ -270,36 +272,42 @@ function initGSI(){
     callback:handleGoogleSignIn,
     auto_select:true   // silently re-auth returning users
   });
-  // Only render the button if we don't already have a token being verified
-  if(!currentIdToken){
-    google.accounts.id.renderButton(
-      document.getElementById('googleSignInBtn'),
-      {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
-    );
-  }
+  google.accounts.id.renderButton(
+    document.getElementById('googleSignInBtn'),
+    {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
+  );
 }
 
-// Try restoring from localStorage first; start GSI in parallel
-tryRestoreSession();
-waitForGSI();
+// Try restoring from localStorage first; only start GSI if nothing to restore
+if(!tryRestoreSession()){
+  waitForGSI();
+}
 
 function showAuthSpinner(){
-  const box=document.querySelector('.login-box');
-  if(box) box.innerHTML=`<div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-g);letter-spacing:1px;line-height:2.2;text-align:center;padding:8px 0;">⚙ VERIFYING...<br><span style="font-size:7px;color:var(--dim);">ONE MOMENT</span></div>`;
+  const btn=document.getElementById('googleSignInBtn');
+  const spin=document.getElementById('authSpinner');
+  if(btn)  btn.style.display='none';
+  if(spin) spin.style.display='block';
+}
+
+function hideAuthSpinner(){
+  const btn=document.getElementById('googleSignInBtn');
+  const spin=document.getElementById('authSpinner');
+  if(spin) spin.style.display='none';
+  if(btn)  btn.style.display='block';
 }
 
 function handleGoogleSignIn(res){
   currentIdToken=res.credential;
   const p=JSON.parse(atob(res.credential.split('.')[1]));
   currentUser={email:p.email,name:p.name,picture:p.picture};
-  // Persist session across tabs and browser restarts
   localStorage.setItem('ar_token', currentIdToken);
   localStorage.setItem('ar_user',  JSON.stringify(currentUser));
   showAuthSpinner();
   verifyAndShow();
 }
 
-// Restore session if returning to this page
+// Restore session from localStorage if available
 function tryRestoreSession(){
   const savedToken = localStorage.getItem('ar_token');
   const savedUser  = localStorage.getItem('ar_user');
@@ -321,14 +329,17 @@ function tryRestoreSession(){
 async function verifyAndShow(){
   try{await apiPost('get_roster',{});showApp();}
   catch(e){
-    if(e.status===403||e.status===401){
-      // Token expired or invalid — clear and fall back to login button
-      localStorage.removeItem('ar_token');
-      localStorage.removeItem('ar_user');
-      currentIdToken=null;currentUser=null;
+    localStorage.removeItem('ar_token');
+    localStorage.removeItem('ar_user');
+    currentIdToken=null; currentUser=null;
+    hideAuthSpinner();
+    if(e.status===403){
+      showErr(e.message);
+    } else {
+      // Token expired or network error — re-init the sign-in button
       document.getElementById('loginScreen').style.display='flex';
       waitForGSI();
-    }else showApp();
+    }
   }
 }
 

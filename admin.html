@@ -201,6 +201,8 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
     <div class="login-box-lbl">ADMIN CREDENTIALS REQUIRED</div>
     <!-- Sign-in button rendered by JS after GSI loads -->
     <div id="googleSignInBtn"></div>
+    <!-- Spinner shown while verifying — hidden by default -->
+    <div id="authSpinner" style="display:none;font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-r);letter-spacing:1px;line-height:2.2;text-align:center;padding:8px 0;">⚙ VERIFYING...<br><span style="font-size:7px;color:var(--dim);">ONE MOMENT</span></div>
   </div>
 </div>
 
@@ -501,36 +503,42 @@ function initGSI(){
     callback:handleGoogleSignIn,
     auto_select:true   // silently re-auth returning users
   });
-  // Only render the button if we don't already have a token being verified
-  if(!currentIdToken){
-    google.accounts.id.renderButton(
-      document.getElementById('googleSignInBtn'),
-      {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
-    );
-  }
+  google.accounts.id.renderButton(
+    document.getElementById('googleSignInBtn'),
+    {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
+  );
 }
 
-// Try restoring from localStorage first; start GSI in parallel
-tryRestoreSession();
-waitForGSI();
+// Try restoring from localStorage first; only start GSI if nothing to restore
+if(!tryRestoreSession()){
+  waitForGSI();
+}
 
 function showAuthSpinner(){
-  const box=document.querySelector('.login-box');
-  if(box) box.innerHTML=`<div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-r);letter-spacing:1px;line-height:2.2;text-align:center;padding:8px 0;">⚙ VERIFYING...<br><span style="font-size:7px;color:var(--dim);">ONE MOMENT</span></div>`;
+  const btn=document.getElementById('googleSignInBtn');
+  const spin=document.getElementById('authSpinner');
+  if(btn)  btn.style.display='none';
+  if(spin) spin.style.display='block';
+}
+
+function hideAuthSpinner(){
+  const btn=document.getElementById('googleSignInBtn');
+  const spin=document.getElementById('authSpinner');
+  if(spin) spin.style.display='none';
+  if(btn)  btn.style.display='block';
 }
 
 function handleGoogleSignIn(res){
   currentIdToken=res.credential;
   const p=JSON.parse(atob(res.credential.split('.')[1]));
   currentUser={email:p.email,name:p.name,picture:p.picture};
-  // Persist session across tabs and browser restarts
   localStorage.setItem('ar_token', currentIdToken);
   localStorage.setItem('ar_user',  JSON.stringify(currentUser));
   showAuthSpinner();
   verifyAdmin();
 }
 
-// Restore session if returning to this page
+// Restore session from localStorage if available
 function tryRestoreSession(){
   const savedToken = localStorage.getItem('ar_token');
   const savedUser  = localStorage.getItem('ar_user');
@@ -559,7 +567,6 @@ async function verifyAdmin(){
       return;
     }
     _isSuperAdmin = r.isSuperAdmin || false;
-    // Show leagues tab only for super admins
     const leaguesTab = document.getElementById('tab-btn-leagues');
     if (leaguesTab) leaguesTab.style.display = _isSuperAdmin ? 'inline-block' : 'none';
     showAdmin();
@@ -567,14 +574,15 @@ async function verifyAdmin(){
     console.error('Admin verify error:', e);
     localStorage.removeItem('ar_token');
     localStorage.removeItem('ar_user');
-    currentIdToken=null;currentUser=null;
-    // Always fall back to showing login with the button
+    currentIdToken=null; currentUser=null;
+    hideAuthSpinner();
     document.getElementById('loginScreen').style.display='flex';
     document.getElementById('adminScreen').style.display='none';
     document.getElementById('errorScreen').style.display='none';
-    if(e.message&&e.message.includes('not approved')){
-      showErr('Verify failed: ' + (e.message||'unknown error') + '. Try signing out and back in.');
+    if(e.message && (e.message.includes('not approved') || e.message.includes('not have admin'))){
+      showErr(e.message);
     } else {
+      // Token expired or network error — re-init the sign-in button
       waitForGSI();
     }
   }
