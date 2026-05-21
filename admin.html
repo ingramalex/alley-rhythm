@@ -477,6 +477,8 @@ function pColor(n){let h=0;for(const c of(n||''))h=(h*31+c.charCodeAt(0))&0xffff
 function ini2(n){return(n||'??').slice(0,2).toUpperCase();}
 
 /* ── AUTH ── */
+let _gsiInitialized = false; // guard against multiple initialize() calls
+
 // Poll for GSI library (loaded at bottom of page) then init with client_id from config.js
 function waitForGSI(){
   if(window.google&&window.google.accounts){
@@ -487,6 +489,9 @@ function waitForGSI(){
 }
 
 function initGSI(){
+  if(_gsiInitialized) return; // prevent "called multiple times" GSI warning
+  _gsiInitialized = true;
+
   // Use LANE_CONFIG if loaded, otherwise fall back to inline values
   const clientId = (window.LANE_CONFIG && LANE_CONFIG.GOOGLE_CLIENT_ID &&
                     !LANE_CONFIG.GOOGLE_CLIENT_ID.includes('PASTE_YOUR'))
@@ -501,7 +506,7 @@ function initGSI(){
   google.accounts.id.initialize({
     client_id:clientId,
     callback:handleGoogleSignIn,
-    auto_select:true   // silently re-auth returning users
+    auto_select:false  // disabled — we restore sessions via localStorage instead
   });
   google.accounts.id.renderButton(
     document.getElementById('googleSignInBtn'),
@@ -599,7 +604,7 @@ function showAdmin(){
     </div>
     <button class="btn-out" onclick="signOut()">SIGN OUT</button>`;
   // Populate the league identity bar
-  const _leagueCfg = ((_cfg.LEAGUES)||[]).find(l=>l.leagueId===_activeLeagueId)||{};
+  const _leagueCfg = (((window.LANE_CONFIG||{}).LEAGUES)||[]).find(l=>l.leagueId===_activeLeagueId)||{};
   const _leagueDisplayName = _leagueCfg.name || _activeLeagueId;
   const nb=document.getElementById('leagueNameBadge');
   const ib=document.getElementById('leagueIdBadge');
