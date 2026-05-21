@@ -13,6 +13,6 @@ var LANE_CONFIG = {
   // Update this if you add a new league.
   LEAGUES: [
     { leagueId: 'BlameItOnTheLane', name: 'Blame It On The Lane', day: 'Sunday',   useHandicap: false },
-    { leagueId: 'YouthLeague',      name: 'Youth League',          day: 'Saturday', useHandicap: true  },
+    { leagueId: 'youth-league-mox9ep3l', name: 'Youth League', day: 'Thursday', useHandicap: true  },
   ],
 };
