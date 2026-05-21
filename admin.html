@@ -223,6 +223,12 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
     <button class="ntab" onclick="goTab('overview',this)">OVERVIEW</button>
     <button class="ntab" id="tab-btn-leagues" onclick="goTab('leagues',this)" style="display:none;">⚙ LEAGUES</button>
   </div>
+  <!-- LEAGUE IDENTITY BAR — always visible so admins know which league they're managing -->
+  <div style="background:var(--panel2);border-bottom:2px solid var(--rail2);padding:7px 16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:1px;flex-shrink:0;">MANAGING:</span>
+    <span style="font-family:'Orbitron',sans-serif;font-size:12px;font-weight:700;color:var(--neon-g);text-shadow:0 0 8px var(--neon-g);" id="leagueNameBadge">—</span>
+    <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);" id="leagueIdBadge"></span>
+  </div>
 
   <!-- SESSIONS TAB -->
   <div id="tab-sessions" class="view active">
@@ -344,7 +350,7 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
 
     <div class="sec-lbl" style="margin-top:32px;">▶ GUTTER GAZETTE</div>
     <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
-      Click when everyone's done bowling for the week. The Gazette generates from all scores uploaded so far and is published to the Weekly tab.
+      Click when everyone's done bowling for the week. Generates the recap from <strong style="color:var(--text);" id="gazetteLeagueName">this league</strong>'s scores for the current week only, then publishes it to the Weekly tab.
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <button class="btn-main" onclick="generateGazette()">📰 GENERATE GAZETTE</button>
@@ -392,6 +398,16 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
       <div style="margin-bottom:12px;">
         <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">BOWLERS (comma-separated)</div>
         <input id="nl-bowlers" type="text" placeholder="Alice, Bob, Charlie" style="width:100%;box-sizing:border-box;background:var(--void);border:1px solid var(--rail2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;padding:10px;border-radius:4px;">
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;">
+          <input type="checkbox" id="nl-handicap" checked style="width:16px;height:16px;accent-color:var(--neon-g);cursor:pointer;">
+          <div>
+            <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--neon-g);letter-spacing:1px;">HANDICAP LEAGUE</div>
+            <div style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--dim);margin-top:3px;">Show handicap averages on player cards. Uncheck for scratch leagues.</div>
+          </div>
+        </label>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px;">
@@ -574,6 +590,15 @@ function showAdmin(){
       <span>${currentUser.name.split(' ')[0].toUpperCase()}</span>
     </div>
     <button class="btn-out" onclick="signOut()">SIGN OUT</button>`;
+  // Populate the league identity bar
+  const _leagueCfg = ((_cfg.LEAGUES)||[]).find(l=>l.leagueId===_activeLeagueId)||{};
+  const _leagueDisplayName = _leagueCfg.name || _activeLeagueId;
+  const nb=document.getElementById('leagueNameBadge');
+  const ib=document.getElementById('leagueIdBadge');
+  if(nb) nb.textContent=_leagueDisplayName.toUpperCase();
+  if(ib) ib.textContent='['+_activeLeagueId+']';
+  const gln=document.getElementById('gazetteLeagueName');
+  if(gln) gln.textContent=_leagueDisplayName;
   loadSessions();
   loadRoster();
   loadOverview();
@@ -956,6 +981,8 @@ async function removeUser(email){
 }
 
 /* ── LEAGUES (super admin only) ── */
+let _leaguesData=[];
+
 async function loadLeagues(){
   if(!_isSuperAdmin) return;
   const el=document.getElementById('leaguesList');
@@ -964,27 +991,43 @@ async function loadLeagues(){
     const r=await fetch(`${SCRIPT_URL}?action=list_leagues`);
     const data=await r.json();
     const leagues=data.leagues||[];
+    _leaguesData=leagues;
     if(!leagues.length){
       el.innerHTML='<div style="color:var(--dim);font-family:\'Exo 2\',sans-serif;font-size:13px;padding:16px 0;">No leagues found. Create one above.</div>';
       return;
     }
     el.innerHTML=leagues.map(l=>{
       const p=(l.theme&&l.theme.primary)||'#39ff14';
-      return `<div style="border:2px solid ${p};border-radius:var(--r);padding:16px;margin-bottom:10px;background:var(--panel);">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
+      const hdcp=l.useHandicap!==false;
+      const hdcpColor=hdcp?'var(--neon-g)':'var(--dim)';
+      const hdcpLabel=hdcp?'✓ HANDICAP':'✗ SCRATCH';
+      return `<div style="border:2px solid ${p};border-radius:var(--r);padding:14px 16px;margin-bottom:10px;background:var(--panel);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+          <div style="flex:1;min-width:0;">
             <div style="font-family:'Orbitron',sans-serif;font-size:14px;font-weight:700;color:${p};">${l.name}</div>
             <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-top:4px;">
               ${l.leagueId} &nbsp;·&nbsp; ${l.day||'—'} &nbsp;·&nbsp; ${l.plan||'free'}
             </div>
           </div>
-          <div style="width:16px;height:16px;border-radius:50%;background:${p};box-shadow:0 0 10px ${p};flex-shrink:0;"></div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="font-family:'Press Start 2P',monospace;font-size:7px;color:${hdcpColor};">${hdcpLabel}</span>
+            <button class="btn-sec" style="padding:5px 10px;font-size:9px;" onclick="toggleLeagueHandicap('${l.leagueId}',${!hdcp})">${hdcp?'SET SCRATCH':'SET HANDICAP'}</button>
+          </div>
+          <div style="width:14px;height:14px;border-radius:50%;background:${p};box-shadow:0 0 8px ${p};flex-shrink:0;"></div>
         </div>
       </div>`;
     }).join('');
   }catch(e){
     el.innerHTML='<div style="color:var(--neon-r);font-family:\'Exo 2\',sans-serif;font-size:13px;">Error: '+e.message+'</div>';
   }
+}
+
+async function toggleLeagueHandicap(leagueId, useHandicap){
+  try{
+    await apiPost('toggle_handicap',{leagueId,useHandicap});
+    toast((useHandicap?'Handicap enabled':'Scratch mode set')+' for '+leagueId);
+    loadLeagues();
+  }catch(e){toast('Failed: '+e.message,true);}
 }
 
 async function createLeague(){
@@ -996,6 +1039,7 @@ async function createLeague(){
   const p=document.getElementById('nl-color1').value;
   const s=document.getElementById('nl-color2').value;
   const a=document.getElementById('nl-color3').value;
+  const useHandicap=document.getElementById('nl-handicap').checked;
   const statusEl=document.getElementById('createLeagueStatus');
   statusEl.style.color='var(--neon-y)';
   statusEl.textContent='Creating league... this may take 10-20 seconds while Google creates a new Sheet.';
@@ -1005,7 +1049,7 @@ async function createLeague(){
       adminEmails:admins, approvedEmails:admins,
       bowlers,
       theme:{primary:p,secondary:s,accent:a,name:name.toUpperCase()},
-      plan:'free'
+      plan:'free', useHandicap
     });
     statusEl.style.color='var(--neon-g)';
     statusEl.innerHTML=`✅ League created!<br>

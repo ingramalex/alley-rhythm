@@ -85,6 +85,7 @@ function getLeagueMeta(leagueId) {
     approvedEmails: (row[col('ApprovedEmails')]||'').split(',').map(e=>e.trim()).filter(Boolean),
     emailRecipients:(row[col('EmailRecipients')]||'').split(',').map(e=>e.trim()).filter(Boolean),
     theme:          safeParseJSON(row[col('Theme')], {}),
+    useHandicap:    safeParseJSON(row[col('Theme')], {}).useHandicap !== false,
     isActive:       row[col('IsActive')] !== false,
     plan:           row[col('Plan')] || 'free',
     createdAt:      row[col('CreatedAt')],
@@ -104,13 +105,17 @@ function listLeagues() {
   const data = sh.getDataRange().getValues();
   const hdr  = data[0]; const col = n => hdr.indexOf(n);
   return {
-    leagues: data.slice(1).filter(r => r[col('LeagueID')] && r[col('IsActive')] !== false).map(r => ({
-      leagueId: r[col('LeagueID')],
-      name:     r[col('LeagueName')],
-      day:      r[col('LeagueDay')],
-      theme:    safeParseJSON(r[col('Theme')], {}),
-      plan:     r[col('Plan')] || 'free',
-    }))
+    leagues: data.slice(1).filter(r => r[col('LeagueID')] && r[col('IsActive')] !== false).map(r => {
+      const theme = safeParseJSON(r[col('Theme')], {});
+      return {
+        leagueId:    r[col('LeagueID')],
+        name:        r[col('LeagueName')],
+        day:         r[col('LeagueDay')],
+        theme,
+        plan:        r[col('Plan')] || 'free',
+        useHandicap: theme.useHandicap !== false,
+      };
+    })
   };
 }
 
@@ -195,7 +200,7 @@ function initializeHub() {
  */
 function createNewLeague(params) {
   const { leagueName, leagueDay, adminEmails, approvedEmails, emailRecipients,
-          bowlers, theme, plan, siteUrl } = params;
+          bowlers, theme, plan, siteUrl, useHandicap } = params;
   if (!leagueName) throw new Error('leagueName required');
 
   // Generate a clean URL-safe ID
@@ -211,8 +216,9 @@ function createNewLeague(params) {
   const bowlerList = (bowlers||[]).length ? bowlers : [];
   initializeLeagueSheets(newSs, bowlerList);
 
-  // Default theme if not provided
+  // Default theme if not provided; embed useHandicap (defaults to true)
   const themeColors = theme || { primary:'#39ff14', secondary:'#ff00ff', accent:'#00ffff', name: leagueName.toUpperCase() };
+  themeColors.useHandicap = useHandicap !== false;
 
   // Register in hub
   const hub = SpreadsheetApp.getActiveSpreadsheet();
@@ -240,6 +246,14 @@ function createNewLeague(params) {
 /**
  * Updates a league's settings in the hub registry.
  */
+function toggleLeagueHandicap(leagueId, useHandicap) {
+  const meta = getLeagueMeta(leagueId);
+  if (!meta) throw new Error('League not found: ' + leagueId);
+  const theme = meta.theme || {};
+  theme.useHandicap = useHandicap === true;
+  return updateLeagueSettings(leagueId, { Theme: JSON.stringify(theme) });
+}
+
 function updateLeagueSettings(leagueId, updates) {
   const hub = SpreadsheetApp.getActiveSpreadsheet();
   const sh  = hub.getSheetByName(CONFIG.HUB);
@@ -386,6 +400,10 @@ function doPost(e) {
     if (action === 'update_league') {
       if (!isSuperAdmin) return json({ error: 'Super admin only.' }, 403);
       return json(updateLeagueSettings(body.leagueId, body.updates));
+    }
+    if (action === 'toggle_handicap') {
+      if (!isSuperAdmin) return json({ error: 'Super admin only.' }, 403);
+      return json(toggleLeagueHandicap(body.leagueId, body.useHandicap));
     }
     if (action === 'list_leagues_admin') {
       if (!isSuperAdmin) return json({ error: 'Super admin only.' }, 403);
