@@ -1583,6 +1583,8 @@ async function loadAll(){
 
     // Always fetch fresh data in background
     const fresh = await apiFetch('all');
+    // Guard: if the user switched leagues while this fetch was in-flight, discard stale data
+    if (window._activeLeagueId !== leagueId) return;
     setCache(leagueId, fresh);
     applyAllData(fresh);
 
@@ -1590,6 +1592,8 @@ async function loadAll(){
     const recapEl = document.getElementById('recapBlock');
     if (recapEl && !cached) recapEl.innerHTML = `<div class="recap-loading">📰 GENERATING THIS WEEK'S GUTTER GAZETTE...</div>`;
     apiFetch('recap').then(r => {
+      // Guard: discard recap if league switched while waiting for the AI response
+      if (window._activeLeagueId !== leagueId) return;
       if (r && r.recap) renderRecap(r);
       else if (recapEl) recapEl.innerHTML = '';
     }).catch(() => { if (recapEl) recapEl.innerHTML = ''; });
@@ -2394,8 +2398,13 @@ async function initLeague() {
   if (savedId) {
     window._activeLeagueId   = savedId;
     window._activeLeagueMeta = savedMeta ? JSON.parse(savedMeta) : null;
-    if (window._activeLeagueMeta && window._activeLeagueMeta.theme) {
-      applyLeagueTheme(window._activeLeagueMeta.theme, window._activeLeagueMeta.name);
+    if (window._activeLeagueMeta) {
+      // Always apply name + theme on restore, even when saved meta has no theme colours
+      // (config-only entries like BlameItOnTheLane have no theme, but name must still update)
+      applyLeagueTheme(
+        window._activeLeagueMeta.theme || LEAGUE_THEMES.default,
+        window._activeLeagueMeta.name
+      );
     }
     updateLeagueLinks(savedId);
     loadAll();
