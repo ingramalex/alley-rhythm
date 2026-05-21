@@ -219,6 +219,7 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
   <div class="nav-bar">
     <button class="ntab active" onclick="goTab('sessions',this)">SESSIONS</button>
     <button class="ntab" onclick="goTab('roster',this)">ROSTER</button>
+    <button class="ntab" onclick="goTab('users',this)">USERS</button>
     <button class="ntab" onclick="goTab('overview',this)">OVERVIEW</button>
     <button class="ntab" id="tab-btn-leagues" onclick="goTab('leagues',this)" style="display:none;">⚙ LEAGUES</button>
   </div>
@@ -265,6 +266,42 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
     <div id="mappingGrid">
       <div class="loading"><div class="ld-icon">⚙</div><div class="ld-txt">LOADING...</div></div>
     </div>
+
+  </div>
+  </div>
+
+  <!-- USERS TAB -->
+  <div id="tab-users" class="view">
+  <div class="page">
+
+    <div class="sec-lbl">▶ AUTHORIZED USERS</div>
+    <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.6;">
+      Uploaders can sign in and submit scores. Admins can also access this panel. Add anyone who bowls or helps track scores.
+    </div>
+    <div id="usersList">
+      <div class="loading"><div class="ld-icon">⚙</div><div class="ld-txt">LOADING USERS...</div></div>
+    </div>
+
+    <div class="sec-lbl" style="margin-top:28px;">▶ ADD USER</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">GMAIL ADDRESS *</div>
+        <input class="inp" id="newUserEmail" type="email" placeholder="name@gmail.com" maxlength="100" style="width:100%;box-sizing:border-box;">
+      </div>
+      <div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">DISPLAY NAME</div>
+        <input class="inp" id="newUserName" type="text" placeholder="First name or nickname" maxlength="40" style="width:100%;box-sizing:border-box;">
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);margin-bottom:6px;">ROLE</div>
+      <select id="newUserRole" style="background:var(--void);border:1px solid var(--rail2);color:var(--text);font-family:'Exo 2',sans-serif;font-size:14px;padding:10px;border-radius:4px;width:100%;box-sizing:border-box;">
+        <option value="uploader">Uploader — can submit scores</option>
+        <option value="admin">Admin — can submit scores + manage panel</option>
+      </select>
+    </div>
+    <button class="btn-main" onclick="addUser()">▶ ADD USER</button>
+    <div id="addUserStatus" style="margin-top:10px;font-family:'Exo 2',sans-serif;font-size:13px;"></div>
 
   </div>
   </div>
@@ -437,42 +474,51 @@ function initGSI(){
   google.accounts.id.initialize({
     client_id:clientId,
     callback:handleGoogleSignIn,
-    auto_select:false
+    auto_select:true   // silently re-auth returning users
   });
-  google.accounts.id.renderButton(
-    document.getElementById('googleSignInBtn'),
-    {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
-  );
+  // Only render the button if we don't already have a token being verified
+  if(!currentIdToken){
+    google.accounts.id.renderButton(
+      document.getElementById('googleSignInBtn'),
+      {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
+    );
+  }
 }
 
-// Try restoring saved session first, then show login button
-if(!tryRestoreSession()){
-  waitForGSI();
+// Try restoring from localStorage first; start GSI in parallel
+tryRestoreSession();
+waitForGSI();
+
+function showAuthSpinner(){
+  const box=document.querySelector('.login-box');
+  if(box) box.innerHTML=`<div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-r);letter-spacing:1px;line-height:2.2;text-align:center;padding:8px 0;">⚙ VERIFYING...<br><span style="font-size:7px;color:var(--dim);">ONE MOMENT</span></div>`;
 }
 
 function handleGoogleSignIn(res){
   currentIdToken=res.credential;
   const p=JSON.parse(atob(res.credential.split('.')[1]));
   currentUser={email:p.email,name:p.name,picture:p.picture};
-  // Persist session so navigating away and back doesn't require re-login
-  sessionStorage.setItem('ar_token', currentIdToken);
-  sessionStorage.setItem('ar_user',  JSON.stringify(currentUser));
+  // Persist session across tabs and browser restarts
+  localStorage.setItem('ar_token', currentIdToken);
+  localStorage.setItem('ar_user',  JSON.stringify(currentUser));
+  showAuthSpinner();
   verifyAdmin();
 }
 
 // Restore session if returning to this page
 function tryRestoreSession(){
-  const savedToken = sessionStorage.getItem('ar_token');
-  const savedUser  = sessionStorage.getItem('ar_user');
+  const savedToken = localStorage.getItem('ar_token');
+  const savedUser  = localStorage.getItem('ar_user');
   if(savedToken && savedUser){
     try{
       currentIdToken = savedToken;
       currentUser    = JSON.parse(savedUser);
+      showAuthSpinner();
       verifyAdmin();
       return true;
     }catch(e){
-      sessionStorage.removeItem('ar_token');
-      sessionStorage.removeItem('ar_user');
+      localStorage.removeItem('ar_token');
+      localStorage.removeItem('ar_user');
     }
   }
   return false;
@@ -482,8 +528,8 @@ async function verifyAdmin(){
   try{
     const r=await apiPost('admin_verify',{});
     if(!r.isAdmin){
-      sessionStorage.removeItem('ar_token');
-      sessionStorage.removeItem('ar_user');
+      localStorage.removeItem('ar_token');
+      localStorage.removeItem('ar_user');
       showErr('Your account does not have admin permissions. Make sure your email is in ADMIN_EMAILS in Code.gs.');
       return;
     }
@@ -494,15 +540,17 @@ async function verifyAdmin(){
     showAdmin();
   }catch(e){
     console.error('Admin verify error:', e);
-    sessionStorage.removeItem('ar_token');
-    sessionStorage.removeItem('ar_user');
-    if(e.message&&e.message.includes('Invalid or expired')){
-      document.getElementById('loginScreen').style.display='flex';
-      document.getElementById('adminScreen').style.display='none';
-      document.getElementById('errorScreen').style.display='none';
-      waitForGSI();
-    } else {
+    localStorage.removeItem('ar_token');
+    localStorage.removeItem('ar_user');
+    currentIdToken=null;currentUser=null;
+    // Always fall back to showing login with the button
+    document.getElementById('loginScreen').style.display='flex';
+    document.getElementById('adminScreen').style.display='none';
+    document.getElementById('errorScreen').style.display='none';
+    if(e.message&&e.message.includes('not approved')){
       showErr('Verify failed: ' + (e.message||'unknown error') + '. Try signing out and back in.');
+    } else {
+      waitForGSI();
     }
   }
 }
@@ -520,6 +568,7 @@ function showAdmin(){
   loadSessions();
   loadRoster();
   loadOverview();
+  loadUsers();
 }
 
 function showErr(msg){
@@ -531,8 +580,8 @@ function showErr(msg){
 }
 function signOut(){
   if(window.google)google.accounts.id.disableAutoSelect();
-  sessionStorage.removeItem('ar_token');
-  sessionStorage.removeItem('ar_user');
+  localStorage.removeItem('ar_token');
+  localStorage.removeItem('ar_user');
   location.reload();
 }
 
@@ -824,6 +873,64 @@ function toast(msg,isErr=false){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className=isErr?'err':'';t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+/* ── USERS ── */
+async function loadUsers(){
+  const el=document.getElementById('usersList');
+  if(!el) return;
+  try{
+    const data=await apiPost('list_users',{});
+    const users=data.users||[];
+    if(!users.length){
+      el.innerHTML=`<div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--dim);padding:16px 0;">No users found.</div>`;
+      return;
+    }
+    el.innerHTML=users.map(u=>{
+      const c=pColor(u.email);
+      const ini=ini2(u.displayName||u.email);
+      const roleLabel=u.role==='admin'?'ADMIN':'UPLOADER';
+      const roleColor=u.role==='admin'?'var(--neon-r)':'var(--neon-g)';
+      const active=u.isActive!==false;
+      return `<div style="display:flex;align-items:center;gap:10px;background:var(--panel2);border:1px solid var(--rail2);border-radius:var(--r);padding:10px 14px;margin-bottom:8px;opacity:${active?1:0.45};">
+        <div style="width:32px;height:32px;border-radius:3px;background:${c}22;border:2px solid ${c};display:flex;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;font-size:8px;color:${c};flex-shrink:0;">${ini}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.displayName||'—'}</div>
+          <div style="font-family:'Exo 2',sans-serif;font-size:11px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${u.email}</div>
+        </div>
+        <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:${roleColor};flex-shrink:0;">${roleLabel}</div>
+        ${u.hardcoded?'<div style="font-family:\'Press Start 2P\',monospace;font-size:7px;color:var(--dim);">SYSTEM</div>':`
+        <button class="btn-del" style="padding:5px 10px;font-size:9px;flex-shrink:0;" onclick="removeUser('${u.email}')">${active?'REMOVE':'RESTORE'}</button>`}
+      </div>`;
+    }).join('');
+  }catch(e){
+    el.innerHTML=`<div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--neon-r);padding:16px 0;">Failed to load users: ${e.message}</div>`;
+  }
+}
+
+async function addUser(){
+  const email=(document.getElementById('newUserEmail').value||'').trim().toLowerCase();
+  const name=(document.getElementById('newUserName').value||'').trim();
+  const role=document.getElementById('newUserRole').value;
+  const status=document.getElementById('addUserStatus');
+  if(!email||!email.includes('@')){status.style.color='var(--neon-r)';status.textContent='⚠ Valid email required.';return;}
+  status.style.color='var(--dim)';status.textContent='Adding...';
+  try{
+    const r=await apiPost('add_user',{email,displayName:name,role});
+    status.style.color='var(--neon-g)';status.textContent='✓ '+r.message;
+    document.getElementById('newUserEmail').value='';
+    document.getElementById('newUserName').value='';
+    loadUsers();
+  }catch(e){status.style.color='var(--neon-r)';status.textContent='⚠ '+e.message;}
+}
+
+async function removeUser(email){
+  if(!confirm('Remove access for '+email+'?')) return;
+  try{
+    const r=await apiPost('remove_user',{email});
+    toast(r.message||'User removed.');
+    loadUsers();
+  }catch(e){toast('Failed: '+e.message,true);}
 }
 
 /* ── LEAGUES (super admin only) ── */

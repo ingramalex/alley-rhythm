@@ -812,6 +812,13 @@ function saveAndMergeSession(session, user, ss) {
 
   SpreadsheetApp.flush();
   if (newBowlerNames.length) notifyAdmins(newBowlerNames, user.email);
+
+  // Clear this week's recap cache so the Gutter Gazette regenerates
+  // with the latest data after each upload instead of using stale content.
+  try {
+    PropertiesService.getScriptProperties().deleteProperty('recap_' + weekKey);
+  } catch(e) { Logger.log('Could not clear recap cache: ' + e.message); }
+
   return { success:true, sessionId, bowlersProcessed:bowlers.length };
 }
 
@@ -1937,6 +1944,23 @@ function generateWeeklyRecap(ss, leagueId) {
   const cacheKey = 'recap_' + currentWeek;
   const cached = PropertiesService.getScriptProperties().getProperty(cacheKey);
   if (cached) return JSON.parse(cached);
+
+  // ── Minimum sessions guard ─────────────────────────────────────
+  // Don't generate the Gazette until at least 2 separate score uploads
+  // exist for this week — prevents a premature recap after the very
+  // first scorecard is uploaded mid-session.
+  const gamesSh = ss.getSheetByName(CONFIG.SHEETS.GAMES);
+  if (gamesSh) {
+    const gData = gamesSh.getDataRange().getValues();
+    const ghdr  = gData[0];
+    const wkCol  = ghdr.indexOf('WeekKey');
+    const sidCol = ghdr.indexOf('SessionID');
+    if (wkCol > -1) {
+      const thisWeekRows = gData.slice(1).filter(r => r[wkCol] === currentWeek);
+      const uniqueSessions = new Set(thisWeekRows.map(r => sidCol > -1 ? r[sidCol] : '').filter(Boolean));
+      if (uniqueSessions.size < 2) return { recap: null };
+    }
+  }
 
   const w = awards.weekly;
   const weekly = getWeeklySummary(ss);

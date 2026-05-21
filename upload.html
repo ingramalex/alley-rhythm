@@ -268,43 +268,51 @@ function initGSI(){
   google.accounts.id.initialize({
     client_id:clientId,
     callback:handleGoogleSignIn,
-    auto_select:false
+    auto_select:true   // silently re-auth returning users
   });
-  google.accounts.id.renderButton(
-    document.getElementById('googleSignInBtn'),
-    {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
-  );
+  // Only render the button if we don't already have a token being verified
+  if(!currentIdToken){
+    google.accounts.id.renderButton(
+      document.getElementById('googleSignInBtn'),
+      {theme:'filled_black',size:'large',shape:'rectangular',text:'sign_in_with',logo_alignment:'left',width:260}
+    );
+  }
 }
 
-// Try restoring saved session first, then wait for GSI
-if(!tryRestoreSession()){
-  waitForGSI();
+// Try restoring from localStorage first; start GSI in parallel
+tryRestoreSession();
+waitForGSI();
+
+function showAuthSpinner(){
+  const box=document.querySelector('.login-box');
+  if(box) box.innerHTML=`<div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-g);letter-spacing:1px;line-height:2.2;text-align:center;padding:8px 0;">⚙ VERIFYING...<br><span style="font-size:7px;color:var(--dim);">ONE MOMENT</span></div>`;
 }
 
 function handleGoogleSignIn(res){
   currentIdToken=res.credential;
   const p=JSON.parse(atob(res.credential.split('.')[1]));
   currentUser={email:p.email,name:p.name,picture:p.picture};
-  // Persist session so navigating away and back doesn't require re-login
-  sessionStorage.setItem('ar_token', currentIdToken);
-  sessionStorage.setItem('ar_user',  JSON.stringify(currentUser));
+  // Persist session across tabs and browser restarts
+  localStorage.setItem('ar_token', currentIdToken);
+  localStorage.setItem('ar_user',  JSON.stringify(currentUser));
+  showAuthSpinner();
   verifyAndShow();
 }
 
 // Restore session if returning to this page
 function tryRestoreSession(){
-  const savedToken = sessionStorage.getItem('ar_token');
-  const savedUser  = sessionStorage.getItem('ar_user');
+  const savedToken = localStorage.getItem('ar_token');
+  const savedUser  = localStorage.getItem('ar_user');
   if(savedToken && savedUser){
     try{
       currentIdToken = savedToken;
       currentUser    = JSON.parse(savedUser);
-      // Verify token is still valid (Google tokens expire after ~1 hour)
+      showAuthSpinner();
       verifyAndShow();
       return true;
     }catch(e){
-      sessionStorage.removeItem('ar_token');
-      sessionStorage.removeItem('ar_user');
+      localStorage.removeItem('ar_token');
+      localStorage.removeItem('ar_user');
     }
   }
   return false;
@@ -314,10 +322,12 @@ async function verifyAndShow(){
   try{await apiPost('get_roster',{});showApp();}
   catch(e){
     if(e.status===403||e.status===401){
-      // Token expired or invalid — clear session and show login again
-      sessionStorage.removeItem('ar_token');
-      sessionStorage.removeItem('ar_user');
-      showErr(e.message);
+      // Token expired or invalid — clear and fall back to login button
+      localStorage.removeItem('ar_token');
+      localStorage.removeItem('ar_user');
+      currentIdToken=null;currentUser=null;
+      document.getElementById('loginScreen').style.display='flex';
+      waitForGSI();
     }else showApp();
   }
 }
@@ -344,8 +354,8 @@ function showErr(msg){
 
 function signOut(){
   if(window.google)google.accounts.id.disableAutoSelect();
-  sessionStorage.removeItem('ar_token');
-  sessionStorage.removeItem('ar_user');
+  localStorage.removeItem('ar_token');
+  localStorage.removeItem('ar_user');
   location.reload();
 }
 
