@@ -1475,6 +1475,30 @@ function clearGazetteBadge(week) {
   document.querySelectorAll('.gazette-badge').forEach(b => b.remove());
 }
 
+/* ── Gutter Gazette cache ──────────────────────────────────────────
+   The recap is a slow, flaky AI-generated call fetched on every load.
+   Cache the last good one per league so it displays instantly and
+   never disappears just because a later refresh times out or returns
+   empty. Refreshed in the background whenever a new recap succeeds. */
+const RECAP_CACHE_PREFIX = 'ar_recap_';
+const RECAP_TTL_MS       = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getCachedRecap(leagueId) {
+  try {
+    const raw = localStorage.getItem(RECAP_CACHE_PREFIX + leagueId);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > RECAP_TTL_MS) return null;
+    return (data && data.recap) ? data : null;
+  } catch(e) { return null; }
+}
+
+function setCachedRecap(leagueId, data) {
+  try {
+    localStorage.setItem(RECAP_CACHE_PREFIX + leagueId, JSON.stringify({ ts: Date.now(), data }));
+  } catch(e) {}
+}
+
 
 /* ════════════════════════════════════════
    API
@@ -1576,6 +1600,13 @@ function applyAllData(d) {
 
 async function loadAll(){
   const leagueId = window._activeLeagueId || 'BlameItOnTheLane';
+  const recapEl = document.getElementById('recapBlock');
+
+  // Show the last good gazette instantly so it persists across reloads and
+  // survives a flaky/slow recap fetch instead of flashing blank.
+  const cachedRecap = getCachedRecap(leagueId);
+  if (recapEl && cachedRecap) renderRecap(cachedRecap);
+
   try {
     // Show cached data instantly if available
     const cached = getCached(leagueId);
@@ -1588,15 +1619,24 @@ async function loadAll(){
     setCache(leagueId, fresh);
     applyAllData(fresh);
 
-    // Load recap separately — slower AI call, non-blocking
-    const recapEl = document.getElementById('recapBlock');
-    if (recapEl && !cached) recapEl.innerHTML = `<div class="recap-loading">📰 GENERATING THIS WEEK'S GUTTER GAZETTE...</div>`;
+    // Load recap separately — slower AI call, non-blocking.
+    // Only show the "generating" spinner when we have no cached gazette to show.
+    if (recapEl && !cachedRecap) recapEl.innerHTML = `<div class="recap-loading">📰 GENERATING THIS WEEK'S GUTTER GAZETTE...</div>`;
     apiFetch('recap').then(r => {
       // Guard: discard recap if league switched while waiting for the AI response
       if (window._activeLeagueId !== leagueId) return;
-      if (r && r.recap) renderRecap(r);
-      else if (recapEl) recapEl.innerHTML = '';
-    }).catch(() => { if (recapEl) recapEl.innerHTML = ''; });
+      if (r && r.recap) {
+        setCachedRecap(leagueId, r);
+        renderRecap(r);
+      } else if (recapEl && !cachedRecap) {
+        // Empty response and nothing cached — clear the spinner.
+        // If we DID have a cached gazette, keep showing it.
+        recapEl.innerHTML = '';
+      }
+    }).catch(() => {
+      // Fetch failed. Keep the cached gazette if we have one; otherwise clear the spinner.
+      if (recapEl && !cachedRecap) recapEl.innerHTML = '';
+    });
   } catch(e) {
     console.error('Failed to load data:', e);
     const msg = e.message || '';
