@@ -1,0 +1,147 @@
+name: Daily Security Auto-Fix
+
+# Applies the fixes that "Daily Security Scan" only reports on.
+#
+# Runs an hour before the scan (13:05 UTC) so a PR merged in the morning
+# clears that same day's scan. Everything here is lockfile-only and gated
+# on the test suite; nothing reaches main without review.
+
+on:
+  schedule:
+    - cron: '0 12 * * *'   # 7:00 AM CT daily
+  workflow_dispatch:
+
+# The repo default is read-only, so these must be requested explicitly.
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: security-autofix
+  cancel-in-progress: false
+
+jobs:
+  audit-fix:
+    name: Apply npm audit fixes and open a PR
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - name: Apply npm audit fix
+        id: fix
+        run: |
+          echo "## 🔧 Alley Rhythm — Security Auto-Fix $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          npm audit --json > audit-before.json || true
+          BEFORE=$(node -p "const a=require('./audit-before.json').metadata.vulnerabilities; a.critical+a.high+a.moderate+a.low")
+
+          if [ "$BEFORE" -eq 0 ]; then
+            echo "✅ No vulnerabilities to fix." >> $GITHUB_STEP_SUMMARY
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # NEVER use --force. npm's "fix" for a transitive advisory under a
+          # current SDK is frequently a MAJOR DOWNGRADE of the direct dependency,
+          # which silently regresses the app. Plain `audit fix` only takes
+          # semver-compatible fixes.
+          npm audit fix || true
+
+          npm audit --json > audit-after.json || true
+          AFTER=$(node -p "const a=require('./audit-after.json').metadata.vulnerabilities; a.critical+a.high+a.moderate+a.low")
+
+          echo "| | Vulnerabilities |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Before | $BEFORE |" >> $GITHUB_STEP_SUMMARY
+          echo "| After  | $AFTER |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          rm -f audit-before.json audit-after.json
+
+          # Guard: plain `audit fix` should only touch the lockfile. If it
+          # rewrote package.json it changed a declared range — that wants a
+          # human, not an automated PR.
+          if ! git diff --quiet -- package.json; then
+            echo "⚠️ \`npm audit fix\` modified package.json (declared ranges changed)." >> $GITHUB_STEP_SUMMARY
+            echo "Not opening an automated PR — review manually." >> $GITHUB_STEP_SUMMARY
+            git checkout -- package.json package-lock.json
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          if git diff --quiet -- package-lock.json; then
+            echo "ℹ️ $AFTER vulnerability(ies) remain, but none have a" >> $GITHUB_STEP_SUMMARY
+            echo "semver-compatible fix available. Left alone deliberately." >> $GITHUB_STEP_SUMMARY
+            echo "changed=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          {
+            echo "fixed=$((BEFORE - AFTER))"
+            echo "remaining=$AFTER"
+            echo "changed=true"
+          } >> $GITHUB_OUTPUT
+
+      - name: Verify the fix did not break anything
+        if: steps.fix.outputs.changed == 'true'
+        run: npm run test:unit
+
+      - name: Open or update pull request
+        if: steps.fix.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FIXED: ${{ steps.fix.outputs.fixed }}
+          REMAINING: ${{ steps.fix.outputs.remaining }}
+        run: |
+          BRANCH=security/auto-audit-fix
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # One long-lived branch, so a daily run updates the existing PR
+          # instead of opening a new one every morning.
+          git checkout -b "$BRANCH"
+          git add package-lock.json
+          git commit -m "Apply npm audit fix ($FIXED vulnerability(ies) resolved)
+
+          Automated lockfile-only update from .github/workflows/security-autofix.yml.
+          Unit tests passed against these versions.
+
+          Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
+
+          git push -f origin "$BRANCH"
+
+          BODY="Automated \`npm audit fix\` — **lockfile only**, no \`package.json\` range changes.
+
+          | | Count |
+          |---|---|
+          | Resolved by this PR | $FIXED |
+          | Still outstanding | $REMAINING |
+
+          \`npm run test:unit\` passed against the updated tree.
+
+          Any remaining vulnerabilities have no semver-compatible fix. They are
+          left alone on purpose: \`npm audit fix --force\` would resolve some of
+          them by *downgrading* direct dependencies by whole major versions.
+
+          Opened by \`.github/workflows/security-autofix.yml\`."
+
+          if gh pr view "$BRANCH" --json number --jq .number >/dev/null 2>&1; then
+            gh pr edit "$BRANCH" --body "$BODY"
+            echo "🔄 Updated existing PR." >> $GITHUB_STEP_SUMMARY
+          else
+            gh pr create \
+              --base main \
+              --head "$BRANCH" \
+              --title "Security: apply npm audit fix ($FIXED resolved)" \
+              --body "$BODY"
+            echo "✅ Opened a pull request with the fix." >> $GITHUB_STEP_SUMMARY
+          fi
