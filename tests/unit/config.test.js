@@ -188,18 +188,34 @@ describe('upload.html — auth safety', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────
-//  5. Session persistence — localStorage (not sessionStorage)
+//  5. Session persistence — long-lived session token in localStorage
+//  Google ID tokens expire after ~1h, so pages must trade them for a
+//  backend session token (js/api.js laneSession*) rather than persisting
+//  the raw ID token, and must never use sessionStorage (lost on tab close).
 // ─────────────────────────────────────────────────────────────────
 describe('Session persistence', () => {
-  test('admin.html uses localStorage (not sessionStorage) for token', () => {
-    const js = inlineJs(adminSrc);
-    expect(js).toContain("localStorage.setItem('ar_token'");
-    expect(js).not.toContain("sessionStorage.setItem('ar_token'");
+  const apiSrc = fs.readFileSync(path.join(ROOT, 'js', 'api.js'), 'utf8');
+
+  test('js/api.js persists the session in localStorage (not sessionStorage)', () => {
+    expect(apiSrc).toMatch(/localStorage\.setItem\(LANE_SESSION_KEY/);
+    expect(apiSrc).not.toContain('sessionStorage');
   });
 
-  test('upload.html uses localStorage (not sessionStorage) for token', () => {
-    const js = inlineJs(uploadSrc);
-    expect(js).toContain("localStorage.setItem('ar_token'");
-    expect(js).not.toContain("sessionStorage.setItem('ar_token'");
-  });
+  for (const [name, src] of [['admin.html', adminSrc], ['upload.html', uploadSrc]]) {
+    test(`${name} loads js/api.js and uses the session helpers`, () => {
+      expect(src).toContain('<script src="js/api.js"></script>');
+      const js = inlineJs(src);
+      expect(js).toContain("apiPost('login'");
+      expect(js).toContain('laneSessionSave(');
+      expect(js).toContain('laneSessionLoad()');
+      // The raw Google ID token must not be persisted any more
+      expect(js).not.toContain("setItem('ar_token'");
+      expect(js).not.toContain('sessionStorage');
+    });
+
+    test(`${name} only signs the user out on auth errors, not transient ones`, () => {
+      const js = inlineJs(src);
+      expect(js).toContain('laneIsAuthError(e)');
+    });
+  }
 });

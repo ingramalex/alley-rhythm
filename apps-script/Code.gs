@@ -507,6 +507,8 @@ function doPost(e) {
       save_session:         () => saveAndMergeSession(body.session, user, ss),
       get_roster:           () => ({ roster: getFullRoster(ss) }),
       whoami:               () => ({ email: user.email, name: user.name, picture: user.picture, role, isSuperAdmin }),
+      login:                () => ({ ...createSession(user), role, isSuperAdmin }),
+      logout:               () => { if (token.startsWith(SESSION_PREFIX)) destroySession(token); return { success: true }; },
       admin_verify:         () => ({ isAdmin: role === 'admin', email: user.email, role, isSuperAdmin }),
       list_users:           () => listLeagueUsers(ss, meta),
       add_user:             () => addLeagueUser(ss, body.email, body.displayName, body.role, user),
@@ -529,8 +531,48 @@ function doPost(e) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════
+//  LONG-LIVED SESSIONS
+//  Google ID tokens expire after 1 hour, which forced a fresh Google sign-in
+//  on nearly every visit. After one successful Google sign-in the client
+//  calls `login` and gets an opaque session token good for SESSION_DAYS;
+//  it sends that instead from then on. Roles are still looked up on every
+//  request, so removing someone's email revokes access immediately.
+// ═══════════════════════════════════════════════════════════════
+const SESSION_DAYS   = 90;
+const SESSION_PREFIX = 'ars_';
+
+function createSession(user) {
+  const props = PropertiesService.getScriptProperties();
+  const token = SESSION_PREFIX + Utilities.getUuid().replace(/-/g, '') + Utilities.getUuid().replace(/-/g, '');
+  const exp   = Date.now() + SESSION_DAYS * 86400 * 1000;
+  props.setProperty('sess_' + token, JSON.stringify({ ...user, exp }));
+  purgeExpiredSessions(props);
+  return { sessionToken: token, expiresAt: exp, user };
+}
+function lookupSession(token) {
+  const raw = PropertiesService.getScriptProperties().getProperty('sess_' + token);
+  if (!raw) return null;
+  const sess = JSON.parse(raw);
+  if (!sess.exp || sess.exp < Date.now()) { destroySession(token); return null; }
+  return { email: sess.email, name: sess.name, picture: sess.picture };
+}
+function destroySession(token) {
+  try { PropertiesService.getScriptProperties().deleteProperty('sess_' + token); } catch (e) {}
+}
+function purgeExpiredSessions(props) {
+  try {
+    const all = props.getProperties();
+    Object.keys(all).forEach(k => {
+      if (!k.startsWith('sess_')) return;
+      try { if ((JSON.parse(all[k]).exp || 0) < Date.now()) props.deleteProperty(k); } catch (e) { props.deleteProperty(k); }
+    });
+  } catch (e) { Logger.log('purgeExpiredSessions: ' + e.message); }
+}
+
 function verifyToken(idToken) {
   if (!idToken) return null;
+  if (idToken.startsWith(SESSION_PREFIX)) return lookupSession(idToken);
   try {
     const r = UrlFetchApp.fetch('https://oauth2.googleapis.com/tokeninfo?id_token=' + idToken, { muteHttpExceptions: true });
     if (r.getResponseCode() !== 200) return null;
@@ -860,6 +902,27 @@ function handleImageUpload(body, user, ss) {
 //  SMART MERGE & SAVE
 // ═══════════════════════════════════════════════════════════════
 function saveAndMergeSession(session, user, ss) {
+  // The client tags each analysed screenshot with a clientId and may retry the
+  // save if Google drops the response. Replay the first result instead of
+  // inserting the session twice.
+  const clientId = String((session && session.clientId) || '').replace(/[^A-Za-z0-9_-]/g, '').slice(0, 64);
+  if (!clientId) return saveAndMergeSessionInner(session, user, ss);
+  const cache = CacheService.getScriptCache();
+  const key   = 'save_' + clientId;
+  const lock  = LockService.getScriptLock();
+  lock.waitLock(60000);
+  try {
+    const done = cache.get(key);
+    if (done) return { ...JSON.parse(done), replayed: true };
+    const result = saveAndMergeSessionInner(session, user, ss);
+    cache.put(key, JSON.stringify(result), 21600); // 6h
+    return result;
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function saveAndMergeSessionInner(session, user, ss) {
   const now = new Date();
   const dateStr = Utilities.formatDate(now, Session.getScriptTimeZone(), 'MM/dd/yyyy');
   const weekKey = getWeekKey(now);

@@ -8,11 +8,55 @@
  * rather than a real error.
  */
 
-// POST actions that are safe to replay if Google dropped the first attempt.
-// Mutations (save_session, upload_image, add_user…) are deliberately NOT here.
-var LANE_IDEMPOTENT_POST = {
-  get_roster: 1, whoami: 1, admin_verify: 1, list_users: 1, export_all: 1, list_leagues_admin: 1,
+// POST actions that are safe to replay if Google dropped the first attempt,
+// with how long to wait per attempt. Anything not listed (upload_image,
+// add_user, …) is sent exactly once with no timeout.
+// save_session is replayable because each session carries a clientId the
+// backend dedupes on — a retry after a dropped response can't double-save.
+var LANE_POST_POLICY = {
+  get_roster:         { retries: 3, timeoutMs: 20000 },
+  whoami:             { retries: 3, timeoutMs: 20000 },
+  admin_verify:       { retries: 3, timeoutMs: 20000 },
+  login:              { retries: 3, timeoutMs: 20000 },
+  list_users:         { retries: 3, timeoutMs: 20000 },
+  export_all:         { retries: 3, timeoutMs: 20000 },
+  list_leagues_admin: { retries: 3, timeoutMs: 20000 },
+  save_session:       { retries: 3, timeoutMs: 45000 },
 };
+
+/* ── Long-lived login ───────────────────────────────────────────────
+ * Google ID tokens die after an hour. After a Google sign-in the page calls
+ * `login` and the backend hands back a session token good for ~90 days; that
+ * is what gets stored and sent from then on. Shared by upload + admin.
+ */
+var LANE_SESSION_KEY = 'ar_session';
+
+function laneSessionLoad() {
+  try {
+    const s = JSON.parse(localStorage.getItem(LANE_SESSION_KEY) || 'null');
+    if (!s || !s.token || !s.user || !(s.expiresAt > Date.now())) return null;
+    return s;
+  } catch (_) { return null; }
+}
+function laneSessionSave(token, expiresAt, user) {
+  try { localStorage.setItem(LANE_SESSION_KEY, JSON.stringify({ token, expiresAt, user })); } catch (_) {}
+}
+function laneSessionClear() {
+  try {
+    localStorage.removeItem(LANE_SESSION_KEY);
+    localStorage.removeItem('ar_token'); // pre-session builds stored the raw ID token here
+    localStorage.removeItem('ar_user');
+  } catch (_) {}
+}
+/** True for auth failures that mean "sign in again"; false for transient/server trouble. */
+function laneIsAuthError(e) { return e && (e.status === 401 || e.status === 403); }
+
+function laneUUID() {
+  if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+}
 
 /**
  * fetch() that returns parsed JSON, retrying transient Google failures.
@@ -61,16 +105,15 @@ async function laneApiGet(scriptUrl, action, leagueId, extra) {
   return json;
 }
 
-/** POST a JSON body (text/plain to skip CORS preflight). Retries only idempotent actions;
- *  mutations (image analysis, saves) are sent once with no timeout. */
+/** POST a JSON body (text/plain to skip CORS preflight). Retries per LANE_POST_POLICY;
+ *  unlisted mutations (image analysis, user edits) are sent once with no timeout. */
 async function laneApiPost(scriptUrl, body) {
-  const idempotent = !!LANE_IDEMPOTENT_POST[body.action];
-  const retries = idempotent ? 3 : 0;
+  const policy = LANE_POST_POLICY[body.action] || { retries: 0, timeoutMs: 0 };
   const { ok, status, json } = await laneFetchJSON(scriptUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
     body: JSON.stringify(body),
-  }, { retries, timeoutMs: idempotent ? 20000 : 0 });
+  }, policy);
   if (!ok) throw Object.assign(new Error('HTTP ' + status), { status });
   if (json.error) {
     const e = json.error;

@@ -210,9 +210,9 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
 <!-- ERROR -->
 <div id="errorScreen">
   <div style="font-size:48px;margin-bottom:16px;">⛔</div>
-  <div style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--neon-r);margin-bottom:10px;line-height:1.5;">ACCESS DENIED</div>
+  <div id="errTitle" style="font-family:'Press Start 2P',monospace;font-size:12px;color:var(--neon-r);margin-bottom:10px;line-height:1.5;">ACCESS DENIED</div>
   <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:var(--text2);line-height:1.6;max-width:280px;margin-bottom:24px;" id="errMsg">Your account does not have admin permissions.</div>
-  <button class="btn-sec" onclick="signOut()">SIGN OUT</button>
+  <button id="errBtn" class="btn-sec" onclick="signOut()">SIGN OUT</button>
 </div>
 
 <!-- ADMIN -->
@@ -534,41 +534,37 @@ function hideAuthSpinner(){
   if(btn)  btn.style.display='block';
 }
 
-function handleGoogleSignIn(res){
+async function handleGoogleSignIn(res){
+  // The Google ID token only lives ~1h. Trade it for a long-lived session
+  // token right away; if that call fails we still proceed with the ID token.
   currentIdToken=res.credential;
   const p=JSON.parse(atob(res.credential.split('.')[1]));
   currentUser={email:p.email,name:p.name,picture:p.picture};
-  localStorage.setItem('ar_token', currentIdToken);
-  localStorage.setItem('ar_user',  JSON.stringify(currentUser));
   showAuthSpinner();
+  try{
+    const r=await apiPost('login',{});
+    currentIdToken=r.sessionToken;
+    laneSessionSave(r.sessionToken, r.expiresAt, currentUser);
+  }catch(e){ if(laneIsAuthError(e)){ hideAuthSpinner(); showErr(e.message); return; } }
   verifyAdmin();
 }
 
-// Restore session from localStorage if available
+// Restore a saved session (valid ~90 days) if there is one
 function tryRestoreSession(){
-  const savedToken = localStorage.getItem('ar_token');
-  const savedUser  = localStorage.getItem('ar_user');
-  if(savedToken && savedUser){
-    try{
-      currentIdToken = savedToken;
-      currentUser    = JSON.parse(savedUser);
-      showAuthSpinner();
-      verifyAdmin();
-      return true;
-    }catch(e){
-      localStorage.removeItem('ar_token');
-      localStorage.removeItem('ar_user');
-    }
-  }
-  return false;
+  const sess=laneSessionLoad();
+  if(!sess) return false;
+  currentIdToken=sess.token;
+  currentUser=sess.user;
+  showAuthSpinner();
+  verifyAdmin();
+  return true;
 }
 
 async function verifyAdmin(){
   try{
     const r=await apiPost('admin_verify',{});
     if(!r.isAdmin){
-      localStorage.removeItem('ar_token');
-      localStorage.removeItem('ar_user');
+      laneSessionClear();
       showErr('Your account does not have admin permissions. Make sure your email is in ADMIN_EMAILS in Code.gs.');
       return;
     }
@@ -578,18 +574,19 @@ async function verifyAdmin(){
     showAdmin();
   }catch(e){
     console.error('Admin verify error:', e);
-    localStorage.removeItem('ar_token');
-    localStorage.removeItem('ar_user');
-    currentIdToken=null; currentUser=null;
     hideAuthSpinner();
-    document.getElementById('loginScreen').style.display='flex';
     document.getElementById('adminScreen').style.display='none';
     document.getElementById('errorScreen').style.display='none';
-    if(e.message && (e.message.includes('not approved') || e.message.includes('not have admin'))){
-      showErr(e.message);
+    if(laneIsAuthError(e)){
+      // Session expired/revoked or account not approved — sign in again
+      laneSessionClear();
+      currentIdToken=null; currentUser=null;
+      if(e.status===403){ showErr(e.message); }
+      else { document.getElementById('loginScreen').style.display='flex'; waitForGSI(); }
     } else {
-      // Token expired or network error — re-init the sign-in button
-      waitForGSI();
+      // Server/network trouble — keep the session, offer a retry
+      showErr('Could not reach the server. Check your connection and try again.',
+              { title:'📡 SERVER UNREACHABLE', button:'TRY AGAIN', onClick:'location.reload()' });
     }
   }
 }
@@ -619,17 +616,22 @@ function showAdmin(){
   loadUsers();
 }
 
-function showErr(msg){
+function showErr(msg,opts={}){
   document.getElementById('loginScreen').style.display='none';
   const e=document.getElementById('errorScreen');
   e.style.display='flex';e.style.flexDirection='column';
   e.style.alignItems='center';e.style.justifyContent='center';
+  document.getElementById('errTitle').textContent=opts.title||'ACCESS DENIED';
   document.getElementById('errMsg').textContent=msg;
+  const b=document.getElementById('errBtn');
+  b.textContent=opts.button||'SIGN OUT';
+  b.setAttribute('onclick',opts.onClick||'signOut()');
 }
 function signOut(){
   if(window.google)google.accounts.id.disableAutoSelect();
-  localStorage.removeItem('ar_token');
-  localStorage.removeItem('ar_user');
+  // Best-effort server-side revoke; don't wait on it
+  if(currentIdToken) apiPost('logout',{}).catch(()=>{});
+  laneSessionClear();
   location.reload();
 }
 
