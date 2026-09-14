@@ -45,6 +45,7 @@ const _ssCache = {};
 //  version stamp that every write bumps, so readers never see stale data.
 // ═══════════════════════════════════════════════════════════════
 const READ_CACHE_TTL_SEC = 600;
+const CACHE_SCHEMA = 2; // bump whenever a cached payload's shape changes
 const CACHEABLE_GET = {
   all:1, stats:1, history:1, weekly:1, awards:1, recap:1, recent_sessions_for_dupe:1,
   admin_sessions:1, admin_roster:1, admin_overview:1, list_leagues:1, league_info:1,
@@ -59,10 +60,33 @@ function bumpCacheVersion(leagueId) {
   props.setProperty('cv_' + leagueId, String(Date.now()));
   // list_leagues / league_info are keyed on the ALL_LEAGUES bucket
   if (leagueId !== ALL_LEAGUES_KEY) props.setProperty('cv_' + ALL_LEAGUES_KEY, String(Date.now()));
+  notifySnapshot(leagueId);
+}
+/**
+ * Ask GitHub to regenerate the static JSON snapshot the site loads first
+ * (see .github/workflows/snapshot.yml). Needs Script Properties:
+ *   GITHUB_REPO  = "owner/repo"
+ *   GITHUB_TOKEN = fine-grained PAT with Contents: read & write on that repo
+ * Best-effort: a failure here must never break the write that triggered it.
+ */
+function notifySnapshot(leagueId) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const repo  = props.getProperty('GITHUB_REPO');
+    const token = props.getProperty('GITHUB_TOKEN');
+    if (!repo || !token) return;
+    UrlFetchApp.fetch('https://api.github.com/repos/' + repo + '/dispatches', {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' },
+      payload: JSON.stringify({ event_type: 'data-updated', client_payload: { leagueId: leagueId || '' } }),
+      muteHttpExceptions: true,
+    });
+  } catch (e) { Logger.log('notifySnapshot: ' + e.message); }
 }
 function readCacheKey(action, leagueId) {
   const bucket = (action === 'list_leagues' || action === 'league_info') ? ALL_LEAGUES_KEY : leagueId;
-  return [cacheVersion(bucket), action, leagueId].join(':');
+  return ['s' + CACHE_SCHEMA, cacheVersion(bucket), action, leagueId].join(':');
 }
 function cachedJson(action, leagueId, compute) {
   if (!CACHEABLE_GET[action]) return json(compute());
@@ -380,7 +404,7 @@ function doGet(e) {
     const ss = getLeagueSpreadsheet(leagueId);
 
     const map = {
-      all:                      () => getAllData(ss),
+      all:                      () => getAllData(ss, leagueId),
       stats:                    () => getPublicStats(ss),
       history:                  () => getSessionHistory(ss),
       weekly:                   () => getWeeklySummary(ss),
@@ -1078,14 +1102,17 @@ function getWeekKey(date) {
 //  PUBLIC DATA APIs
 // ═══════════════════════════════════════════════════════════════
 // Single endpoint — reads each sheet once, returns all data in one response
-function getAllData(ss) {
+function getAllData(ss, leagueId) {
   const gameData    = ss.getSheetByName(CONFIG.SHEETS.GAMES).getDataRange().getValues();
   const sessionData = ss.getSheetByName(CONFIG.SHEETS.SESSIONS).getDataRange().getValues();
+  const awards      = getAwards(ss, gameData);
   return {
     stats:   getPublicStats(ss, gameData),
     weekly:  getWeeklySummary(ss, gameData),
-    awards:  getAwards(ss, gameData),
+    awards,
     history: getSessionHistory(ss, sessionData, gameData),
+    // Folded in so a page load is one round-trip instead of two.
+    recap:   leagueId ? getWeeklyRecapCache(ss, leagueId, awards).recap : null,
   };
 }
 
@@ -2013,9 +2040,9 @@ function clearAllData() {
 
 // ── Read-only: returns cached recap without generating a new one ──────────────
 // Called by the public GET endpoint so the Gazette never auto-fires on page load.
-function getWeeklyRecapCache(ss, leagueId) {
+function getWeeklyRecapCache(ss, leagueId, precomputedAwards) {
   if (leagueId !== 'BlameItOnTheLane') return { recap: null };
-  const awards = getAwards(ss);
+  const awards = precomputedAwards || getAwards(ss);
   const currentWeek = awards.currentWeek;
   if (!currentWeek) return { recap: null };
   const cached = PropertiesService.getScriptProperties().getProperty('recap_' + currentWeek);

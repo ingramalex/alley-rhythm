@@ -1,0 +1,50 @@
+name: Data Snapshot
+
+# Regenerates data/<leagueId>.json — the static copy of the stats the site
+# renders first (GitHub Pages CDN, ~100ms) before refreshing from Apps Script.
+#
+# Triggered by:
+#  - repository_dispatch "data-updated": sent by Code.gs after every upload /
+#    roster / recap change (see notifySnapshot()).
+#  - schedule: safety net in case a dispatch is missed.
+#  - workflow_dispatch: manual.
+
+on:
+  repository_dispatch:
+    types: [data-updated]
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+# Uploads come in bursts (one per screenshot); collapse overlapping runs.
+concurrency:
+  group: data-snapshot
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Fetch stats from Apps Script
+        run: node scripts/snapshot.js
+
+      - name: Commit if changed
+        run: |
+          # snapshot.js leaves files untouched when only timestamps changed.
+          if git diff --quiet -- data && [ -z "$(git ls-files --others --exclude-standard data)" ]; then
+            echo "No data changes"; exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git commit -m "Update data snapshot ($(date -u +'%Y-%m-%d %H:%M UTC'))"
+          git pull --rebase origin main
+          git push

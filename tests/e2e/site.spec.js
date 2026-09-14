@@ -2,6 +2,8 @@
 const { test, expect } = require('@playwright/test');
 
 test.beforeEach(async ({ page }) => {
+  // The committed data/*.json snapshot is real league data — keep it out of tests
+  await page.route('**/data/*.json*', route => route.fulfill({ status: 404, body: '' }));
   // Stub the Google Apps Script API so tests don't need a live backend
   await page.route('https://script.google.com/**', route =>
     route.fulfill({
