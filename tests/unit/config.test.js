@@ -213,6 +213,17 @@ describe('Session persistence', () => {
       expect(js).not.toContain('sessionStorage');
     });
 
+    test(`${name} defers session restore until top-level bindings exist`, () => {
+      // tryRestoreSession() used to run synchronously at the top of the inline
+      // script, before `const SCRIPT_URL` further down was initialised. The
+      // resulting TDZ ReferenceError was caught as a failed verify and wiped
+      // the saved login on every single visit.
+      const js = inlineJs(src);
+      // A top-level (column-0) call is the bug; the deferred one is indented inside the listener.
+      expect(js).not.toMatch(/^if\s*\(\s*!tryRestoreSession\(\)\s*\)/m);
+      expect(js).toMatch(/DOMContentLoaded[\s\S]{0,200}tryRestoreSession\(\)/);
+    });
+
     test(`${name} only signs the user out on auth errors, not transient ones`, () => {
       const js = inlineJs(src);
       expect(js).toContain('laneIsAuthError(e)');

@@ -284,10 +284,16 @@ function initGSI(){
   );
 }
 
-// Try restoring from localStorage first; only start GSI if nothing to restore
-if(!tryRestoreSession()){
-  waitForGSI();
-}
+// Try restoring from localStorage first; only start GSI if nothing to restore.
+// Deferred to DOMContentLoaded: SCRIPT_URL and other top-level const/let
+// bindings are declared further down this script, so calling the API from
+// here synchronously throws a temporal-dead-zone ReferenceError — which used
+// to be caught as a "verify failed" and wiped the saved login on every visit.
+document.addEventListener('DOMContentLoaded', () => {
+  if(!tryRestoreSession()){
+    waitForGSI();
+  }
+});
 
 function showAuthSpinner(){
   const btn=document.getElementById('googleSignInBtn');
@@ -311,22 +317,39 @@ async function handleGoogleSignIn(res){
   currentUser={email:p.email,name:p.name,picture:p.picture};
   showAuthSpinner();
   try{
+    // `login` both verifies approval and mints the session — one round-trip, then in.
     const r=await apiPost('login',{});
     currentIdToken=r.sessionToken;
     laneSessionSave(r.sessionToken, r.expiresAt, currentUser);
-  }catch(e){ if(laneIsAuthError(e)){ hideAuthSpinner(); showErr(e.message); return; } }
-  verifyAndShow();
+    showApp();
+  }catch(e){
+    if(laneIsAuthError(e)){ hideAuthSpinner(); showErr(e.message); return; }
+    // Backend unreachable for the session mint — fall back to verifying with the ID token
+    verifyAndShow();
+  }
 }
 
-// Restore a saved session (valid ~90 days) if there is one
+// Restore a saved session (valid ~90 days) if there is one.
+// Open the app immediately and verify in the background — a revoked/expired
+// session bounces back to sign-in, but nobody waits on Apps Script to start.
 function tryRestoreSession(){
   const sess=laneSessionLoad();
   if(!sess) return false;
   currentIdToken=sess.token;
   currentUser=sess.user;
-  showAuthSpinner();
-  verifyAndShow();
+  showApp();
+  apiPost('get_roster',{}).catch(e=>{ if(laneIsAuthError(e)) handleAuthFailure(e); });
   return true;
+}
+
+function handleAuthFailure(e){
+  // Session expired/revoked or account not approved — sign in again
+  laneSessionClear();
+  currentIdToken=null; currentUser=null;
+  hideAuthSpinner();
+  document.getElementById('appScreen').style.display='none';
+  if(e.status===403){ showErr(e.message); }
+  else { document.getElementById('loginScreen').style.display='flex'; waitForGSI(); }
 }
 
 async function verifyAndShow(){
@@ -334,11 +357,7 @@ async function verifyAndShow(){
   catch(e){
     hideAuthSpinner();
     if(laneIsAuthError(e)){
-      // Session expired/revoked or account not approved — sign in again
-      laneSessionClear();
-      currentIdToken=null; currentUser=null;
-      if(e.status===403){ showErr(e.message); }
-      else { document.getElementById('loginScreen').style.display='flex'; waitForGSI(); }
+      handleAuthFailure(e);
     } else {
       // Server/network trouble — keep the session, offer a retry
       showErr('Could not reach the server. Check your connection and try again.',

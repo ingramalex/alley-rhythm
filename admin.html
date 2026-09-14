@@ -515,10 +515,16 @@ function initGSI(){
   );
 }
 
-// Try restoring from localStorage first; only start GSI if nothing to restore
-if(!tryRestoreSession()){
-  waitForGSI();
-}
+// Try restoring from localStorage first; only start GSI if nothing to restore.
+// Deferred to DOMContentLoaded: SCRIPT_URL and other top-level const/let
+// bindings are declared further down this script, so calling the API from
+// here synchronously throws a temporal-dead-zone ReferenceError — which used
+// to be caught as a "verify failed" and wiped the saved login on every visit.
+document.addEventListener('DOMContentLoaded', () => {
+  if(!tryRestoreSession()){
+    waitForGSI();
+  }
+});
 
 function showAuthSpinner(){
   const btn=document.getElementById('googleSignInBtn');
@@ -542,22 +548,45 @@ async function handleGoogleSignIn(res){
   currentUser={email:p.email,name:p.name,picture:p.picture};
   showAuthSpinner();
   try{
+    // `login` verifies approval, reports role, and mints the session — one round-trip.
     const r=await apiPost('login',{});
     currentIdToken=r.sessionToken;
+    currentUser.isSuperAdmin=!!r.isSuperAdmin;
+    currentUser.role=r.role;
     laneSessionSave(r.sessionToken, r.expiresAt, currentUser);
-  }catch(e){ if(laneIsAuthError(e)){ hideAuthSpinner(); showErr(e.message); return; } }
-  verifyAdmin();
+    applyAdminVerify(r);
+  }catch(e){
+    if(laneIsAuthError(e)){ hideAuthSpinner(); showErr(e.message); return; }
+    // Backend unreachable for the session mint — fall back to verifying with the ID token
+    verifyAdmin();
+  }
 }
 
-// Restore a saved session (valid ~90 days) if there is one
+// Restore a saved session (valid ~90 days) if there is one.
+// Open the admin immediately using the role saved at login and re-verify in
+// the background — a revoked session bounces back to sign-in, but nobody
+// waits on Apps Script to start.
 function tryRestoreSession(){
   const sess=laneSessionLoad();
   if(!sess) return false;
   currentIdToken=sess.token;
   currentUser=sess.user;
-  showAuthSpinner();
-  verifyAdmin();
+  if(sess.user.role==='admin'){
+    applyAdminVerify({ isAdmin:true, isSuperAdmin:!!sess.user.isSuperAdmin });
+    apiPost('admin_verify',{}).then(r=>{ if(!r.isAdmin){ laneSessionClear(); location.reload(); } })
+      .catch(e=>{ if(laneIsAuthError(e)){ laneSessionClear(); location.reload(); } });
+  } else {
+    showAuthSpinner();
+    verifyAdmin();
+  }
   return true;
+}
+
+function applyAdminVerify(r){
+  _isSuperAdmin = r.isSuperAdmin || false;
+  const leaguesTab = document.getElementById('tab-btn-leagues');
+  if (leaguesTab) leaguesTab.style.display = _isSuperAdmin ? 'inline-block' : 'none';
+  showAdmin();
 }
 
 async function verifyAdmin(){
@@ -568,10 +597,7 @@ async function verifyAdmin(){
       showErr('Your account does not have admin permissions. Make sure your email is in ADMIN_EMAILS in Code.gs.');
       return;
     }
-    _isSuperAdmin = r.isSuperAdmin || false;
-    const leaguesTab = document.getElementById('tab-btn-leagues');
-    if (leaguesTab) leaguesTab.style.display = _isSuperAdmin ? 'inline-block' : 'none';
-    showAdmin();
+    applyAdminVerify(r);
   }catch(e){
     console.error('Admin verify error:', e);
     hideAuthSpinner();
