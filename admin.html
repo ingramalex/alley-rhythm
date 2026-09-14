@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
 <!-- config.js MUST load before Google GSI so GOOGLE_CLIENT_ID is available -->
 <script src="config.js"></script>
+<script src="js/api.js"></script>
 <style>
 :root{
   --void:#01030a;--deep:#060914;--panel:#0a0e1a;--panel2:#0f1424;
@@ -645,23 +646,11 @@ const _activeLeagueId = new URLSearchParams(window.location.search).get('leagueI
 let _isSuperAdmin = false;
 
 async function apiPost(action, data){
-  const payload = JSON.stringify({action, token:currentIdToken, leagueId:_activeLeagueId, ...data});
-  const r = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: payload,
-  });
-  if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
-  const j = await r.json();
-  if (j.error) {
-    const status = j.status || (j.error.includes('expired') || j.error.includes('sign-in') ? 401 : j.error.includes('not approved') ? 403 : 500);
-    throw Object.assign(new Error(j.error), { status });
-  }
-  return j;
+  // Retries Google's transient stalls for read-only actions; mutations are sent once.
+  return laneApiPost(SCRIPT_URL, { action, token: currentIdToken, leagueId: _activeLeagueId, ...data });
 }
 async function apiGet(action){
-  const r=await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(_activeLeagueId)}`);
-  return r.json();
+  return laneApiGet(SCRIPT_URL, action, _activeLeagueId);
 }
 
 /* ── TABS ── */
@@ -1001,7 +990,7 @@ async function loadLeagues(){
   const el=document.getElementById('leaguesList');
   if(!el) return;
   try{
-    const r=await fetch(`${SCRIPT_URL}?action=list_leagues`);
+    const r={ json: async()=>(await laneFetchJSON(`${SCRIPT_URL}?action=list_leagues`)).json };
     const data=await r.json();
     const leagues=data.leagues||[];
     _leaguesData=leagues;

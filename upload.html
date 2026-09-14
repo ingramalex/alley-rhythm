@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;600;700&display=swap" rel="stylesheet">
 <!-- config.js MUST load before Google GSI so client_id is set first -->
 <script src="config.js"></script>
+<script src="js/api.js"></script>
 <style>
 :root{--void:#01030a;--deep:#060914;--panel:#0a0e1a;--panel2:#0f1424;--rail:#1e2840;--rail2:#283450;--neon-g:#39ff14;--neon-g2:#22cc00;--neon-p:#ff00ff;--neon-p2:#cc00cc;--neon-y:#ffe600;--neon-c:#00ffff;--neon-r:#ff2244;--neon-r2:#cc1133;--text:#d0e8ff;--text2:#8aa0c8;--dim:#3a4a68;--r:4px;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -385,25 +386,13 @@ const _activeLeagueId = new URLSearchParams(window.location.search).get('leagueI
   || localStorage.getItem('ar_leagueId')
   || 'BlameItOnTheLane';
 
-async function apiPost(action, data) {
-  const payload = JSON.stringify({ action, token: currentIdToken, leagueId: _activeLeagueId, ...data });
-  const r = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-    body: payload,
-  });
-  if (!r.ok) throw Object.assign(new Error('HTTP ' + r.status), { status: r.status });
-  const j = await r.json();
-  if (j.error) {
-    const status = j.status || (j.error.includes('expired') || j.error.includes('sign-in') ? 401 : j.error.includes('not approved') ? 403 : 500);
-    throw Object.assign(new Error(j.error), { status });
-  }
-  return j;
+async function apiPost(action, data){
+  // Retries Google's transient stalls for read-only actions; mutations are sent once.
+  return laneApiPost(SCRIPT_URL, { action, token: currentIdToken, leagueId: _activeLeagueId, ...data });
 }
 
 async function apiGet(action){
-  const r=await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(_activeLeagueId)}`);
-  return r.json();
+  return laneApiGet(SCRIPT_URL, action, _activeLeagueId);
 }
 
 /* ── FILE ── */

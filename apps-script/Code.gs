@@ -36,6 +36,51 @@ const CONFIG = {
 const _ssCache = {};
 
 // ═══════════════════════════════════════════════════════════════
+//  READ CACHE
+//  Every public GET used to be a full recompute from the sheets. Each request
+//  is a separate Apps Script execution, and Google intermittently stalls an
+//  execution for 10-40s and then answers with an HTML 404 — so fewer / shorter
+//  executions means fewer failed page loads. Responses are cached (gzipped, to
+//  stay under CacheService's 100KB-per-key limit) and keyed by a per-league
+//  version stamp that every write bumps, so readers never see stale data.
+// ═══════════════════════════════════════════════════════════════
+const READ_CACHE_TTL_SEC = 600;
+const CACHEABLE_GET = {
+  all:1, stats:1, history:1, weekly:1, awards:1, recap:1, recent_sessions_for_dupe:1,
+  admin_sessions:1, admin_roster:1, admin_overview:1, list_leagues:1, league_info:1,
+};
+const ALL_LEAGUES_KEY = '__ALL__';
+
+function cacheVersion(leagueId) {
+  return PropertiesService.getScriptProperties().getProperty('cv_' + leagueId) || '0';
+}
+function bumpCacheVersion(leagueId) {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('cv_' + leagueId, String(Date.now()));
+  // list_leagues / league_info are keyed on the ALL_LEAGUES bucket
+  if (leagueId !== ALL_LEAGUES_KEY) props.setProperty('cv_' + ALL_LEAGUES_KEY, String(Date.now()));
+}
+function readCacheKey(action, leagueId) {
+  const bucket = (action === 'list_leagues' || action === 'league_info') ? ALL_LEAGUES_KEY : leagueId;
+  return [cacheVersion(bucket), action, leagueId].join(':');
+}
+function cachedJson(action, leagueId, compute) {
+  if (!CACHEABLE_GET[action]) return json(compute());
+  const cache = CacheService.getScriptCache();
+  const key   = readCacheKey(action, leagueId);
+  try {
+    const hit = cache.get(key);
+    if (hit) return jsonText(Utilities.ungzip(Utilities.newBlob(Utilities.base64Decode(hit), 'application/x-gzip')).getDataAsString());
+  } catch (e) { Logger.log('cache read [' + key + ']: ' + e.message); }
+  const text = JSON.stringify(compute());
+  try {
+    const packed = Utilities.base64Encode(Utilities.gzip(Utilities.newBlob(text)).getBytes());
+    if (packed.length < 100000) cache.put(key, packed, READ_CACHE_TTL_SEC);
+  } catch (e) { Logger.log('cache write [' + key + ']: ' + e.message); }
+  return jsonText(text);
+}
+
+// ═══════════════════════════════════════════════════════════════
 //  HUB: LEAGUE REGISTRY
 // ═══════════════════════════════════════════════════════════════
 
@@ -328,8 +373,8 @@ function doGet(e) {
   const leagueId = (e.parameter.leagueId || '').trim();
   try {
     // League-independent public endpoints
-    if (action === 'list_leagues') return json(listLeagues());
-    if (action === 'league_info')  return json(leagueId ? (getLeagueMeta(leagueId)||{error:'Not found'}) : {error:'leagueId required'});
+    if (action === 'list_leagues') return cachedJson(action, '', listLeagues);
+    if (action === 'league_info')  return leagueId ? cachedJson(action, leagueId, () => getLeagueMeta(leagueId)||{error:'Not found'}) : json({error:'leagueId required'});
 
     if (!leagueId) return json({ error: 'leagueId required' }, 400);
     const ss = getLeagueSpreadsheet(leagueId);
@@ -376,7 +421,7 @@ function doGet(e) {
       },
     };
     if (!map[action]) return json({ error: 'Unknown action' }, 400);
-    return json(map[action]());
+    return cachedJson(action, leagueId, map[action]);
   } catch(err) {
     Logger.log('GET error [' + action + ']: ' + err.message);
     return json({ error: err.message }, 500);
@@ -395,15 +440,21 @@ function doPost(e) {
     const isSuperAdmin = CONFIG.SUPER_ADMIN_EMAILS.map(x=>x.toLowerCase()).includes(user.email.toLowerCase());
     if (action === 'create_league') {
       if (!isSuperAdmin) return json({ error: 'Super admin only.' }, 403);
-      return json(createNewLeague(body));
+      const created = createNewLeague(body);
+      bumpCacheVersion(ALL_LEAGUES_KEY);
+      return json(created);
     }
     if (action === 'update_league') {
       if (!isSuperAdmin) return json({ error: 'Super admin only.' }, 403);
-      return json(updateLeagueSettings(body.leagueId, body.updates));
+      const updated = updateLeagueSettings(body.leagueId, body.updates);
+      bumpCacheVersion(body.leagueId);
+      return json(updated);
     }
     if (action === 'toggle_handicap') {
       if (!isSuperAdmin) return json({ error: 'Super admin only.' }, 403);
-      return json(toggleLeagueHandicap(body.leagueId, body.useHandicap));
+      const toggled = toggleLeagueHandicap(body.leagueId, body.useHandicap);
+      bumpCacheVersion(body.leagueId);
+      return json(toggled);
     }
     if (action === 'list_leagues_admin') {
       if (!isSuperAdmin) return json({ error: 'Super admin only.' }, 403);
@@ -418,6 +469,9 @@ function doPost(e) {
     const ss = getLeagueSpreadsheet(leagueId);
     const meta = getLeagueMeta(leagueId);
 
+    const MUTATING_POST = { save_session:1, add_user:1, remove_user:1, update_user:1,
+                            admin_delete_session:1, admin_remove_bowler:1, add_bowler:1,
+                            generate_recap:1 };
     const adminOnly = { list_users:1, add_user:1, remove_user:1, update_user:1,
                         admin_delete_session:1, admin_remove_bowler:1, send_test_email:1,
                         generate_recap:1 };
@@ -442,7 +496,9 @@ function doPost(e) {
       export_all:           () => exportAllData(ss),
     };
     if (!handlers[action]) return json({ error: 'Unknown action: ' + action }, 400);
-    return json(handlers[action]());
+    const result = handlers[action]();
+    if (MUTATING_POST[action]) bumpCacheVersion(leagueId);
+    return json(result);
   } catch(err) {
     Logger.log('POST error: ' + err.message);
     return json({ error: err.message }, 500);
@@ -1482,9 +1538,10 @@ function doOptions(e) {
 function json(data) {
   // Apps Script doesn't support custom headers, but setting MimeType to JSON
   // and using text/plain on the client side avoids the preflight entirely.
-  return ContentService
-    .createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
+  return jsonText(JSON.stringify(data));
+}
+function jsonText(text) {
+  return ContentService.createTextOutput(text).setMimeType(ContentService.MimeType.JSON);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1612,9 +1669,9 @@ function getAdminOverview(ss) {
 function exportAllData(ss) {
   return {
     exportedAt: new Date().toISOString(),
-    bowlers:    getPublicStats().bowlers,
-    sessions:   getSessionHistory().sessions,
-    roster:     getAdminRoster().roster,
+    bowlers:    getPublicStats(ss).bowlers,
+    sessions:   getSessionHistory(ss).sessions,
+    roster:     getAdminRoster(ss).roster,
   };
 }
 

@@ -1419,6 +1419,7 @@ body::after {
 
 <script src="config.js"></script>
 <script src="js/utils.js"></script>
+<script src="js/api.js"></script>
 <script>
 /* ════════════════════════════════════════
    HELPERS
@@ -1509,15 +1510,8 @@ const SCRIPT_URL = (window.LANE_CONFIG && LANE_CONFIG.SCRIPT_URL && !LANE_CONFIG
 
 async function apiFetch(action){
   const leagueId = window._activeLeagueId || 'BlameItOnTheLane';
-  const r = await fetch(`${SCRIPT_URL}?action=${action}&leagueId=${encodeURIComponent(leagueId)}`);
-  // Always parse the body — even error responses carry a JSON {error} field
-  let j;
-  try { j = await r.json(); } catch(_){ j = {}; }
-  if(!r.ok || j.error){
-    const msg = j.error || ('API error ' + r.status);
-    throw Object.assign(new Error(msg), { status: r.status, serverError: j.error });
-  }
-  return j;
+  // laneApiGet retries Google's transient HTML-404 stalls before giving up
+  return laneApiGet(SCRIPT_URL, action, leagueId);
 }
 
 /* ════════════════════════════════════════
@@ -2332,7 +2326,7 @@ async function renderLeagueList() {
   // theme colours (config entries intentionally omit themes).
   // We avoid a visible re-render flash by only touching the DOM when IDs changed.
   try {
-    const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r => r.json());
+    const data = (await laneFetchJSON(`${SCRIPT_URL}?action=list_leagues`)).json;
     const live = data.leagues || [];
     if (!live.length) return;
     setCachedLeagues(live);
@@ -2451,7 +2445,7 @@ async function initLeague() {
   } else {
     // First visit — fetch leagues and show switcher, or auto-select if only one
     try {
-      const data = await fetch(`${SCRIPT_URL}?action=list_leagues`).then(r=>r.json());
+      const data = (await laneFetchJSON(`${SCRIPT_URL}?action=list_leagues`)).json;
       const leagues = data.leagues || [];
       if (leagues.length === 1) {
         // Auto-select the only league
