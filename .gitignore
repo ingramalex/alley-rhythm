@@ -5,3 +5,8 @@
 node_modules/
 playwright-report/
 test-results/
+.env.local
+*.pem
+*.key
+credentials.json
+service-account.json
