@@ -137,11 +137,39 @@ jobs:
           if gh pr view "$BRANCH" --json number --jq .number >/dev/null 2>&1; then
             gh pr edit "$BRANCH" --body "$BODY"
             echo "🔄 Updated existing PR." >> $GITHUB_STEP_SUMMARY
-          else
-            gh pr create \
+            exit 0
+          fi
+
+          # Creating a PR needs "Allow GitHub Actions to create and approve pull
+          # requests" (Settings -> Actions -> General -> Workflow permissions).
+          # When it is off, gh fails with "GitHub Actions is not permitted to
+          # create or approve pull requests". The fix itself is already pushed to
+          # $BRANCH at that point, so surface a one-click link rather than failing
+          # the run every morning over a setting only a human can change.
+          if gh pr create \
               --base main \
               --head "$BRANCH" \
               --title "Security: apply npm audit fix ($FIXED resolved)" \
-              --body "$BODY"
+              --body "$BODY" 2> pr-error.txt; then
             echo "✅ Opened a pull request with the fix." >> $GITHUB_STEP_SUMMARY
+            exit 0
           fi
+
+          if grep -q "not permitted to create or approve pull requests" pr-error.txt; then
+            {
+              echo "### ⚠️ Fix pushed, but the PR could not be opened"
+              echo ""
+              echo "The verified fix is on \`$BRANCH\`. GitHub Actions is not allowed to"
+              echo "open pull requests in this repo, so open it yourself:"
+              echo ""
+              echo "**[→ Open the pull request](https://github.com/$GITHUB_REPOSITORY/compare/main...$BRANCH?expand=1)**"
+              echo ""
+              echo "To let this happen automatically, enable *Settings → Actions → General →"
+              echo "Workflow permissions → Allow GitHub Actions to create and approve pull requests*."
+            } >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          # Any other failure is a real problem — fail loudly.
+          cat pr-error.txt >> $GITHUB_STEP_SUMMARY
+          exit 1
