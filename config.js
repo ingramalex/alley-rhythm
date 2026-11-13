@@ -14,5 +14,6 @@ var LANE_CONFIG = {
   LEAGUES: [
     { leagueId: 'BlameItOnTheLane', name: 'Blame It On The Lane', day: 'Sunday',   useHandicap: false },
     { leagueId: 'youth-league-mox9ep3l', name: 'Youth League', day: 'Thursday', useHandicap: true  },
+    { leagueId: 'wayne-s-world-mqo39eep', name: 'Wayne’s world', day: 'Sunday',   useHandicap: true  },
   ],
 };

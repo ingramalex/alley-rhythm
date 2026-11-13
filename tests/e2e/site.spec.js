@@ -43,9 +43,18 @@ test.describe('Page load', () => {
     expect(text.trim().length).toBeGreaterThan(0);
   });
 
-  test('footer marquee is rendered', async ({ page }) => {
+  test('footer marquee is rendered (desktop) or replaced by the tab bar (phone)', async ({ page }) => {
     const footer = page.locator('#footerTrack');
-    await expect(footer).toBeVisible();
+    const phone  = page.viewportSize().width <= 640;
+    if (phone) {
+      await expect(footer).toBeHidden();
+      // The tab row sits at the bottom of the screen and every tab fits
+      const nav = await page.locator('#navBar').boundingBox();
+      expect(nav.y + nav.height).toBeGreaterThan(page.viewportSize().height - 4);
+      for (const tab of await page.locator('.ntab').all()) await expect(tab).toBeInViewport();
+    } else {
+      await expect(footer).toBeVisible();
+    }
   });
 });
 
@@ -92,6 +101,73 @@ test.describe('Tab navigation', () => {
       const viewId = 'tab-' + match[1];
       await expect(page.locator('#' + viewId)).toHaveCount(1);
     }
+  });
+});
+
+/* ── SHAREABLE LINKS ─────────────────────────────────────────────── */
+test.describe('Shareable links', () => {
+  test('a #tab in the URL opens that tab', async ({ page }) => {
+    await page.goto('/#weekly');
+    await expect(page.locator('#tab-weekly')).toHaveClass(/active/);
+    await expect(page.locator('.ntab[data-tab="weekly"]')).toHaveAttribute('aria-current', 'page');
+  });
+
+  test('switching tab updates the URL hash', async ({ page }) => {
+    await page.evaluate(() => goTab('history'));
+    expect(new URL(page.url()).hash).toBe('#history');
+    await page.evaluate(() => goTab('stats'));
+    expect(new URL(page.url()).hash).toBe('');
+  });
+
+  test('?leagueId= in the URL selects that league', async ({ page }) => {
+    await page.goto('/?leagueId=youth-league-mox9ep3l');
+    expect(await page.evaluate(() => window._activeLeagueId)).toBe('youth-league-mox9ep3l');
+    await expect(page.locator('#league-switcher')).toBeHidden();
+  });
+});
+
+/* ── BOWLER CARDS ────────────────────────────────────────────────── */
+test.describe('Bowler cards', () => {
+  const payload = avg => ({
+    stats: { bowlers: [
+      { name: 'Jess', avg: 150, gamesCount: 6, highGame: 180, recentGames: [140, 160], gamesByDate: { '10/05/2026': [140, 150], '10/12/2026': [160, 150] } },
+      { name: 'Jen',  avg,      gamesCount: 2, highGame: 130, recentGames: [120, 130] },
+    ] },
+    weekly:  { weeks: [{ week: '10/12/2026', groupAvg: 140, highGame: 160, bowlers: [{ name: 'Jess', avg: 155, games: [160, 150] }] }] },
+    awards:  { currentWeek: null, weekly: {}, milestones: {}, season: {} },
+    history: { sessions: [] },
+  });
+
+  test.beforeEach(async ({ page }) => {
+    // A fresh browser opens on the league picker — put it away so the cards are reachable
+    await page.evaluate(p => { hideLeagueSwitcher(); window._activeLeagueId = 'BlameItOnTheLane'; applyAllData(p); }, payload(125));
+  });
+
+  test('clashing initials are made distinct', async ({ page }) => {
+    const inis = await page.locator('#bowlerCards .px-av').allTextContents();
+    expect(new Set(inis).size).toBe(inis.length);
+  });
+
+  test('an open card stays open when new data arrives', async ({ page }) => {
+    await page.evaluate(() => toggleCard(0));
+    await page.evaluate(p => applyAllData(p), payload(126));
+    await expect(page.locator('.bc-card[data-name="Jess"]')).toHaveClass(/bc-open/);
+    await expect(page.locator('.bc-card[data-name="Jess"] .bc-chart svg')).toBeVisible();
+  });
+
+  test('pinning a bowler moves them to the top and survives a reload of the data', async ({ page }) => {
+    await page.locator('.bc-card[data-name="Jen"] .bc-star').click();
+    await expect(page.locator('#bowlerCards .bc-card').first()).toHaveAttribute('data-name', 'Jen');
+    await expect(page.locator('.bc-card[data-name="Jen"] .bc-rank')).toHaveText('2');
+    await page.evaluate(p => applyAllData(p), payload(127));
+    await expect(page.locator('#bowlerCards .bc-card').first()).toHaveAttribute('data-name', 'Jen');
+  });
+
+  test('cards open from the keyboard', async ({ page }) => {
+    const summary = page.locator('.bc-card[data-name="Jess"] .bc-summary');
+    await summary.focus();
+    await page.keyboard.press('Enter');
+    await expect(summary).toHaveAttribute('aria-expanded', 'true');
   });
 });
 

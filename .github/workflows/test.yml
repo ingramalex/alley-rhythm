@@ -41,7 +41,9 @@ jobs:
 
   e2e:
     name: Playwright e2e tests
-    runs-on: ubuntu-latest
+    # Pinned: ubuntu-latest is now 26.04, which Playwright 1.60 cannot install
+    # Chromium's system dependencies on. Unpin after upgrading Playwright.
+    runs-on: ubuntu-24.04
     needs: unit
     steps:
       - uses: actions/checkout@v5

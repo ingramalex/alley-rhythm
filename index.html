@@ -10,11 +10,11 @@
 <!-- Open Graph — shows when shared in iMessage, WhatsApp, Slack, etc. -->
 <meta property="og:title" content="Alley Rhythm 🎳">
 <meta property="og:description" content="Live bowling stats · Weekly awards · Strike & spare tracking · League leaderboards">
-<meta property="og:image" content="https://www.alleyrhythm.com/og-image.jpg">
-<meta property="og:image:width" content="1400">
-<meta property="og:image:height" content="630">
+<meta property="og:image" content="https://alleyrhythm.com/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="633">
 <meta property="og:image:type" content="image/jpeg">
-<meta property="og:url" content="https://www.alleyrhythm.com">
+<meta property="og:url" content="https://alleyrhythm.com/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Alley Rhythm">
 
@@ -22,9 +22,10 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Alley Rhythm 🎳">
 <meta name="twitter:description" content="Live bowling stats · Weekly awards · Strike & spare tracking">
-<meta name="twitter:image" content="https://www.alleyrhythm.com/og-image.jpg">
+<meta name="twitter:image" content="https://alleyrhythm.com/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:ital,wght@0,300;0,400;0,600;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@400;700&family=VT323&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════
    ALLEY RHYTHM — RETRO ARCADE THEME
@@ -49,10 +50,11 @@
   --neon-c:     #00ffff;   /* cyan */
   --neon-c2:    #00cccc;
   --neon-o:     #ff6600;   /* orange */
+  --neon-r:     #ff3355;   /* red — errors, admin, downward trends (was referenced but never defined) */
 
   --text:       #d0e8ff;
   --text2:      #8aa0c8;
-  --dim:        #3a4a68;
+  --dim:        #6c80a8;   /* 4.85:1 on --panel (was #3a4a68 at 2.16:1) */
   --radius-px:  4px;       /* pixel-sharp corners */
 }
 
@@ -142,7 +144,7 @@ body {
 }
 .lsb-top {
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
+  font-size: 8px;
   letter-spacing: 1px;
   color: var(--neon-g);
   text-shadow: 0 0 6px var(--neon-g);
@@ -151,7 +153,7 @@ body {
 }
 .lsb-name {
   font-family: 'Orbitron', sans-serif;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 1px;
@@ -208,7 +210,7 @@ body {
 .readout-val.ice { color:var(--neon-c); text-shadow:0 0 10px var(--neon-c),0 0 16px var(--neon-c2); }
 .readout-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px; color: var(--dim);
+  font-size: 8px; color: var(--dim);
   letter-spacing: 1px; margin-top: 2px;
 }
 .header-spacer { flex: 1; min-width: 4px; }
@@ -218,7 +220,7 @@ body {
   border: none; border-radius: var(--radius-px);
   padding: 8px 10px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 0.5px;
+  font-size: 9px; letter-spacing: 0.5px;
   cursor: pointer; transition: all 0.1s;
   box-shadow: 0 0 20px rgba(57,255,20,0.3), 3px 3px 0 var(--neon-g2);
   text-transform: uppercase; line-height: 1.5;
@@ -335,10 +337,82 @@ body::after {
   margin-bottom: -2px;
 }
 .ntab:hover { color: var(--text2); }
-.ntab.active {
-  color: var(--neon-g);
-  border-bottom-color: var(--neon-g);
-  text-shadow: 0 0 8px var(--neon-g), 0 0 16px var(--neon-g2);
+.nav-link {
+  padding: 12px 18px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-decoration: none; white-space: nowrap;
+  display: flex; align-items: center;
+}
+.nav-link.upload { color: var(--neon-g); margin-left: auto; }
+.nav-link.admin  { color: var(--neon-r); }
+/* Header copies of Upload/Admin — phones only, where the tab row can't fit them */
+.header-actions { display: none; align-items: center; gap: 6px; flex-shrink: 0; }
+.header-actions a {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 0 10px;
+  border: 1.5px solid; border-radius: var(--radius-px);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-decoration: none; white-space: nowrap;
+}
+.header-actions .upload { color: var(--neon-g); border-color: var(--neon-g2); background: rgba(57,255,20,0.06); }
+.header-actions .admin  { color: var(--neon-r); border-color: var(--rail2); font-size: 14px; padding: 0 9px; }
+.ntab-ico { display: none; }
+.ntab-ico.keep { display: inline; margin-right: 4px; }
+.lbl-short { display: none; }
+/* Edge fades while the tab row can scroll sideways (narrow tablets) */
+.nav-bar.can-scroll-right {
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
+          mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
+}
+.nav-bar.can-scroll-left.can-scroll-right {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+}
+.nav-bar.can-scroll-left:not(.can-scroll-right) {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 44px);
+          mask-image: linear-gradient(90deg, transparent, #000 44px);
+}
+@media(max-width:640px){
+  /* Upload/Admin move up into the header; the AVG/HIGH readouts repeat the
+     scoreboard directly below, so they give way. */
+  .nav-link { display: none; }
+  .header-readouts { display: none; }
+  .header-actions { display: flex; }
+
+  /* ── Bottom tab bar ──
+     #top-block dissolves so its children become rows of #app-shell, and the
+     tab row is re-ordered to the bottom, replacing the footer ticker. Same
+     buttons as the desktop tabs — nothing is duplicated. */
+  #top-block { display: contents; }
+  .marquee-wrap, .site-header, .status-strip, .nav-bar { flex-shrink: 0; }
+  #footer-block { display: none; }
+  .nav-bar {
+    order: 10; overflow: visible; z-index: 300;
+    border-bottom: none; border-top: 2px solid var(--rail2);
+    padding-bottom: env(safe-area-inset-bottom);
+    box-shadow: 0 -6px 18px rgba(0,0,0,.55);
+    -webkit-mask-image: none !important; mask-image: none !important;
+  }
+  .nav-bar::after { top: -2px; bottom: auto; }
+  .nav-inner { padding: 0; }
+  .ntab {
+    flex: 1 1 0; min-width: 0; position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 5px; padding: 8px 2px 9px; margin: -2px 0 0;
+    font-size: 9px; letter-spacing: .5px;
+    border-bottom: none; border-top: 3px solid transparent;
+  }
+  .ntab.active { border-bottom-color: transparent; border-top-color: var(--neon-g); }
+  .ntab-ico, .ntab-ico.keep {
+    display: block; margin: 0; font-size: 18px; line-height: 1;
+    filter: grayscale(1) opacity(.55);
+  }
+  .ntab.active .ntab-ico { filter: none; }
+  .lbl-full  { display: none; }
+  .lbl-short { display: inline; }
+  .ntab .gazette-badge { position: absolute; top: 3px; left: calc(50% + 8px); margin: 0; }
 }
 
 /* ═══════════ PAGE LAYOUT ═══════════ */
@@ -377,6 +451,12 @@ body::after {
   box-shadow: 0 0 14px rgba(57,255,20,0.4), 2px 2px 0 var(--neon-g2);
 }
 .fcoin:hover:not(.active) { border-color: var(--rail2); color: var(--text2); }
+@media(max-width:640px){
+  /* All chips visible at once (no hidden sideways scroll) and tall enough to tap */
+  .filter-row { display: grid; grid-template-columns: repeat(3,1fr); overflow: visible; }
+  .filter-row.filter-4 { grid-template-columns: repeat(2,1fr); }
+  .fcoin { padding: 12px 6px; text-align: center; letter-spacing: 1px; }
+}
 
 /* ═══════════ STAT BOARD (top 4 numbers) ═══════════ */
 .scoreboard-strip {
@@ -428,7 +508,7 @@ body::after {
 
 .sb-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: 9px;
   color: var(--dim);
   letter-spacing: 1px;
   margin-top: 6px;
@@ -477,7 +557,7 @@ body::after {
 }
 .pl-hcell {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   text-transform: uppercase; color: var(--dim);
   text-align: right;
 }
@@ -614,7 +694,7 @@ body::after {
 }
 .bc-avg-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--dim); letter-spacing: 1px;
+  font-size: 9px; color: var(--dim); letter-spacing: 1px;
   text-align: right; margin-top: 2px;
 }
 .bc-chev { color: var(--dim); font-size: 11px; transition: transform .2s; }
@@ -643,7 +723,7 @@ body::after {
 }
 .bc-stat-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--dim); margin-bottom: 5px; line-height: 1.5;
 }
 .bc-stat-val {
@@ -666,14 +746,14 @@ body::after {
   border-radius: var(--radius-px);
   padding: 5px 10px; margin-bottom: 12px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--neon-c);
+  font-size: 9px; color: var(--neon-c);
   letter-spacing: 1px; line-height: 1.5;
 }
 
 /* Section divider inside card */
 .bc-section {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--neon-g);
+  font-size: 9px; color: var(--neon-g);
   letter-spacing: 2px; text-transform: uppercase;
   text-shadow: 0 0 6px var(--neon-g2);
   padding-bottom: 7px;
@@ -738,7 +818,7 @@ body::after {
 .lb-cab-icon { font-size: 14px; }
 .lb-cab-title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 1px; text-transform: uppercase;
   color: var(--neon-g);
   text-shadow: 0 0 6px var(--neon-g2);
@@ -816,7 +896,7 @@ body::after {
 }
 .wk-avg-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--dim);
+  font-size: 9px; color: var(--dim);
   letter-spacing: 1px; text-align: right;
   margin-top: 4px;
 }
@@ -879,7 +959,7 @@ body::after {
   font-family: 'Exo 2', sans-serif;
   font-size: 11px; color: var(--dim); margin-top: 2px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 0.5px;
+  font-size: 9px; letter-spacing: 0.5px;
 }
 
 .hs-body {
@@ -959,7 +1039,7 @@ body::after {
 
 .footer-item {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+  font-size: 9px;
   color: var(--neon-p);
   padding: 0 32px;
   letter-spacing: 1px;
@@ -1029,7 +1109,7 @@ body::after {
   display: inline-flex; align-items: center; gap: 4px;
   border: 1px solid; border-radius: 3px;
   padding: 3px 8px;
-  font-family: 'Press Start 2P', monospace; font-size: 7px; letter-spacing: .5px;
+  font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: .5px;
 }
 .ms-badge.legendary { border-color:var(--neon-y); color:var(--neon-y); background:rgba(255,230,0,.08); }
 .ms-badge.epic      { border-color:var(--neon-p); color:var(--neon-p); background:rgba(255,0,255,.06); }
@@ -1113,7 +1193,7 @@ body::after {
 }
 .recap-edition-text {
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   color: var(--neon-g);
   letter-spacing: 1px;
   white-space: nowrap;
@@ -1153,7 +1233,7 @@ body::after {
 }
 .recap-footer {
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   color: #1e3010;
   text-align: center;
   padding: 6px;
@@ -1165,7 +1245,7 @@ body::after {
 }
 .recap-loading {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: 9px;
   color: var(--neon-g);
   letter-spacing: 2px;
   text-align: center;
@@ -1176,7 +1256,7 @@ body::after {
 .gazette-badge {
   display: inline-block;
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   background: var(--neon-g);
   color: #000;
   padding: 2px 4px;
@@ -1195,7 +1275,7 @@ body::after {
 /* Award grid */
 .award-week-label {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px; color: var(--dim); letter-spacing: 2px;
+  font-size: 9px; color: var(--dim); letter-spacing: 2px;
   margin-bottom: 14px; padding-bottom: 6px;
   border-bottom: 1px solid var(--rail2);
 }
@@ -1227,13 +1307,13 @@ body::after {
 }
 .lc-day {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 2px;
+  font-size: 9px; letter-spacing: 2px;
   color: var(--dim); margin-top: 4px;
 }
 .lc-badge {
   position: absolute; top: 12px; right: 14px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--lc-primary, var(--neon-g));
   background: rgba(0,0,0,.5);
   padding: 3px 8px; border-radius: 3px;
@@ -1241,38 +1321,116 @@ body::after {
 }
 .lc-switch-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--dim); background: none; border: none;
   cursor: pointer; padding: 0;
 }
 .lc-switch-btn:hover { color: var(--text); }
+
+/* ═══════════ STATUS STRIP (last bowled · sync state) ═══════════ */
+.status-strip {
+  position: relative; overflow: hidden;
+  background: var(--panel); border-bottom: 1px solid var(--rail);
+}
+.status-inner {
+  max-width: 900px; margin: 0 auto; padding: 0 16px; min-height: 22px;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: 'Press Start 2P', monospace; font-size: 8px; letter-spacing: 1px;
+  color: var(--dim); white-space: nowrap;
+}
+#lastBowled { overflow: hidden; text-overflow: ellipsis; }
+#syncStatus { flex-shrink: 0; }
+#syncStatus.ok  { color: var(--neon-g); }
+#syncStatus.err { color: var(--neon-o); }
+.status-strip.syncing::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 2px; width: 30%;
+  background: var(--neon-g); box-shadow: 0 0 8px var(--neon-g);
+  animation: syncSweep 1.1s linear infinite;
+}
+@keyframes syncSweep { from { transform: translateX(-100%); } to { transform: translateX(434%); } }
+
+/* ═══════════ MY BOWLER ═══════════ */
+.bc-head { display: flex; align-items: stretch; }
+.bc-head .bc-summary { flex: 1; min-width: 0; }
+.bc-star {
+  flex-shrink: 0; width: 42px;
+  background: none; border: none; border-left: 1px solid var(--rail);
+  color: var(--dim); font-size: 18px; line-height: 1; cursor: pointer;
+  transition: color .15s;
+}
+.bc-star:hover { color: var(--neon-y); }
+.bc-star.on { color: var(--neon-y); text-shadow: 0 0 8px var(--neon-y); }
+.bc-card.bc-me { border-color: var(--neon-y2); box-shadow: 0 0 14px rgba(255,230,0,.16), 4px 4px 0 rgba(0,0,0,.5); }
+.me-tag {
+  display: inline-block; vertical-align: middle; margin-left: 6px;
+  font-family: 'Press Start 2P', monospace; font-size: 7px; letter-spacing: 1px;
+  color: var(--void); background: var(--neon-y); padding: 2px 4px; border-radius: 2px;
+  text-shadow: none;
+}
+.lb-entry.me, .wk-prow.me { background: rgba(255,230,0,.07); box-shadow: inset 3px 0 0 var(--neon-y); }
+@media(max-width:640px){
+  .bc-summary { padding: 12px 8px 12px 10px; gap: 9px; }
+  .bc-star { width: 36px; }
+  /* The mini bars give way to the pin on phones; the expanded card has the full chart */
+  .bc-summary .spark-bars { display: none; }
+}
+
+/* ═══════════ TREND CHART ═══════════ */
+.bc-chart { background: var(--panel2); border: 1px solid var(--rail); border-radius: var(--radius-px); padding: 10px 8px 8px; }
+.bc-chart svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; overflow: visible; }
+.bc-chart text { font-family: 'Exo 2', sans-serif; font-size: 9px; fill: var(--text2); }
+.bc-chart .grid { stroke: var(--rail); stroke-width: 1; }
+.bc-chart .avgline { stroke: var(--text2); stroke-width: 1; stroke-dasharray: 3 3; opacity: .7; }
+.bc-chart-cap {
+  margin-top: 8px; text-align: center; line-height: 1.9;
+  font-family: 'Press Start 2P', monospace; font-size: 7px; letter-spacing: .5px; color: var(--dim);
+}
+
+/* ═══════════ ACCESSIBILITY ═══════════ */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+:focus-visible { outline: 2px solid var(--neon-c); outline-offset: 2px; }
+.bc-summary:focus-visible, .wk-top:focus-visible, .hs-top:focus-visible,
+.ntab:focus-visible, .bc-star:focus-visible { outline-offset: -3px; }
+button.fcoin { -webkit-appearance: none; appearance: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .marquee-track, .footer-track, .blink, .recap-loading, .gazette-badge,
+  .perfect-300, .view.active, .status-strip.syncing::after,
+  [class*="confetti"], [class*="perfect"] { animation: none !important; }
+  * { transition-duration: .01ms !important; }
+}
 </style>
 </head>
 <body>
 <!-- ══ LEAGUE SWITCHER SCREEN ══ -->
-<div id="league-switcher" style="display:none;position:fixed;inset:0;z-index:1000;background:var(--void);overflow-y:auto;">
+<div id="league-switcher" role="dialog" aria-modal="true" aria-label="Select your league" style="display:none;position:fixed;inset:0;z-index:1000;background:var(--void);overflow-y:auto;">
   <div style="max-width:480px;margin:0 auto;padding:32px 20px 48px;">
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--neon-g);text-shadow:0 0 20px var(--neon-g),0 0 40px var(--neon-g2);letter-spacing:4px;">ALLEY</div>
       <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--neon-g);text-shadow:0 0 20px var(--neon-g),0 0 40px var(--neon-g2);letter-spacing:4px;margin-top:-4px;">RHYTHM</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim);letter-spacing:3px;margin-top:6px;">SELECT YOUR LEAGUE</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--dim);letter-spacing:3px;margin-top:6px;">SELECT YOUR LEAGUE</div>
     </div>
     <div id="leagueList" style="display:flex;flex-direction:column;gap:12px;">
       <div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING LEAGUES...</div>
     </div>
     <div style="text-align:center;margin-top:24px;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:1px;">POWERED BY ALLEYRHYTHM.COM</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;">POWERED BY ALLEYRHYTHM.COM</div>
     </div>
   </div>
 </div>
 
 <div id="app-shell">
+<h1 class="sr-only">Alley Rhythm bowling stats</h1>
 
 <!-- ══ TOP BLOCK (fixed at top) ══ -->
 <div id="top-block">
 
 <!-- TOP MARQUEE -->
-<div class="marquee-wrap">
+<div class="marquee-wrap" aria-hidden="true">
   <div class="marquee-track" id="topMarquee"></div>
 </div>
 
@@ -1297,36 +1455,48 @@ body::after {
         <div class="readout-lbl">HIGH</div>
       </div>
     </div>
+    <div class="header-actions">
+      <a href="upload.html" class="upload">📸 UPLOAD</a>
+      <a href="admin.html" class="admin" aria-label="Admin" title="Admin">⚙</a>
+    </div>
   </div>
 </div>
 
-<!-- NAV -->
-<div class="nav-bar" style="position:relative;top:auto;">
-  <div class="nav-inner">
-    <button class="ntab active" onclick="goTab('stats',this)">STATS</button>
-    <button class="ntab" onclick="goTab('leaders',this)">HIGH SCORES</button>
-    <button class="ntab" onclick="goTab('awards',this)">🏆 AWARDS</button>
-    <button class="ntab" onclick="goTab('weekly',this)">WEEKLY</button>
-    <button class="ntab" onclick="goTab('history',this)">HISTORY</button>
-    <a href="upload.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-g);text-decoration:none;white-space:nowrap;display:flex;align-items:center;margin-left:auto;">📸 UPLOAD</a>
-    <a href="admin.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-r);text-decoration:none;white-space:nowrap;display:flex;align-items:center;">⚙ ADMIN</a>
+<!-- STATUS STRIP -->
+<div class="status-strip" id="statusStrip">
+  <div class="status-inner">
+    <span id="lastBowled"></span>
+    <span id="syncStatus" role="status" aria-live="polite"></span>
   </div>
 </div>
+
+<!-- NAV (a top tab row on desktop; re-ordered into a bottom tab bar on phones) -->
+<nav class="nav-bar" id="navBar" aria-label="Sections" style="position:relative;top:auto;">
+  <div class="nav-inner">
+    <button class="ntab active" data-tab="stats" aria-current="page" onclick="goTab('stats',this)"><span class="ntab-ico" aria-hidden="true">📊</span><span>STATS</span></button>
+    <button class="ntab" data-tab="leaders" onclick="goTab('leaders',this)"><span class="ntab-ico" aria-hidden="true">🎯</span><span><span class="lbl-full">HIGH SCORES</span><span class="lbl-short" aria-hidden="true">SCORES</span></span></button>
+    <button class="ntab" data-tab="awards" onclick="goTab('awards',this)"><span class="ntab-ico keep" aria-hidden="true">🏆</span><span>AWARDS</span></button>
+    <button class="ntab" data-tab="weekly" onclick="goTab('weekly',this)"><span class="ntab-ico" aria-hidden="true">📰</span><span>WEEKLY</span></button>
+    <button class="ntab" data-tab="history" onclick="goTab('history',this)"><span class="ntab-ico" aria-hidden="true">🗓️</span><span>HISTORY</span></button>
+    <a href="upload.html" class="nav-link upload">📸 UPLOAD</a>
+    <a href="admin.html" class="nav-link admin">⚙ ADMIN</a>
+  </div>
+</nav>
 
 </div><!-- end top-block -->
 
 <!-- ══ SCROLLABLE CONTENT ══ -->
-<div id="scroll-body">
+<div id="scroll-body" role="main">
 
 <!-- ══════════ STATS VIEW ══════════ -->
 <div id="tab-stats" class="view active">
 <div class="page">
 
-  <div class="filter-row">
-    <div class="fcoin active" onclick="setStatsFilter(null,this)">ALL TIME</div>
-    <div class="fcoin" onclick="setStatsFilter(8,this)">LAST 8 WKS</div>
-    <div class="fcoin" onclick="setStatsFilter(4,this)">LAST 4 WKS</div>
-    <div class="fcoin" onclick="setStatsFilter(1,this)">THIS WEEK</div>
+  <div class="filter-row filter-4">
+    <button type="button" class="fcoin active" aria-pressed="true" onclick="setStatsFilter(null,this)">ALL TIME</button>
+    <button type="button" class="fcoin" aria-pressed="false" onclick="setStatsFilter(8,this)">LAST 8 WKS</button>
+    <button type="button" class="fcoin" aria-pressed="false" onclick="setStatsFilter(4,this)">LAST 4 WKS</button>
+    <button type="button" class="fcoin" aria-pressed="false" onclick="setStatsFilter(1,this)">THIS WEEK</button>
   </div>
 
   <div class="scoreboard-strip">
@@ -1349,7 +1519,7 @@ body::after {
   </div>
 
   <div class="sec-head">
-    <span class="sec-title">▶ PLAYER RANKINGS</span>
+    <span class="sec-title" role="heading" aria-level="2">▶ PLAYER RANKINGS</span>
     <div class="sec-line"></div>
   </div>
 
@@ -1363,13 +1533,13 @@ body::after {
 <div class="page">
 
   <div class="filter-row">
-    <div class="fcoin active" onclick="setLeadersFilter(null,this)">ALL TIME</div>
-    <div class="fcoin" onclick="setLeadersFilter(4,this)">LAST 4 WKS</div>
-    <div class="fcoin" onclick="setLeadersFilter(1,this)">THIS WEEK</div>
+    <button type="button" class="fcoin active" aria-pressed="true" onclick="setLeadersFilter(null,this)">ALL TIME</button>
+    <button type="button" class="fcoin" aria-pressed="false" onclick="setLeadersFilter(4,this)">LAST 4 WKS</button>
+    <button type="button" class="fcoin" aria-pressed="false" onclick="setLeadersFilter(1,this)">THIS WEEK</button>
   </div>
 
   <div class="sec-head">
-    <span class="sec-title">▶ HIGH SCORE TABLE</span>
+    <span class="sec-title" role="heading" aria-level="2">▶ HIGH SCORE TABLE</span>
     <div class="sec-line"></div>
   </div>
 
@@ -1390,7 +1560,7 @@ body::after {
 <div class="page">
   <div id="recapBlock"></div>
   <div class="sec-head">
-    <span class="sec-title">▶ WEEKLY RESULTS</span>
+    <span class="sec-title" role="heading" aria-level="2">▶ WEEKLY RESULTS</span>
     <div class="sec-line"></div>
   </div>
   <div id="weeklyPanels"></div>
@@ -1401,7 +1571,7 @@ body::after {
 <div id="tab-history" class="view">
 <div class="page">
   <div class="sec-head">
-    <span class="sec-title">▶ GAME HISTORY</span>
+    <span class="sec-title" role="heading" aria-level="2">▶ GAME HISTORY</span>
     <div class="sec-line"></div>
   </div>
   <div id="histPanels"></div>
@@ -1410,7 +1580,7 @@ body::after {
 
 <!-- ══ FOOTER BLOCK (pinned at bottom) ══ -->
 <div id="footer-block">
-<div class="footer-bar">
+<div class="footer-bar" aria-hidden="true">
   <div class="footer-track" id="footerTrack"></div>
 </div>
 </div>
@@ -1425,20 +1595,62 @@ body::after {
    HELPERS
 ════════════════════════════════════════ */
 
-function goTab(name, btn){
+const TAB_NAMES = ['stats','leaders','awards','weekly','history'];
+const REDUCED_MOTION = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+const SCROLL_BEHAVIOR = REDUCED_MOTION ? 'auto' : 'smooth';
+
+function tabFromHash() {
+  const h = (location.hash || '').slice(1);
+  return TAB_NAMES.includes(h) ? h : null;
+}
+
+/** Switch tab. `btn` is optional; opts.silent skips the URL update (used when
+ *  the URL is what triggered the switch). */
+function goTab(name, btn, opts){
+  const view = document.getElementById('tab-'+name);
+  if (!view) return;
+  btn = btn || document.querySelector('.ntab[data-tab="' + name + '"]');
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-'+name).classList.add('active');
-  btn.classList.add('active');
+  document.querySelectorAll('.ntab').forEach(b=>{ b.classList.remove('active'); b.removeAttribute('aria-current'); });
+  view.classList.add('active');
+  const body = document.getElementById('scroll-body');
+  if (body) body.scrollTop = 0;
+  if (btn) {
+    btn.classList.add('active');
+    btn.setAttribute('aria-current', 'page');
+    // Where the tab row scrolls sideways, keep the chosen tab on screen
+    const nav = document.getElementById('navBar');
+    if (nav && nav.scrollWidth > nav.clientWidth + 4 && btn.scrollIntoView)
+      btn.scrollIntoView({ behavior: SCROLL_BEHAVIOR, block: 'nearest', inline: 'center' });
+  }
+  // Keep the address bar shareable: #weekly etc. (Stats is the default, no hash)
+  if (!(opts && opts.silent)) {
+    try { history.replaceState(null, '', location.pathname + location.search + (name === 'stats' ? '' : '#' + name)); } catch (_) {}
+  }
   // Clear gazette badge when user navigates to weekly tab
   if (name === 'weekly') {
     const recap = document.querySelector('.recap-card');
     const week = recap ? recap.dataset.week : null;
     clearGazetteBadge(week || localStorage.getItem('ar_gazette_seen'));
     // Scroll to top of recap if navigated from badge
-    if (recap) recap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (recap) recap.scrollIntoView({ behavior: SCROLL_BEHAVIOR, block: 'start' });
   }
 }
+
+/** Expand/collapse a weekly or history panel from its header row. */
+function togglePanel(top, cls) {
+  const open = top.parentElement.classList.toggle(cls);
+  top.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+
+// Enter/Space activate anything marked role="button" (cards, panel headers, league cards)
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('[role="button"]')) return;
+  e.preventDefault();
+  t.click();
+});
 
 function renderRecap(r) {
   const el = document.getElementById('recapBlock');
@@ -1575,32 +1787,100 @@ function buildFilteredStats(numWeeks) {
   return { ...liveStats, bowlers: filteredBowlers };
 }
 
+let statsFilterWeeks   = null;
+let leadersFilterWeeks = null;
+
+function markFilter(tabId, el) {
+  document.querySelectorAll('#' + tabId + ' .fcoin').forEach(c => { c.classList.remove('active'); c.setAttribute('aria-pressed', 'false'); });
+  el.classList.add('active');
+  el.setAttribute('aria-pressed', 'true');
+}
+
 function setStatsFilter(numWeeks, el) {
   if (!liveStats) return;
-  document.querySelectorAll('#tab-stats .fcoin').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
+  statsFilterWeeks = numWeeks;
+  markFilter('tab-stats', el);
   renderStats(buildFilteredStats(numWeeks));
 }
 
 function setLeadersFilter(numWeeks, el) {
   if (!liveStats) return;
-  document.querySelectorAll('#tab-leaders .fcoin').forEach(c => c.classList.remove('active'));
-  el.classList.add('active');
+  leadersFilterWeeks = numWeeks;
+  markFilter('tab-leaders', el);
   renderLeaders(buildFilteredStats(numWeeks));
 }
 
+/* ── "My bowler" — one pinned name per league, kept in this browser ── */
+function meKey() { return 'ar_me_' + (window._activeLeagueId || ''); }
+function getMe() { try { return localStorage.getItem(meKey()) || ''; } catch (_) { return ''; } }
+function isMe(name) {
+  const me = getMe();
+  return !!me && (name || '').trim().toLowerCase() === me.trim().toLowerCase();
+}
+function toggleMe(name) {
+  try {
+    if (isMe(name)) localStorage.removeItem(meKey());
+    else localStorage.setItem(meKey(), name);
+  } catch (_) {}
+  if (!liveStats) return;
+  renderStats(buildFilteredStats(statsFilterWeeks));
+  renderLeaders(buildFilteredStats(leadersFilterWeeks));
+  if (liveWeekly) renderWeekly(liveWeekly);
+}
 
+/* ── Status strip ── */
+let _syncTimer = null;
+function setSync(state) {
+  const strip = document.getElementById('statusStrip');
+  const el    = document.getElementById('syncStatus');
+  if (!strip || !el) return;
+  clearTimeout(_syncTimer);
+  strip.classList.toggle('syncing', state === 'updating');
+  el.className = state === 'done' ? 'ok' : state === 'error' ? 'err' : '';
+  el.textContent = state === 'updating' ? 'UPDATING…'
+                 : state === 'done'     ? '✓ UP TO DATE'
+                 : state === 'error'    ? '⚠ SHOWING SAVED DATA'
+                 : '';
+  if (state === 'done') _syncTimer = setTimeout(() => { el.textContent = ''; el.className = ''; }, 3000);
+}
+function updateLastBowled() {
+  const el = document.getElementById('lastBowled');
+  if (!el) return;
+  const weeks = (liveWeekly && liveWeekly.weeks) || [];
+  const latest = weeks.map(w => w.week).filter(Boolean).sort((a, z) => new Date(z) - new Date(a))[0];
+  const label  = latest ? lastBowledLabel(latest) : '';
+  el.textContent = label ? 'LAST BOWLED ' + label : '';
+  el.title = latest || '';
+}
+
+let _iniMap  = {};
+let _lastSig = null;
+/** Everything that affects what is drawn, minus the timestamps every response refreshes. */
+function dataSig(d) {
+  return (window._activeLeagueId || '') + '|' +
+    JSON.stringify([d.stats, d.history, d.weekly, d.awards], (k, v) => (k === 'updatedAt' || k === 'snapshotAt') ? undefined : v);
+}
+
+/** Draw a payload. Returns false (and touches nothing) when it matches what is
+ *  already on screen — the cache, snapshot and live tiers usually agree, and
+ *  re-drawing would throw away scroll position for no visible change. */
 function applyAllData(d) {
+  const sig = dataSig(d);
   liveStats   = d.stats;
   liveHistory = d.history;
   liveWeekly  = d.weekly;
   liveAwards  = d.awards;
-  renderStats(d.stats);
-  renderLeaders(d.stats);
+  if (sig === _lastSig) return false;
+  _lastSig = sig;
+  _iniMap  = uniqueInitials(((d.stats && d.stats.bowlers) || []).map(b => b.name));
+  renderStats(buildFilteredStats(statsFilterWeeks));
+  renderLeaders(buildFilteredStats(leadersFilterWeeks));
   renderWeekly(d.weekly);
   renderHistory(d.history);
   renderAwards(d.awards, d.stats);
   updateHeaderAndMarquee(d.stats);
+  updateLastBowled();
+  return true;
 }
 
 async function loadAll(){
@@ -1612,6 +1892,8 @@ async function loadAll(){
   const cachedRecap = getCachedRecap(leagueId);
   if (recapEl && cachedRecap) renderRecap(cachedRecap);
 
+  let shown = false;   // true once any tier has put real data on screen
+  setSync('updating');
   try {
     // Three tiers, fastest first; each later tier is more authoritative and
     // overwrites the one before:
@@ -1620,14 +1902,14 @@ async function loadAll(){
     //      regenerated by .github/workflows/snapshot.yml after every upload
     //   3. Apps Script — live, 2-10s
     const cached = getCached(leagueId);
-    if (cached) applyAllData(cached);
+    if (cached) { applyAllData(cached); shown = true; }
 
     let freshApplied = false;
     fetchSnapshot(leagueId).then(snap => {
       if (!snap || freshApplied || window._activeLeagueId !== leagueId) return;
       const shownAt = cached && cached.stats && cached.stats.updatedAt;
       const snapAt  = snap.stats && snap.stats.updatedAt;
-      if (!shownAt || !snapAt || snapAt > shownAt) applyAllData(snap);
+      if (!shownAt || !snapAt || snapAt > shownAt) { applyAllData(snap); shown = true; }
       if (snap.recap && !cachedRecap) renderRecap({ recap: snap.recap });
     });
 
@@ -1638,6 +1920,7 @@ async function loadAll(){
     freshApplied = true;
     setCache(leagueId, fresh);
     applyAllData(fresh);
+    setSync('done');
 
     // Only show the "generating" spinner when we have no cached gazette to show.
     if (recapEl && !cachedRecap) recapEl.innerHTML = `<div class="recap-loading">📰 GENERATING THIS WEEK'S GUTTER GAZETTE...</div>`;
@@ -1661,6 +1944,10 @@ async function loadAll(){
     });
   } catch(e) {
     console.error('Failed to load data:', e);
+    if (window._activeLeagueId !== leagueId) return;
+    // Saved or snapshot data is already up — keep it rather than replacing it with an error
+    if (shown) { setSync('error'); return; }
+    setSync('idle');
     const msg = e.message || '';
     const isNotFound  = msg.toLowerCase().includes('not found') || msg.toLowerCase().includes('inactive');
     const isNetErr    = e instanceof TypeError; // fetch() itself failed — true network error
@@ -1733,15 +2020,58 @@ function renderStats(stats){
     return;
   }
 
-  const sorted = [...bowlers].sort((a,z)=>z.avg-a.avg);
-  const rankClass = ['r1','r2','r3','','','','','',''];
+  // Remember which cards are open so a data refresh doesn't snap them shut
+  const openNames = new Set([...el.querySelectorAll('.bc-card.bc-open')].map(c => c.dataset.name));
 
-  el.innerHTML = sorted.map((p,i) => bowlerCard(p, i, rankClass[i]||'')).join('');
+  const ranked = [...bowlers].sort((a,z)=>z.avg-a.avg).map((p, rank) => ({ p, rank }));
+  const rankClass = ['r1','r2','r3'];
+  // The pinned bowler goes first but keeps their true rank number
+  const display = [...ranked.filter(r => isMe(r.p.name)), ...ranked.filter(r => !isMe(r.p.name))];
+
+  el.innerHTML = display.map((r,i) => bowlerCard(r.p, i, rankClass[r.rank]||'', r.rank, openNames.has(r.p.name))).join('');
 }
 
-function bowlerCard(p, i, rankCls) {
+/** Average-by-week line chart for the expanded card. '' when under two weeks of data. */
+function trendChart(p, c) {
+  const pts = Object.entries(p.gamesByDate || {})
+    .map(([d, g]) => ({ d, t: new Date(d).getTime(), g: (g || []).filter(v => typeof v === 'number') }))
+    .filter(x => x.g.length && !isNaN(x.t))
+    .sort((a, z) => a.t - z.t)
+    .map(x => ({ d: x.d, avg: Math.round(x.g.reduce((a, v) => a + v, 0) / x.g.length) }));
+  if (pts.length < 2) return '';
+
+  const W = 320, H = 124, L = 28, R = 10, T = 12, B = 20;
+  const vals = pts.map(q => q.avg);
+  const season = p.avg || null;
+  const lo = Math.floor((Math.min(...vals, season || Infinity) - 4) / 10) * 10;
+  const hi = Math.ceil((Math.max(...vals, season || -Infinity) + 4) / 10) * 10;
+  const x = i => L + (W - L - R) * i / (pts.length - 1);
+  const y = v => T + (H - T - B) * (1 - (v - lo) / Math.max(hi - lo, 1));
+  const short = d => { const m = String(d).match(/^(\d+)\/(\d+)/); return m ? (+m[1]) + '/' + (+m[2]) : d; };
+  const best = Math.max(...vals), last = vals[vals.length - 1];
+  const bestIdx = vals.indexOf(best);
+  const mid = Math.round((lo + hi) / 2);
+  const xLabels = pts.length >= 5 ? [0, Math.floor((pts.length - 1) / 2), pts.length - 1] : [0, pts.length - 1];
+
+  return `
+      <div class="bc-section">▶ AVERAGE BY WEEK</div>
+      <div class="bc-chart">
+        <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${escHtml(p.name)} average by week: ${pts.length} weeks from ${short(pts[0].d)} to ${short(pts[pts.length-1].d)}, latest ${last}, best ${best}">
+          ${[lo, mid, hi].map(v => `<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${L-5}" y="${(y(v)+3).toFixed(1)}" text-anchor="end">${v}</text>`).join('')}
+          ${season ? `<line class="avgline" x1="${L}" x2="${W-R}" y1="${y(season).toFixed(1)}" y2="${y(season).toFixed(1)}"/>` : ''}
+          <polyline fill="none" stroke="${c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" points="${pts.map((q,i)=>x(i).toFixed(1)+','+y(q.avg).toFixed(1)).join(' ')}"/>
+          ${pts.map((q,i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(q.avg).toFixed(1)}" r="${i===bestIdx?4:2.5}" fill="${i===bestIdx?'var(--neon-y)':c}" stroke="var(--panel2)" stroke-width="1"><title>${escHtml(q.d)}: ${q.avg} avg</title></circle>`).join('')}
+          ${xLabels.map((i, n) => `<text x="${x(i).toFixed(1)}" y="${H-5}" text-anchor="${n===0?'start':n===xLabels.length-1?'end':'middle'}">${short(pts[i].d)}</text>`).join('')}
+        </svg>
+        <div class="bc-chart-cap">${pts.length} WEEKS · LATEST ${last} · BEST ${best}${season ? '<br>DASHED LINE = SEASON AVG ' + season : ''}</div>
+      </div>`;
+}
+
+function bowlerCard(p, i, rankCls, rank, open) {
+  if (rank === undefined) rank = i;
   const c   = pColor(p.name);
-  const ini = ini2(p.name);
+  const ini = _iniMap[p.name] || ini2(p.name);
+  const me  = isMe(p.name);
 
   // ── Core stats ──
   const sparePct      = p.sparePct !== null && p.sparePct !== undefined ? p.sparePct : null;
@@ -1783,9 +2113,10 @@ function bowlerCard(p, i, rankCls) {
     : 'var(--neon-r)';
 
   return `
-  <div class="bc-card" id="bcard_${i}">
-    <div class="bc-summary" onclick="toggleCard(${i})">
-      <div class="bc-rank ${rankCls}">${i+1}</div>
+  <div class="bc-card ${open?'bc-open':''} ${me?'bc-me':''}" id="bcard_${i}" data-name="${escHtml(p.name)}">
+    <div class="bc-head">
+    <div class="bc-summary" role="button" tabindex="0" aria-expanded="${open?'true':'false'}" onclick="toggleCard(${i})">
+      <div class="bc-rank ${rankCls}">${rank+1}</div>
       <div class="px-av" style="background:${c}12;border-color:${c};color:${c};">${ini}</div>
       <div class="bc-info">
         <div class="bc-name" style="color:${c};text-shadow:0 0 8px ${c}55;">
@@ -1797,6 +2128,7 @@ function bowlerCard(p, i, rankCls) {
             const top = MILESTONES.find(m => (counts[m.key]||0) > 0);
             return top ? `<span style="font-size:12px;margin-left:4px;">${top.emoji}</span>` : '';
           })()}
+          ${me ? '<span class="me-tag">YOU</span>' : ''}
         </div>
         <div class="bc-sub">
           ${p.gamesCount||0} games · ${p.highGame||'—'} best
@@ -1810,8 +2142,12 @@ function bowlerCard(p, i, rankCls) {
           <div class="bc-avg-lbl">AVG</div>
         </div>
         <div class="spark-bars" style="height:28px;">${sparkBars||'<span style="color:var(--dim);font-size:10px;">—</span>'}</div>
-        <div class="bc-chev">▾</div>
+        <div class="bc-chev" aria-hidden="true">▾</div>
       </div>
+    </div>
+    <button type="button" class="bc-star ${me?'on':''}" aria-pressed="${me?'true':'false'}"
+      aria-label="${me?'Unpin':'Pin'} ${escHtml(p.name)} as my bowler" title="${me?'Unpin my bowler':'Pin as my bowler'}"
+      onclick="toggleMe(this.closest('.bc-card').dataset.name)">${me?'★':'☆'}</button>
     </div>
 
     <div class="bc-body">
@@ -1897,6 +2233,8 @@ function bowlerCard(p, i, rankCls) {
         </div>` : ''}
       </div>
 
+      ${trendChart(p, c)}
+
       ${p.locations && p.locations.length ? `
       <div class="bc-section">▶ LOCATIONS</div>
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -1905,7 +2243,7 @@ function bowlerCard(p, i, rankCls) {
                     background:var(--panel2);border:1px solid var(--rail);
                     border-radius:var(--radius-px);padding:8px 12px;">
           <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text);">📍 ${loc.name}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--neon-c);">${loc.games} GAME${loc.games!==1?'S':''}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-c);">${loc.games} GAME${loc.games!==1?'S':''}</div>
         </div>`).join('')}
       </div>` : ''}
 
@@ -1942,7 +2280,9 @@ function bowlerCard(p, i, rankCls) {
 function toggleCard(i) {
   const card = document.getElementById('bcard_' + i);
   if (!card) return;
-  card.classList.toggle('bc-open');
+  const open = card.classList.toggle('bc-open');
+  const sum = card.querySelector('.bc-summary');
+  if (sum) sum.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 /* ════════════════════════════════════════
@@ -2087,7 +2427,7 @@ function renderAwards(awards, stats){
       const c = pColor(name);
       html += `<div class="bc-card" style="margin-bottom:8px;">
         <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;">
-          <div class="px-av" style="background:${c}15;border-color:${c};color:${c};">${ini2(name)}</div>
+          <div class="px-av" style="background:${c}15;border-color:${c};color:${c};">${_iniMap[name] || ini2(name)}</div>
           <div style="flex:1;">
             <div class="bc-name" style="color:${c};text-shadow:0 0 8px ${c}55;">${name.toUpperCase()}</div>
             <div class="ms-badges">
@@ -2160,9 +2500,14 @@ function renderLeaders(stats){
         <span class="lb-cab-icon">${cat.icon}</span>
         <span class="lb-cab-title">${cat.title}</span>
       </div>
-      ${cat.rows.slice(0,6).map((r,i)=>`
-      <div class="lb-entry">
-        <div class="lb-pos ${posCls[i]||''}">${['01','02','03','04','05','06'][i]}</div>
+      ${(() => {
+        // Top six, plus the pinned bowler's own row if they sit lower down
+        const rows = cat.rows.map((r, pos) => ({ ...r, pos }));
+        const mine = rows.find(r => isMe(r.n));
+        return (mine && mine.pos >= 6) ? [...rows.slice(0,6), mine] : rows.slice(0,6);
+      })().map(r=>`
+      <div class="lb-entry ${isMe(r.n)?'me':''}">
+        <div class="lb-pos ${posCls[r.pos]||''}">${String(r.pos+1).padStart(2,'0')}</div>
         <div class="lb-dot" style="background:${r.c};box-shadow:0 0 8px ${r.c};"></div>
         <div class="lb-nm" style="color:${r.c};text-shadow:0 0 6px ${r.c}44;">${r.n.toUpperCase()}</div>
         <div class="lb-score" style="color:${r.c};text-shadow:0 0 8px ${r.c}66;">${r.v}</div>
@@ -2182,9 +2527,14 @@ function renderWeekly(weekly){
     return;
   }
 
+  // Keep panels the way the user left them across refreshes; newest opens by default
+  const prev = {};
+  el.querySelectorAll('.wk-panel').forEach(p => { prev[p.dataset.key] = p.classList.contains('wo'); });
+  const isOpen = (w, i) => (w.week in prev) ? prev[w.week] : i === 0;
+
   el.innerHTML = [...weeks].sort((a,z)=>new Date(z.week)-new Date(a.week)).map((w,i)=>`
-    <div class="wk-panel ${i===0?'wo':''}">
-      <div class="wk-top" onclick="this.parentElement.classList.toggle('wo')">
+    <div class="wk-panel ${isOpen(w,i)?'wo':''}" data-key="${escHtml(w.week)}">
+      <div class="wk-top" role="button" tabindex="0" aria-expanded="${isOpen(w,i)?'true':'false'}" onclick="togglePanel(this,'wo')">
         <div>
           <div class="wk-week-label">${w.week}</div>
           <div class="wk-meta">HIGH GAME: ${w.highGame}  //  ${w.bowlers.length} PLAYERS</div>
@@ -2199,7 +2549,7 @@ function renderWeekly(weekly){
       </div>
       <div class="wk-body">
         ${w.bowlers.map(b=>`
-        <div class="wk-prow">
+        <div class="wk-prow ${isMe(b.name)?'me':''}">
           <div class="wk-pname" style="color:${pColor(b.name)};text-shadow:0 0 6px ${pColor(b.name)}55;">${b.name.toUpperCase()}</div>
           <div class="wk-pgames">${b.games.join('  ·  ')}</div>
           <div class="wk-pavg" style="${b.avg>=200?'color:var(--neon-g);text-shadow:0 0 8px var(--neon-g);':''}">${b.avg}</div>
@@ -2220,14 +2570,19 @@ function renderHistory(history){
     return;
   }
 
+  const prev = {};
+  el.querySelectorAll('.hs-panel').forEach(p => { prev[p.dataset.key] = p.classList.contains('ho'); });
+
   el.innerHTML = [...sessions].sort((a,z)=>new Date(z.date)-new Date(a.date)).map((s,i)=>{
+    const key  = String(s.id || s.date || i);
+    const open = (key in prev) ? prev[key] : i === 0;
     const bowlers = s.bowlers || [];
     const pins = bowlers.reduce((sum,b)=>sum+(b.series||0),0);
     const locationBadge = s.location
       ? `<span style="display:inline-block;background:rgba(0,255,255,0.08);border:1px solid rgba(0,255,255,0.3);border-radius:3px;padding:2px 7px;font-size:9px;color:var(--neon-c);letter-spacing:1px;margin-left:6px;">📍 ${s.location}</span>`
       : '';
-    return `<div class="hs-panel ${i===0?'ho':''}">
-      <div class="hs-top" onclick="this.parentElement.classList.toggle('ho')">
+    return `<div class="hs-panel ${open?'ho':''}" data-key="${escHtml(key)}">
+      <div class="hs-top" role="button" tabindex="0" aria-expanded="${open?'true':'false'}" onclick="togglePanel(this,'ho')">
         <div>
           <div class="hs-date" style="color:${i===0?'var(--neon-g)':'var(--text)'};">${s.date}${s.teamName?'  //  '+s.teamName:''}${locationBadge}</div>
           <div class="hs-meta">${bowlers.length} PLAYERS  ·  ${pins} TOTAL PINS${s.location?' · '+s.location:''}</div>
@@ -2303,7 +2658,7 @@ function renderLeagueCards(leagues) {
     const isActive = window._activeLeagueId === league.leagueId;
     return `<div class="league-card ${isActive?'lc-active':''}"
       style="--lc-primary:${p};--lc-glow:${p}55;--lc-tint:${p}08;"
-      data-league-id="${league.leagueId}"
+      data-league-id="${league.leagueId}" role="button" tabindex="0"
       onclick="selectLeagueById(this.getAttribute('data-league-id'))">
       ${isActive ? '<div class="lc-badge">● ACTIVE</div>' : ''}
       <div class="lc-name">${(league.name||'').toUpperCase()}</div>
@@ -2311,8 +2666,9 @@ function renderLeagueCards(leagues) {
     </div>`;
   }).join('');
 
-  el.innerHTML += `<div style="text-align:center;margin-top:16px;">
-    <button onclick="hideLeagueSwitcher()" style="background:none;border:1px solid var(--rail2);color:var(--dim);font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;padding:10px 20px;border-radius:4px;cursor:pointer;">✕ CANCEL</button>
+  // Nothing to go back to until a league has been chosen — no Cancel on first visit
+  if (window._activeLeagueId) el.innerHTML += `<div style="text-align:center;margin-top:16px;">
+    <button onclick="hideLeagueSwitcher()" style="background:none;border:1px solid var(--rail2);color:var(--dim);font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;padding:10px 20px;border-radius:4px;cursor:pointer;">✕ CANCEL</button>
   </div>`;
 }
 
@@ -2339,10 +2695,11 @@ async function renderLeagueList() {
   const configLeagues = (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) ? LANE_CONFIG.LEAGUES : null;
   const cachedLeagues = getCachedLeagues();
 
-  // Show something immediately: config entries are fastest (embedded in page),
-  // fall back to localStorage cache, then a spinner.
-  const immediate = (configLeagues && configLeagues.length) ? configLeagues
-                  : (cachedLeagues && cachedLeagues.length) ? cachedLeagues
+  // Show something immediately: the localStorage cache is the last live list
+  // (complete, with theme colours); fall back to the entries embedded in
+  // config.js, then a spinner.
+  const immediate = (cachedLeagues && cachedLeagues.length) ? cachedLeagues
+                  : (configLeagues && configLeagues.length) ? configLeagues
                   : null;
   if (immediate) {
     renderLeagueCards(immediate);
@@ -2370,6 +2727,15 @@ async function renderLeagueList() {
       // IDs match — just refresh registry data (picks up themes, plan, etc.)
       // without replacing DOM elements the user may be about to click
       live.forEach(l => { window._leagueRegistry[l.leagueId] = l; });
+      // Recolour the existing cards in place with each league's theme colour
+      el.querySelectorAll('.league-card').forEach(card => {
+        const l = window._leagueRegistry[card.getAttribute('data-league-id')];
+        const p = l && l.theme && l.theme.primary;
+        if (!p) return;
+        card.style.setProperty('--lc-primary', p);
+        card.style.setProperty('--lc-glow', p + '55');
+        card.style.setProperty('--lc-tint', p + '08');
+      });
     }
 
     // Re-apply active league theme now that we have the server's colour data.
@@ -2388,6 +2754,38 @@ async function renderLeagueList() {
       el.innerHTML = `<div style="text-align:center;font-family:'Orbitron',sans-serif;color:var(--neon-r);padding:24px;font-size:11px;">Could not load leagues</div>`;
     }
   }
+}
+
+/* ── League in the URL (?leagueId=…), so a copied link opens the same league ── */
+function leagueFromUrl() {
+  try { return new URLSearchParams(location.search).get('leagueId') || null; } catch (_) { return null; }
+}
+function setLeagueInUrl(leagueId) {
+  try {
+    const u = new URL(location.href);
+    u.searchParams.set('leagueId', leagueId);
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  } catch (_) {}
+}
+function findLeagueMeta(leagueId) {
+  const pools = [getCachedLeagues() || [], (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) || []];
+  for (const pool of pools) {
+    const hit = pool.find(l => l.leagueId === leagueId);
+    if (hit) return hit;
+  }
+  return null;
+}
+/** Fetch the league's name and theme colours when all we have is an id from a link. */
+async function refreshLeagueMeta(leagueId) {
+  try {
+    const live = ((await laneFetchJSON(`${SCRIPT_URL}?action=list_leagues`)).json || {}).leagues || [];
+    if (live.length) setCachedLeagues(live);
+    const meta = live.find(l => l.leagueId === leagueId);
+    if (!meta || window._activeLeagueId !== leagueId) return;
+    window._activeLeagueMeta = meta;
+    localStorage.setItem('ar_leagueMeta', JSON.stringify(meta));
+    applyLeagueTheme(meta.theme || LEAGUE_THEMES.default, meta.name);
+  } catch (_) {}
 }
 
 function selectLeagueById(leagueId) {
@@ -2409,6 +2807,7 @@ function selectLeague(leagueId, league) {
 
   // Update upload/admin links to pass leagueId
   updateLeagueLinks(leagueId);
+  setLeagueInUrl(leagueId);
 
   // ── Clear ALL data displays before loading new league ──────────
   const loading = loadingState();
@@ -2433,6 +2832,9 @@ function selectLeague(leagueId, league) {
   liveHistory = null;
   liveWeekly  = null;
   liveAwards  = null;
+  _lastSig    = null;
+  const lb = document.getElementById('lastBowled');
+  if (lb) lb.textContent = '';
 
   // Hide switcher and load fresh data for new league
   hideLeagueSwitcher();
@@ -2453,6 +2855,16 @@ function updateLeagueLinks(leagueId) {
 }
 
 async function initLeague() {
+  // A league named in the link wins over the one this browser last used
+  const urlId = leagueFromUrl();
+  let needsMeta = false;
+  if (urlId && urlId !== localStorage.getItem('ar_leagueId')) {
+    const meta = findLeagueMeta(urlId);
+    needsMeta = !meta || !meta.theme;
+    localStorage.setItem('ar_leagueId', urlId);
+    localStorage.setItem('ar_leagueMeta', JSON.stringify(meta || { leagueId: urlId, name: '' }));
+  }
+
   // Restore last selected league from localStorage
   const savedId   = localStorage.getItem('ar_leagueId');
   const savedMeta = localStorage.getItem('ar_leagueMeta');
@@ -2469,15 +2881,22 @@ async function initLeague() {
       );
     }
     updateLeagueLinks(savedId);
+    setLeagueInUrl(savedId);
     loadAll();
+    if (needsMeta) refreshLeagueMeta(savedId);
   } else {
-    // First visit — fetch leagues and show switcher, or auto-select if only one
+    // First visit. If config.js lists several leagues, show the picker straight
+    // away (renderLeagueList paints the embedded list, then refreshes it from the
+    // API) instead of leaving an empty dashboard up while list_leagues loads.
+    const embedded = (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) || [];
+    if (embedded.length > 1) { showLeagueSwitcher(); return; }
+    // Otherwise fetch leagues and show switcher, or auto-select if only one
     try {
       const data = (await laneFetchJSON(`${SCRIPT_URL}?action=list_leagues`)).json;
       const leagues = data.leagues || [];
       if (leagues.length === 1) {
         // Auto-select the only league
-        selectLeague(leagues[0].leagueId, JSON.stringify(leagues[0]));
+        selectLeague(leagues[0].leagueId, leagues[0]);
       } else {
         showLeagueSwitcher();
       }
@@ -2489,7 +2908,33 @@ async function initLeague() {
   }
 }
 
+// Open on the tab named in the link (#weekly etc.) and follow later hash changes
+(function() {
+  const t = tabFromHash();
+  if (t) goTab(t, null, { silent: true });
+  window.addEventListener('hashchange', () => goTab(tabFromHash() || 'stats', null, { silent: true }));
+})();
+
 initLeague();
+
+/* ════════════════════════════════════════
+   NAV SCROLL HINT
+   Toggles the edge fades (see .can-scroll-* CSS)
+   so a sideways-scrolling tab row looks scrollable.
+════════════════════════════════════════ */
+(function() {
+  const nav = document.getElementById('navBar');
+  if (!nav) return;
+  const update = () => {
+    const max = nav.scrollWidth - nav.clientWidth;
+    nav.classList.toggle('can-scroll-left',  nav.scrollLeft > 4);
+    nav.classList.toggle('can-scroll-right', nav.scrollLeft < max - 4);
+  };
+  nav.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(update);
+  update();
+})();
 
 /* ════════════════════════════════════════
    iOS RUBBER-BAND BOUNCE FIX
