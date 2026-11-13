@@ -24,7 +24,8 @@
 <meta name="twitter:description" content="Live bowling stats · Weekly awards · Strike & spare tracking">
 <meta name="twitter:image" content="https://www.alleyrhythm.com/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:ital,wght@0,300;0,400;0,600;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@400;700&family=VT323&display=swap" rel="stylesheet">
 <style>
 /* ═══════════════════════════════════════════
    ALLEY RHYTHM — RETRO ARCADE THEME
@@ -49,10 +50,11 @@
   --neon-c:     #00ffff;   /* cyan */
   --neon-c2:    #00cccc;
   --neon-o:     #ff6600;   /* orange */
+  --neon-r:     #ff3355;   /* red — errors, admin, downward trends (was referenced but never defined) */
 
   --text:       #d0e8ff;
   --text2:      #8aa0c8;
-  --dim:        #3a4a68;
+  --dim:        #6c80a8;   /* 4.85:1 on --panel (was #3a4a68 at 2.16:1) */
   --radius-px:  4px;       /* pixel-sharp corners */
 }
 
@@ -142,7 +144,7 @@ body {
 }
 .lsb-top {
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px;
+  font-size: 8px;
   letter-spacing: 1px;
   color: var(--neon-g);
   text-shadow: 0 0 6px var(--neon-g);
@@ -151,7 +153,7 @@ body {
 }
 .lsb-name {
   font-family: 'Orbitron', sans-serif;
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--text);
   letter-spacing: 1px;
@@ -208,7 +210,7 @@ body {
 .readout-val.ice { color:var(--neon-c); text-shadow:0 0 10px var(--neon-c),0 0 16px var(--neon-c2); }
 .readout-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 6px; color: var(--dim);
+  font-size: 8px; color: var(--dim);
   letter-spacing: 1px; margin-top: 2px;
 }
 .header-spacer { flex: 1; min-width: 4px; }
@@ -218,7 +220,7 @@ body {
   border: none; border-radius: var(--radius-px);
   padding: 8px 10px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 0.5px;
+  font-size: 9px; letter-spacing: 0.5px;
   cursor: pointer; transition: all 0.1s;
   box-shadow: 0 0 20px rgba(57,255,20,0.3), 3px 3px 0 var(--neon-g2);
   text-transform: uppercase; line-height: 1.5;
@@ -335,6 +337,49 @@ body::after {
   margin-bottom: -2px;
 }
 .ntab:hover { color: var(--text2); }
+.nav-link {
+  padding: 12px 18px;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px; font-weight: 700; letter-spacing: 2px;
+  text-decoration: none; white-space: nowrap;
+  display: flex; align-items: center;
+}
+.nav-link.upload { color: var(--neon-g); margin-left: auto; }
+.nav-link.admin  { color: var(--neon-r); }
+/* Header copies of Upload/Admin — phones only, where the tab row can't fit them */
+.header-actions { display: none; align-items: center; gap: 6px; flex-shrink: 0; }
+.header-actions a {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 40px; padding: 0 10px;
+  border: 1.5px solid; border-radius: var(--radius-px);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 10px; font-weight: 700; letter-spacing: 1px;
+  text-decoration: none; white-space: nowrap;
+}
+.header-actions .upload { color: var(--neon-g); border-color: var(--neon-g2); background: rgba(57,255,20,0.06); }
+.header-actions .admin  { color: var(--neon-r); border-color: var(--rail2); font-size: 14px; padding: 0 9px; }
+@media(max-width:640px){
+  /* Upload/Admin move up into the header; the AVG/HIGH readouts repeat the
+     scoreboard directly below, so they give way. */
+  .nav-link { display: none; }
+  .header-readouts { display: none; }
+  .header-actions { display: flex; }
+  .nav-inner { padding: 0 6px; }
+  .ntab { padding: 14px 12px; letter-spacing: 1px; }
+  /* Fade the right edge while more tabs are off-screen */
+  .nav-bar.can-scroll-right {
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
+            mask-image: linear-gradient(90deg, #000 calc(100% - 44px), transparent);
+  }
+  .nav-bar.can-scroll-left.can-scroll-right {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+            mask-image: linear-gradient(90deg, transparent, #000 44px, #000 calc(100% - 44px), transparent);
+  }
+  .nav-bar.can-scroll-left:not(.can-scroll-right) {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 44px);
+            mask-image: linear-gradient(90deg, transparent, #000 44px);
+  }
+}
 .ntab.active {
   color: var(--neon-g);
   border-bottom-color: var(--neon-g);
@@ -377,6 +422,12 @@ body::after {
   box-shadow: 0 0 14px rgba(57,255,20,0.4), 2px 2px 0 var(--neon-g2);
 }
 .fcoin:hover:not(.active) { border-color: var(--rail2); color: var(--text2); }
+@media(max-width:640px){
+  /* All chips visible at once (no hidden sideways scroll) and tall enough to tap */
+  .filter-row { display: grid; grid-template-columns: repeat(3,1fr); overflow: visible; }
+  .filter-row.filter-4 { grid-template-columns: repeat(2,1fr); }
+  .fcoin { padding: 12px 6px; text-align: center; letter-spacing: 1px; }
+}
 
 /* ═══════════ STAT BOARD (top 4 numbers) ═══════════ */
 .scoreboard-strip {
@@ -428,7 +479,7 @@ body::after {
 
 .sb-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: 9px;
   color: var(--dim);
   letter-spacing: 1px;
   margin-top: 6px;
@@ -477,7 +528,7 @@ body::after {
 }
 .pl-hcell {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   text-transform: uppercase; color: var(--dim);
   text-align: right;
 }
@@ -614,7 +665,7 @@ body::after {
 }
 .bc-avg-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--dim); letter-spacing: 1px;
+  font-size: 9px; color: var(--dim); letter-spacing: 1px;
   text-align: right; margin-top: 2px;
 }
 .bc-chev { color: var(--dim); font-size: 11px; transition: transform .2s; }
@@ -643,7 +694,7 @@ body::after {
 }
 .bc-stat-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--dim); margin-bottom: 5px; line-height: 1.5;
 }
 .bc-stat-val {
@@ -666,14 +717,14 @@ body::after {
   border-radius: var(--radius-px);
   padding: 5px 10px; margin-bottom: 12px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--neon-c);
+  font-size: 9px; color: var(--neon-c);
   letter-spacing: 1px; line-height: 1.5;
 }
 
 /* Section divider inside card */
 .bc-section {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--neon-g);
+  font-size: 9px; color: var(--neon-g);
   letter-spacing: 2px; text-transform: uppercase;
   text-shadow: 0 0 6px var(--neon-g2);
   padding-bottom: 7px;
@@ -738,7 +789,7 @@ body::after {
 .lb-cab-icon { font-size: 14px; }
 .lb-cab-title {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+  font-size: 9px;
   letter-spacing: 1px; text-transform: uppercase;
   color: var(--neon-g);
   text-shadow: 0 0 6px var(--neon-g2);
@@ -816,7 +867,7 @@ body::after {
 }
 .wk-avg-lbl {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; color: var(--dim);
+  font-size: 9px; color: var(--dim);
   letter-spacing: 1px; text-align: right;
   margin-top: 4px;
 }
@@ -879,7 +930,7 @@ body::after {
   font-family: 'Exo 2', sans-serif;
   font-size: 11px; color: var(--dim); margin-top: 2px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 0.5px;
+  font-size: 9px; letter-spacing: 0.5px;
 }
 
 .hs-body {
@@ -959,7 +1010,7 @@ body::after {
 
 .footer-item {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px;
+  font-size: 9px;
   color: var(--neon-p);
   padding: 0 32px;
   letter-spacing: 1px;
@@ -1029,7 +1080,7 @@ body::after {
   display: inline-flex; align-items: center; gap: 4px;
   border: 1px solid; border-radius: 3px;
   padding: 3px 8px;
-  font-family: 'Press Start 2P', monospace; font-size: 7px; letter-spacing: .5px;
+  font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: .5px;
 }
 .ms-badge.legendary { border-color:var(--neon-y); color:var(--neon-y); background:rgba(255,230,0,.08); }
 .ms-badge.epic      { border-color:var(--neon-p); color:var(--neon-p); background:rgba(255,0,255,.06); }
@@ -1113,7 +1164,7 @@ body::after {
 }
 .recap-edition-text {
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   color: var(--neon-g);
   letter-spacing: 1px;
   white-space: nowrap;
@@ -1153,7 +1204,7 @@ body::after {
 }
 .recap-footer {
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   color: #1e3010;
   text-align: center;
   padding: 6px;
@@ -1165,7 +1216,7 @@ body::after {
 }
 .recap-loading {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: 9px;
   color: var(--neon-g);
   letter-spacing: 2px;
   text-align: center;
@@ -1176,7 +1227,7 @@ body::after {
 .gazette-badge {
   display: inline-block;
   font-family: 'Press Start 2P', monospace;
-  font-size: 5px;
+  font-size: 7px;
   background: var(--neon-g);
   color: #000;
   padding: 2px 4px;
@@ -1195,7 +1246,7 @@ body::after {
 /* Award grid */
 .award-week-label {
   font-family: 'Press Start 2P', monospace;
-  font-size: 8px; color: var(--dim); letter-spacing: 2px;
+  font-size: 9px; color: var(--dim); letter-spacing: 2px;
   margin-bottom: 14px; padding-bottom: 6px;
   border-bottom: 1px solid var(--rail2);
 }
@@ -1227,13 +1278,13 @@ body::after {
 }
 .lc-day {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 2px;
+  font-size: 9px; letter-spacing: 2px;
   color: var(--dim); margin-top: 4px;
 }
 .lc-badge {
   position: absolute; top: 12px; right: 14px;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--lc-primary, var(--neon-g));
   background: rgba(0,0,0,.5);
   padding: 3px 8px; border-radius: 3px;
@@ -1241,7 +1292,7 @@ body::after {
 }
 .lc-switch-btn {
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px; letter-spacing: 1px;
+  font-size: 9px; letter-spacing: 1px;
   color: var(--dim); background: none; border: none;
   cursor: pointer; padding: 0;
 }
@@ -1255,13 +1306,13 @@ body::after {
     <div style="text-align:center;margin-bottom:32px;">
       <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--neon-g);text-shadow:0 0 20px var(--neon-g),0 0 40px var(--neon-g2);letter-spacing:4px;">ALLEY</div>
       <div style="font-family:'Orbitron',sans-serif;font-size:28px;font-weight:900;color:var(--neon-g);text-shadow:0 0 20px var(--neon-g),0 0 40px var(--neon-g2);letter-spacing:4px;margin-top:-4px;">RHYTHM</div>
-      <div style="font-family:'Press Start 2P',monospace;font-size:8px;color:var(--dim);letter-spacing:3px;margin-top:6px;">SELECT YOUR LEAGUE</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--dim);letter-spacing:3px;margin-top:6px;">SELECT YOUR LEAGUE</div>
     </div>
     <div id="leagueList" style="display:flex;flex-direction:column;gap:12px;">
       <div style="text-align:center;font-family:'Orbitron',sans-serif;font-size:11px;color:var(--dim);padding:24px;">LOADING LEAGUES...</div>
     </div>
     <div style="text-align:center;margin-top:24px;">
-      <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--dim);letter-spacing:1px;">POWERED BY ALLEYRHYTHM.COM</div>
+      <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--dim);letter-spacing:1px;">POWERED BY ALLEYRHYTHM.COM</div>
     </div>
   </div>
 </div>
@@ -1297,19 +1348,23 @@ body::after {
         <div class="readout-lbl">HIGH</div>
       </div>
     </div>
+    <div class="header-actions">
+      <a href="upload.html" class="upload">📸 UPLOAD</a>
+      <a href="admin.html" class="admin" aria-label="Admin" title="Admin">⚙</a>
+    </div>
   </div>
 </div>
 
 <!-- NAV -->
-<div class="nav-bar" style="position:relative;top:auto;">
+<div class="nav-bar" id="navBar" style="position:relative;top:auto;">
   <div class="nav-inner">
     <button class="ntab active" onclick="goTab('stats',this)">STATS</button>
     <button class="ntab" onclick="goTab('leaders',this)">HIGH SCORES</button>
     <button class="ntab" onclick="goTab('awards',this)">🏆 AWARDS</button>
     <button class="ntab" onclick="goTab('weekly',this)">WEEKLY</button>
     <button class="ntab" onclick="goTab('history',this)">HISTORY</button>
-    <a href="upload.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-g);text-decoration:none;white-space:nowrap;display:flex;align-items:center;margin-left:auto;">📸 UPLOAD</a>
-    <a href="admin.html" style="padding:12px 18px;font-family:'Orbitron',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;color:var(--neon-r);text-decoration:none;white-space:nowrap;display:flex;align-items:center;">⚙ ADMIN</a>
+    <a href="upload.html" class="nav-link upload">📸 UPLOAD</a>
+    <a href="admin.html" class="nav-link admin">⚙ ADMIN</a>
   </div>
 </div>
 
@@ -1322,7 +1377,7 @@ body::after {
 <div id="tab-stats" class="view active">
 <div class="page">
 
-  <div class="filter-row">
+  <div class="filter-row filter-4">
     <div class="fcoin active" onclick="setStatsFilter(null,this)">ALL TIME</div>
     <div class="fcoin" onclick="setStatsFilter(8,this)">LAST 8 WKS</div>
     <div class="fcoin" onclick="setStatsFilter(4,this)">LAST 4 WKS</div>
@@ -1430,6 +1485,8 @@ function goTab(name, btn){
   document.querySelectorAll('.ntab').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   btn.classList.add('active');
+  // On phones the tab row scrolls sideways — keep the chosen tab on screen
+  if (btn.scrollIntoView) btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
   // Clear gazette badge when user navigates to weekly tab
   if (name === 'weekly') {
     const recap = document.querySelector('.recap-card');
@@ -1905,7 +1962,7 @@ function bowlerCard(p, i, rankCls) {
                     background:var(--panel2);border:1px solid var(--rail);
                     border-radius:var(--radius-px);padding:8px 12px;">
           <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text);">📍 ${loc.name}</div>
-          <div style="font-family:'Press Start 2P',monospace;font-size:7px;color:var(--neon-c);">${loc.games} GAME${loc.games!==1?'S':''}</div>
+          <div style="font-family:'Press Start 2P',monospace;font-size:9px;color:var(--neon-c);">${loc.games} GAME${loc.games!==1?'S':''}</div>
         </div>`).join('')}
       </div>` : ''}
 
@@ -2311,8 +2368,9 @@ function renderLeagueCards(leagues) {
     </div>`;
   }).join('');
 
-  el.innerHTML += `<div style="text-align:center;margin-top:16px;">
-    <button onclick="hideLeagueSwitcher()" style="background:none;border:1px solid var(--rail2);color:var(--dim);font-family:'Press Start 2P',monospace;font-size:8px;letter-spacing:1px;padding:10px 20px;border-radius:4px;cursor:pointer;">✕ CANCEL</button>
+  // Nothing to go back to until a league has been chosen — no Cancel on first visit
+  if (window._activeLeagueId) el.innerHTML += `<div style="text-align:center;margin-top:16px;">
+    <button onclick="hideLeagueSwitcher()" style="background:none;border:1px solid var(--rail2);color:var(--dim);font-family:'Press Start 2P',monospace;font-size:9px;letter-spacing:1px;padding:10px 20px;border-radius:4px;cursor:pointer;">✕ CANCEL</button>
   </div>`;
 }
 
@@ -2339,10 +2397,11 @@ async function renderLeagueList() {
   const configLeagues = (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) ? LANE_CONFIG.LEAGUES : null;
   const cachedLeagues = getCachedLeagues();
 
-  // Show something immediately: config entries are fastest (embedded in page),
-  // fall back to localStorage cache, then a spinner.
-  const immediate = (configLeagues && configLeagues.length) ? configLeagues
-                  : (cachedLeagues && cachedLeagues.length) ? cachedLeagues
+  // Show something immediately: the localStorage cache is the last live list
+  // (complete, with theme colours); fall back to the entries embedded in
+  // config.js, then a spinner.
+  const immediate = (cachedLeagues && cachedLeagues.length) ? cachedLeagues
+                  : (configLeagues && configLeagues.length) ? configLeagues
                   : null;
   if (immediate) {
     renderLeagueCards(immediate);
@@ -2370,6 +2429,15 @@ async function renderLeagueList() {
       // IDs match — just refresh registry data (picks up themes, plan, etc.)
       // without replacing DOM elements the user may be about to click
       live.forEach(l => { window._leagueRegistry[l.leagueId] = l; });
+      // Recolour the existing cards in place with each league's theme colour
+      el.querySelectorAll('.league-card').forEach(card => {
+        const l = window._leagueRegistry[card.getAttribute('data-league-id')];
+        const p = l && l.theme && l.theme.primary;
+        if (!p) return;
+        card.style.setProperty('--lc-primary', p);
+        card.style.setProperty('--lc-glow', p + '55');
+        card.style.setProperty('--lc-tint', p + '08');
+      });
     }
 
     // Re-apply active league theme now that we have the server's colour data.
@@ -2471,13 +2539,18 @@ async function initLeague() {
     updateLeagueLinks(savedId);
     loadAll();
   } else {
-    // First visit — fetch leagues and show switcher, or auto-select if only one
+    // First visit. If config.js lists several leagues, show the picker straight
+    // away (renderLeagueList paints the embedded list, then refreshes it from the
+    // API) instead of leaving an empty dashboard up while list_leagues loads.
+    const embedded = (window.LANE_CONFIG && LANE_CONFIG.LEAGUES) || [];
+    if (embedded.length > 1) { showLeagueSwitcher(); return; }
+    // Otherwise fetch leagues and show switcher, or auto-select if only one
     try {
       const data = (await laneFetchJSON(`${SCRIPT_URL}?action=list_leagues`)).json;
       const leagues = data.leagues || [];
       if (leagues.length === 1) {
         // Auto-select the only league
-        selectLeague(leagues[0].leagueId, JSON.stringify(leagues[0]));
+        selectLeague(leagues[0].leagueId, leagues[0]);
       } else {
         showLeagueSwitcher();
       }
@@ -2490,6 +2563,25 @@ async function initLeague() {
 }
 
 initLeague();
+
+/* ════════════════════════════════════════
+   NAV SCROLL HINT
+   Toggles the edge fades (see .can-scroll-* CSS)
+   so a sideways-scrolling tab row looks scrollable.
+════════════════════════════════════════ */
+(function() {
+  const nav = document.getElementById('navBar');
+  if (!nav) return;
+  const update = () => {
+    const max = nav.scrollWidth - nav.clientWidth;
+    nav.classList.toggle('can-scroll-left',  nav.scrollLeft > 4);
+    nav.classList.toggle('can-scroll-right', nav.scrollLeft < max - 4);
+  };
+  nav.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(update);
+  update();
+})();
 
 /* ════════════════════════════════════════
    iOS RUBBER-BAND BOUNCE FIX
