@@ -1338,7 +1338,27 @@ body::after {
   font-family: 'Press Start 2P', monospace; font-size: 8px; letter-spacing: 1px;
   color: var(--dim); white-space: nowrap;
 }
-#lastBowled { overflow: hidden; text-overflow: ellipsis; }
+#lastBowled { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.season-pick { flex-shrink: 0; display: flex; }
+.season-pick[hidden] { display: none; }
+.season-pick select {
+  -webkit-appearance: none; appearance: none;
+  max-width: 46vw; padding: 5px 20px 5px 7px; margin: 3px 0;
+  background: var(--panel2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0h8L4 5z' fill='%2339ff14'/%3E%3C/svg%3E") no-repeat right 7px center;
+  border: 1px solid var(--rail2); border-radius: var(--radius-px);
+  color: var(--neon-g); cursor: pointer; text-overflow: ellipsis;
+  font-family: 'Press Start 2P', monospace; font-size: 8px; letter-spacing: 1px;
+}
+.status-strip.archived { background: #14110a; border-bottom-color: var(--neon-y2); }
+.status-strip.archived .season-pick select { border-color: var(--neon-y2); color: var(--neon-y); }
+.status-strip.archived #syncStatus { color: var(--neon-y); }
+@media(max-width:640px){
+  .status-strip.has-seasons .status-inner { min-height: 34px; }
+  .status-strip.has-seasons .season-pick select { padding-top: 8px; padding-bottom: 8px; }
+  .status-strip.has-seasons .lb-pre { display: none; }
+  .status-strip.archived #lastBowled { display: none; }
+  .status-strip.archived .status-inner { justify-content: space-between; }
+}
 #syncStatus { flex-shrink: 0; }
 #syncStatus.ok  { color: var(--neon-g); }
 #syncStatus.err { color: var(--neon-o); }
@@ -1465,6 +1485,10 @@ button.fcoin { -webkit-appearance: none; appearance: none; }
 <!-- STATUS STRIP -->
 <div class="status-strip" id="statusStrip">
   <div class="status-inner">
+    <label class="season-pick" id="seasonPick" hidden>
+      <span class="sr-only">Season</span>
+      <select id="seasonSelect" onchange="selectSeason(this.value)"></select>
+    </label>
     <span id="lastBowled"></span>
     <span id="syncStatus" role="status" aria-live="polite"></span>
   </div>
@@ -1836,8 +1860,10 @@ function setSync(state) {
   if (!strip || !el) return;
   clearTimeout(_syncTimer);
   strip.classList.toggle('syncing', state === 'updating');
+  strip.classList.toggle('archived', state === 'archived');
   el.className = state === 'done' ? 'ok' : state === 'error' ? 'err' : '';
   el.textContent = state === 'updating' ? 'UPDATING…'
+                 : state === 'archived' ? '📦 ARCHIVED · READ-ONLY'
                  : state === 'done'     ? '✓ UP TO DATE'
                  : state === 'error'    ? '⚠ SHOWING SAVED DATA'
                  : '';
@@ -1846,18 +1872,108 @@ function setSync(state) {
 function updateLastBowled() {
   const el = document.getElementById('lastBowled');
   if (!el) return;
+  if (window._activeSeason) {
+    // An archived season: show its date range rather than "last bowled"
+    const m = _archiveMeta || _seasons.find(x => x.id === window._activeSeason) || {};
+    el.textContent = (m.from && m.to) ? m.from + ' – ' + m.to : '';
+    el.title = '';
+    return;
+  }
   const weeks = (liveWeekly && liveWeekly.weeks) || [];
   const latest = weeks.map(w => w.week).filter(Boolean).sort((a, z) => new Date(z) - new Date(a))[0];
   const label  = latest ? lastBowledLabel(latest) : '';
-  el.textContent = label ? 'LAST BOWLED ' + label : '';
+  el.innerHTML = label ? '<span class="lb-pre">LAST BOWLED </span>' + escHtml(label) : '';
   el.title = latest || '';
+}
+
+/* ── Seasons ─────────────────────────────────────────────────────
+   The current season is live (cache → snapshot → Apps Script). Past seasons
+   are frozen JSON files in data/, written by scripts/archive-season.js before
+   the league is reset; data/seasons-<league>.json lists them. */
+window._activeSeason = null;   // null = current season, otherwise an archived season id
+let _seasons     = [];         // archived seasons for the active league
+let _archiveMeta = null;       // { id, label, from, to, … } of the archive on screen
+
+function seasonFromUrl() {
+  try { return new URLSearchParams(location.search).get('season') || null; } catch (_) { return null; }
+}
+function setSeasonInUrl() {
+  try {
+    const u = new URL(location.href);
+    if (window._activeSeason) u.searchParams.set('season', window._activeSeason);
+    else u.searchParams.delete('season');
+    history.replaceState(null, '', u.pathname + u.search + u.hash);
+  } catch (_) {}
+}
+
+function renderSeasonPicker() {
+  const strip = document.getElementById('statusStrip');
+  const pick  = document.getElementById('seasonPick');
+  const sel   = document.getElementById('seasonSelect');
+  if (!strip || !pick || !sel) return;
+  strip.classList.toggle('has-seasons', _seasons.length > 0);
+  pick.hidden = !_seasons.length;
+  sel.innerHTML = '<option value="">CURRENT SEASON</option>' +
+    _seasons.map(x => `<option value="${escHtml(x.id)}">${escHtml(String(x.label || x.id).toUpperCase())}</option>`).join('');
+  sel.value = window._activeSeason || '';
+}
+
+async function loadSeasonIndex(leagueId) {
+  _seasons = [];
+  renderSeasonPicker();
+  try {
+    const r = await fetch(`data/seasons-${encodeURIComponent(leagueId)}.json?t=${Math.floor(Date.now() / 60000)}`, { cache: 'no-cache' });
+    if (!r.ok) return;
+    const j = await r.json();
+    if (window._activeLeagueId !== leagueId) return;
+    _seasons = (j && Array.isArray(j.seasons)) ? j.seasons.filter(x => x && x.id) : [];
+  } catch (_) { return; }
+  renderSeasonPicker();
+  // An empty current season can now point at last season
+  if (!window._activeSeason && liveStats && !(liveStats.bowlers || []).length) renderStats(liveStats);
+}
+
+function selectSeason(seasonId) {
+  window._activeSeason = seasonId || null;
+  _archiveMeta = null;
+  setSeasonInUrl();
+  renderSeasonPicker();
+  const recapEl = document.getElementById('recapBlock');
+  if (recapEl) recapEl.innerHTML = '';
+  const body = document.getElementById('scroll-body');
+  if (body) body.scrollTop = 0;
+  loadAll();
+}
+
+async function loadArchivedSeason(leagueId, seasonId) {
+  const still = () => window._activeLeagueId === leagueId && window._activeSeason === seasonId;
+  setSync('updating');
+  try {
+    const r = await fetch(`data/season-${encodeURIComponent(leagueId)}-${encodeURIComponent(seasonId)}.json`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    if (!still()) return;
+    if (!d || !d.stats || !Array.isArray(d.stats.bowlers)) throw new Error('not a season archive');
+    _archiveMeta = d.season || null;
+    applyAllData(d);
+    updateLastBowled();
+    setSync('archived');
+  } catch (e) {
+    // No such archive (old or mistyped link) — fall back to the current season
+    console.error('Could not load season ' + seasonId + ':', e);
+    if (!still()) return;
+    window._activeSeason = null;
+    setSeasonInUrl();
+    renderSeasonPicker();
+    loadAll();
+  }
 }
 
 let _iniMap  = {};
 let _lastSig = null;
 /** Everything that affects what is drawn, minus the timestamps every response refreshes. */
 function dataSig(d) {
-  return (window._activeLeagueId || '') + '|' +
+  return (window._activeLeagueId || '') + '|' + (window._activeSeason || '') + '|' +
     JSON.stringify([d.stats, d.history, d.weekly, d.awards], (k, v) => (k === 'updatedAt' || k === 'snapshotAt') ? undefined : v);
 }
 
@@ -1885,6 +2001,7 @@ function applyAllData(d) {
 
 async function loadAll(){
   const leagueId = window._activeLeagueId || 'BlameItOnTheLane';
+  if (window._activeSeason) return loadArchivedSeason(leagueId, window._activeSeason);
   const recapEl = document.getElementById('recapBlock');
 
   // Show the last good gazette instantly so it persists across reloads and
@@ -1906,7 +2023,7 @@ async function loadAll(){
 
     let freshApplied = false;
     fetchSnapshot(leagueId).then(snap => {
-      if (!snap || freshApplied || window._activeLeagueId !== leagueId) return;
+      if (!snap || freshApplied || window._activeLeagueId !== leagueId || window._activeSeason) return;
       const shownAt = cached && cached.stats && cached.stats.updatedAt;
       const snapAt  = snap.stats && snap.stats.updatedAt;
       if (!shownAt || !snapAt || snapAt > shownAt) { applyAllData(snap); shown = true; }
@@ -1915,8 +2032,8 @@ async function loadAll(){
 
     // Always fetch fresh data in background
     const fresh = await apiFetch('all');
-    // Guard: if the user switched leagues while this fetch was in-flight, discard stale data
-    if (window._activeLeagueId !== leagueId) return;
+    // Guard: if the user switched leagues (or to an archived season) while this fetch was in-flight, discard stale data
+    if (window._activeLeagueId !== leagueId || window._activeSeason) return;
     freshApplied = true;
     setCache(leagueId, fresh);
     applyAllData(fresh);
@@ -1929,7 +2046,7 @@ async function loadAll(){
     const recapPromise = ('recap' in fresh) ? Promise.resolve({ recap: fresh.recap }) : apiFetch('recap');
     recapPromise.then(r => {
       // Guard: discard recap if league switched while waiting for the AI response
-      if (window._activeLeagueId !== leagueId) return;
+      if (window._activeLeagueId !== leagueId || window._activeSeason) return;
       if (r && r.recap) {
         setCachedRecap(leagueId, r);
         renderRecap(r);
@@ -1944,7 +2061,7 @@ async function loadAll(){
     });
   } catch(e) {
     console.error('Failed to load data:', e);
-    if (window._activeLeagueId !== leagueId) return;
+    if (window._activeLeagueId !== leagueId || window._activeSeason) return;
     // Saved or snapshot data is already up — keep it rather than replacing it with an error
     if (shown) { setSync('error'); return; }
     setSync('idle');
@@ -1978,7 +2095,14 @@ async function loadAll(){
 ════════════════════════════════════════ */
 function updateHeaderAndMarquee(stats){
   const bowlers = stats.bowlers || [];
-  if(!bowlers.length) return;
+  if(!bowlers.length){
+    // A brand-new season: clear whatever the previous payload left behind
+    ['hdr-avg','hdr-high','stat-avg','stat-high','stat-sessions','stat-games'].forEach(id => {
+      const n = document.getElementById(id); if (n) n.textContent = '—';
+    });
+    document.getElementById('topMarquee').innerHTML = buildMarquee(defaultTicker);
+    return;
+  }
 
   const allGames = bowlers.flatMap(b => b.recentGames || []);
   const groupAvg = allGames.length ? Math.round(allGames.reduce((a,b)=>a+b,0)/allGames.length) : 0;
@@ -2016,7 +2140,11 @@ function renderStats(stats){
   if(!el) return;
 
   if(!bowlers.length){
-    el.innerHTML = emptyState('NO GAMES YET<br>UPLOAD YOUR FIRST SCORE SCREEN');
+    const last = !window._activeSeason && _seasons[0];
+    el.innerHTML = emptyState(last ? 'NEW SEASON — NO GAMES YET<br>UPLOAD YOUR FIRST SCORE SCREEN' : 'NO GAMES YET<br>UPLOAD YOUR FIRST SCORE SCREEN') +
+      (last ? `<div style="text-align:center;margin-top:-26px;padding-bottom:36px;">
+        <button type="button" class="fcoin" onclick="selectSeason(this.dataset.season)" data-season="${escHtml(last.id)}">VIEW ${escHtml(String(last.label || last.id).toUpperCase())} ▸</button>
+      </div>` : '');
     return;
   }
 
@@ -2808,6 +2936,11 @@ function selectLeague(leagueId, league) {
   // Update upload/admin links to pass leagueId
   updateLeagueLinks(leagueId);
   setLeagueInUrl(leagueId);
+  // Seasons belong to a league — a newly chosen league opens on its current one
+  window._activeSeason = null;
+  _archiveMeta = null;
+  setSeasonInUrl();
+  loadSeasonIndex(leagueId);
 
   // ── Clear ALL data displays before loading new league ──────────
   const loading = loadingState();
@@ -2882,6 +3015,8 @@ async function initLeague() {
     }
     updateLeagueLinks(savedId);
     setLeagueInUrl(savedId);
+    window._activeSeason = seasonFromUrl();
+    loadSeasonIndex(savedId);
     loadAll();
     if (needsMeta) refreshLeagueMeta(savedId);
   } else {

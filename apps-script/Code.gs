@@ -495,10 +495,10 @@ function doPost(e) {
 
     const MUTATING_POST = { save_session:1, add_user:1, remove_user:1, update_user:1,
                             admin_delete_session:1, admin_remove_bowler:1, add_bowler:1,
-                            generate_recap:1 };
+                            generate_recap:1, start_new_season:1 };
     const adminOnly = { list_users:1, add_user:1, remove_user:1, update_user:1,
                         admin_delete_session:1, admin_remove_bowler:1, send_test_email:1,
-                        generate_recap:1 };
+                        generate_recap:1, start_new_season:1, list_seasons:1 };
     if (adminOnly[action] && role !== 'admin') return json({ error: 'Admin access required.' }, 403);
 
     const handlers = {
@@ -520,6 +520,11 @@ function doPost(e) {
       send_test_email:      () => { sendLeagueWeeklyEmail(ss, meta); return { success: true }; },
       generate_recap:       () => generateWeeklyRecap(ss, leagueId),
       export_all:           () => exportAllData(ss),
+      list_seasons:         () => listArchivedSeasons(ss),
+      start_new_season:     () => {
+        if (!isSuperAdmin) throw new Error('Super admin only.');
+        return startNewSeason(ss, body.seasonId, body.label, user);
+      },
     };
     if (!handlers[action]) return json({ error: 'Unknown action: ' + action }, 400);
     const result = handlers[action]();
@@ -1756,6 +1761,103 @@ function getAdminOverview(ss) {
   return { sessionCount:sessCount, gameCount, bowlerCount, weekCount:weekKeys.size };
 }
 
+// ═══════════════════════════════════════════════════════
+//  SEASONS
+//  Starting a new season archives the scores, it does not delete them:
+//  the Sessions and Games tabs are copied to Sessions_<id> / Games_<id>
+//  in the same spreadsheet, the copies are checked, and only then are
+//  the live tabs emptied. Roster, Bowlers and Users are left alone, so
+//  name matching and sign-ins carry straight over. Each run is logged
+//  in a "Seasons" tab.
+// ═══════════════════════════════════════════════════════
+const SEASONS_SHEET = 'Seasons';
+
+function seasonIdFrom(raw) {
+  return String(raw || '').trim().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+}
+
+function listArchivedSeasons(ss) {
+  const sh = ss.getSheetByName(SEASONS_SHEET);
+  if (!sh || sh.getLastRow() < 2) return { seasons: [] };
+  const rows = sh.getDataRange().getValues();
+  const hdr  = rows[0];
+  return { seasons: rows.slice(1).map(r => {
+    const o = {};
+    hdr.forEach((h, i) => { o[h] = r[i] instanceof Date ? r[i].toISOString() : r[i]; });
+    return o;
+  }) };
+}
+
+function startNewSeason(ss, rawSeasonId, label, user) {
+  const seasonId = seasonIdFrom(rawSeasonId);
+  if (!seasonId) throw new Error('A season name is required (letters and numbers), e.g. "2026".');
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(20000); // don't let an upload land halfway through
+  try {
+    const live = [CONFIG.SHEETS.SESSIONS, CONFIG.SHEETS.GAMES].map(name => {
+      const sh = ss.getSheetByName(name);
+      if (!sh) throw new Error('Sheet not found: ' + name);
+      const archiveName = name + '_' + seasonId;
+      if (ss.getSheetByName(archiveName)) throw new Error('A season called "' + seasonId + '" is already archived (tab ' + archiveName + ' exists). Choose another name.');
+      return { name, sh, archiveName, rows: Math.max(sh.getLastRow() - 1, 0) };
+    });
+    if (live.every(l => l.rows === 0)) throw new Error('There are no scores to archive — the season is already empty.');
+
+    // Date range of what is being archived, for the log
+    const games = live[1];
+    let first = '', last = '';
+    if (games.rows > 0) {
+      const hdr = games.sh.getRange(1, 1, 1, games.sh.getLastColumn()).getValues()[0];
+      const dc  = hdr.indexOf('Date');
+      if (dc > -1) {
+        const times = games.sh.getRange(2, dc + 1, games.rows, 1).getValues()
+          .map(r => new Date(r[0]).getTime()).filter(t => !isNaN(t));
+        if (times.length) {
+          const fmt = t => Utilities.formatDate(new Date(t), Session.getScriptTimeZone(), 'MM/dd/yyyy');
+          first = fmt(Math.min.apply(null, times));
+          last  = fmt(Math.max.apply(null, times));
+        }
+      }
+    }
+
+    // 1. Copy both tabs
+    live.forEach(l => { l.copy = l.sh.copyTo(ss).setName(l.archiveName); });
+    SpreadsheetApp.flush();
+
+    // 2. Verify every copy before touching the originals
+    live.forEach(l => {
+      const copied = Math.max(l.copy.getLastRow() - 1, 0);
+      if (copied !== l.rows) {
+        throw new Error('Archive check failed for ' + l.name + ' (' + copied + ' of ' + l.rows +
+                        ' rows copied). Nothing was cleared; delete the ' + l.archiveName + ' tab and try again.');
+      }
+    });
+
+    // 3. Empty the live tabs, keeping the header row
+    live.forEach(l => {
+      if (l.rows > 0) l.sh.getRange(2, 1, l.rows, l.sh.getLastColumn()).clearContent();
+    });
+
+    // 4. Log it
+    let log = ss.getSheetByName(SEASONS_SHEET);
+    if (!log) {
+      log = ss.insertSheet(SEASONS_SHEET);
+      log.appendRow(['SeasonID','Label','ArchivedAt','ArchivedBy','Sessions','GameRows','FirstDate','LastDate']);
+      log.setFrozenRows(1);
+    }
+    log.appendRow([seasonId, String(label || seasonId), new Date().toISOString(), user.email,
+                   live[0].rows, live[1].rows, first, last]);
+    SpreadsheetApp.flush();
+
+    return { success: true, seasonId, sessions: live[0].rows, gameRows: live[1].rows,
+             firstDate: first, lastDate: last,
+             archivedTabs: live.map(l => l.archiveName) };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 function exportAllData(ss) {
   return {
     exportedAt: new Date().toISOString(),
@@ -2316,4 +2418,209 @@ function correctBowlerStats() {
   Logger.log(results.length
     ? '✅ Corrections applied:\n' + results.join('\n')
     : '⚠️ Nothing changed — all corrections were null.');
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  MERGE DUPLICATE BOWLER — run ONCE from Apps Script editor
+//
+//  Problem: the same person ("John") appears under two different
+//  name strings in the Games sheet, causing them to show up twice
+//  on the stats page. This script merges all data for FROM_NAME
+//  into TO_NAME, then cleans up Roster and Bowlers sheets.
+//
+//  HOW TO USE:
+//  1. Set DRY_RUN = true and run — review Logger output to confirm
+//     which rows will be affected and what the detected names are.
+//  2. If FROM_NAME is detected incorrectly, set it explicitly.
+//  3. Set DRY_RUN = false and run again to apply changes.
+// ═══════════════════════════════════════════════════════════════
+function mergeDuplicateBowler() {
+  // ── Configuration ─────────────────────────────────────────────
+  const FROM_NAME = '';      // secondary name to merge away — leave blank to auto-detect
+  const TO_NAME   = 'John';  // canonical name to keep
+  const LEAGUE_ID = '';      // blank = hub (BlameItOnTheLane)
+  const DRY_RUN   = true;    // set false to apply changes
+
+  const ss       = LEAGUE_ID ? getLeagueSpreadsheet(LEAGUE_ID) : SpreadsheetApp.getActiveSpreadsheet();
+  const gameSh   = ss.getSheetByName(CONFIG.SHEETS.GAMES);
+  const rosterSh = ss.getSheetByName(CONFIG.SHEETS.ROSTER);
+  const bowlerSh = ss.getSheetByName(CONFIG.SHEETS.BOWLERS);
+
+  const gData = gameSh.getDataRange().getValues();
+  const hdr   = gData[0];
+  const col   = n => hdr.indexOf(n);
+
+  // ── Step 1: auto-detect "john-like" names ─────────────────────
+  const allNames = [...new Set(
+    gData.slice(1)
+      .map(r => (r[col('BowlerName')] || '').trim())
+      .filter(Boolean)
+  )];
+  const johnNames = allNames.filter(n => n.toLowerCase().includes('john'));
+  Logger.log('All BowlerName values containing "john": ' + JSON.stringify(johnNames));
+
+  if (johnNames.length === 0) {
+    Logger.log('⚠️ No names containing "john" found — nothing to do.');
+    return;
+  }
+  if (johnNames.length === 1) {
+    Logger.log('✅ Only one "john" name found (' + johnNames[0] + ') — no duplicate to merge.');
+    return;
+  }
+
+  // Pick FROM_NAME: the first john-like name that isn't TO_NAME
+  const resolvedFrom = FROM_NAME ||
+    johnNames.find(n => n !== TO_NAME) ||
+    johnNames.find(n => n.toLowerCase() !== TO_NAME.toLowerCase());
+
+  if (!resolvedFrom) {
+    Logger.log('⚠️ Could not determine FROM_NAME. Set it explicitly in the script constants.');
+    return;
+  }
+
+  Logger.log('');
+  Logger.log('Plan: merge "' + resolvedFrom + '" → "' + TO_NAME + '"');
+  Logger.log('DRY_RUN = ' + DRY_RUN);
+  Logger.log('');
+
+  // ── Step 2: build lookup of existing TO_NAME game keys ────────
+  // gameKey format: name.toLowerCase().replace(/\s+/g,'_') + '|' + dateStr
+  const canonicalKey = n => n.toLowerCase().replace(/\s+/g, '_');
+  const toGameKeys   = {}; // date string → sheet row number (1-based)
+
+  for (let i = 1; i < gData.length; i++) {
+    if ((gData[i][col('BowlerName')] || '').trim() !== TO_NAME) continue;
+    const rawDate = gData[i][col('Date')];
+    const dateStr = rawDate instanceof Date
+      ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'MM/dd/yyyy')
+      : String(rawDate || '');
+    toGameKeys[dateStr] = i + 1; // sheet row number (1-based, header is row 1)
+  }
+
+  // ── Step 3: process Games sheet rows bottom-up ─────────────────
+  const rowsToDelete = [];
+  let renames = 0;
+  let merges  = 0;
+
+  for (let i = gData.length - 1; i >= 1; i--) {
+    const row = gData[i];
+    if ((row[col('BowlerName')] || '').trim() !== resolvedFrom) continue;
+
+    const rawDate = row[col('Date')];
+    const dateStr = rawDate instanceof Date
+      ? Utilities.formatDate(rawDate, Session.getScriptTimeZone(), 'MM/dd/yyyy')
+      : String(rawDate || '');
+    const newGameKey = canonicalKey(TO_NAME) + '|' + dateStr;
+    const sheetRow   = i + 1; // 1-based
+
+    if (toGameKeys[dateStr]) {
+      // ── Collision: TO_NAME already has a row for this date — merge ──
+      const targetSheetRow = toGameKeys[dateStr];
+      const targetIdx      = targetSheetRow - 1; // gData index
+      const target         = gData[targetIdx];
+
+      Logger.log('MERGE  row ' + sheetRow + ' ("' + resolvedFrom + '", ' + dateStr +
+                 ') → row ' + targetSheetRow + ' (existing "' + TO_NAME + '")');
+
+      if (!DRY_RUN) {
+        // Fill game scores into target if target slot is empty
+        ['Game1','Game2','Game3','Game4'].forEach(g => {
+          const c = col(g);
+          if (c > -1 && Number(row[c]) > 0 && !(Number(target[c]) > 0)) {
+            gameSh.getRange(targetSheetRow, c + 1).setValue(row[c]);
+          }
+        });
+
+        // Fill stat columns if target is empty (don't double-count)
+        ['Strikes','Spares','MissedSpares','Splits','SplitsConverted'].forEach(f => {
+          const c = col(f);
+          if (c > -1 && Number(row[c]) > 0 && !(Number(target[c]) > 0)) {
+            gameSh.getRange(targetSheetRow, c + 1).setValue(row[c]);
+          }
+        });
+
+        // Fill single-value fields if target is empty
+        ['BallSpeedMPH','SessionAvg','Location','IsBlind'].forEach(f => {
+          const c = col(f);
+          if (c > -1 && row[c] && !target[c]) {
+            gameSh.getRange(targetSheetRow, c + 1).setValue(row[c]);
+          }
+        });
+
+        // Merge DataSources
+        const dsCol = col('DataSources');
+        if (dsCol > -1) {
+          const existingSources = String(target[dsCol] || '').split(',').map(s => s.trim()).filter(Boolean);
+          const fromSources     = String(row[dsCol]    || '').split(',').map(s => s.trim()).filter(Boolean);
+          const merged = [...new Set([...existingSources, ...fromSources])];
+          gameSh.getRange(targetSheetRow, dsCol + 1).setValue(merged.join(','));
+        }
+
+        // Recompute Series on target
+        const serCol = col('Series');
+        if (serCol > -1) {
+          const reread  = gameSh.getRange(targetSheetRow, 1, 1, hdr.length).getValues()[0];
+          const total   = ['Game1','Game2','Game3','Game4'].reduce((sum, g) => sum + (Number(reread[col(g)]) || 0), 0);
+          if (total > 0) gameSh.getRange(targetSheetRow, serCol + 1).setValue(total);
+        }
+      }
+
+      rowsToDelete.push(sheetRow);
+      merges++;
+
+    } else {
+      // ── No collision: just rename this row ──────────────────────
+      Logger.log('RENAME row ' + sheetRow + ' ("' + resolvedFrom + '", ' + dateStr +
+                 ') → name="' + TO_NAME + '", key=' + newGameKey);
+
+      if (!DRY_RUN) {
+        gameSh.getRange(sheetRow, 1).setValue(newGameKey);
+        gameSh.getRange(sheetRow, col('BowlerName') + 1).setValue(TO_NAME);
+      }
+      renames++;
+    }
+  }
+
+  // Delete merged (duplicate) rows bottom-up
+  if (!DRY_RUN) {
+    rowsToDelete.sort((a, b) => b - a).forEach(r => gameSh.deleteRow(r));
+  }
+
+  // ── Step 4: Roster sheet — remap raw names to TO_NAME ──────────
+  const rData = rosterSh.getDataRange().getValues();
+  Logger.log('');
+  Logger.log('--- Roster changes ---');
+  for (let i = 1; i < rData.length; i++) {
+    const mapped = (rData[i][1] || '').trim();
+    if (mapped.toLowerCase() === resolvedFrom.toLowerCase() && mapped !== TO_NAME) {
+      Logger.log('ROSTER row ' + (i + 1) + ': mapped "' + mapped + '" → "' + TO_NAME + '"');
+      if (!DRY_RUN) rosterSh.getRange(i + 1, 2).setValue(TO_NAME);
+    }
+  }
+
+  // ── Step 5: Bowlers sheet — deactivate the duplicate entry ─────
+  const bData = bowlerSh.getDataRange().getValues();
+  Logger.log('');
+  Logger.log('--- Bowlers sheet changes ---');
+  for (let i = 1; i < bData.length; i++) {
+    const bName    = (bData[i][1] || '').trim();
+    const isActive = bData[i][4];
+    if (bName.toLowerCase() === resolvedFrom.toLowerCase() && bName !== TO_NAME && isActive) {
+      Logger.log('BOWLERS row ' + (i + 1) + ': deactivate "' + bName + '" (IsActive → false)');
+      if (!DRY_RUN) bowlerSh.getRange(i + 1, 5).setValue(false);
+    }
+  }
+
+  if (!DRY_RUN) SpreadsheetApp.flush();
+
+  Logger.log('');
+  Logger.log('═══════════════════════════════════════════════════');
+  Logger.log(DRY_RUN
+    ? '✅ DRY RUN complete — no changes written.'
+    : '✅ mergeDuplicateBowler COMPLETE — changes applied.');
+  Logger.log('  Rows renamed:  ' + renames);
+  Logger.log('  Rows merged:   ' + merges);
+  Logger.log('  Rows deleted:  ' + rowsToDelete.length);
+  if (DRY_RUN) Logger.log('\n👆 Set DRY_RUN = false and run again to apply changes.');
+  Logger.log('═══════════════════════════════════════════════════');
 }
