@@ -126,6 +126,62 @@ test.describe('Shareable links', () => {
   });
 });
 
+/* ── SEASONS ─────────────────────────────────────────────────────── */
+test.describe('Seasons', () => {
+  const archive = {
+    season: { id: '2025', label: 'Old Season', from: '01/05/2025', to: '03/30/2025' },
+    stats:   { bowlers: [{ name: 'Archie', avg: 171, gamesCount: 3, highGame: 190, recentGames: [150, 173, 190] }] },
+    weekly:  { weeks: [{ week: '03/30/2025', groupAvg: 171, highGame: 190, bowlers: [{ name: 'Archie', avg: 171, games: [150, 173, 190] }] }] },
+    awards:  { currentWeek: null, weekly: {}, milestones: {}, season: {} },
+    history: { sessions: [] },
+  };
+
+  // Registered after the file-level stub, so these win for the two season files
+  async function withSeasons(page) {
+    await page.route('**/data/seasons-*.json*', route => route.fulfill({
+      status: 200, contentType: 'application/json',
+      body: JSON.stringify({ seasons: [archive.season] }),
+    }));
+    await page.route('**/data/season-*-2025.json*', route => route.fulfill({
+      status: 200, contentType: 'application/json', body: JSON.stringify(archive),
+    }));
+  }
+
+  test('no season picker when a league has no archived seasons', async ({ page }) => {
+    await page.goto('/?leagueId=BlameItOnTheLane');
+    await expect(page.locator('#seasonPick')).toBeHidden();
+  });
+
+  test('an empty current season offers the archived one, which opens read-only', async ({ page }) => {
+    await withSeasons(page);
+    await page.goto('/?leagueId=BlameItOnTheLane');
+    await expect(page.locator('#seasonSelect')).toBeVisible();
+    await expect(page.locator('#seasonSelect option')).toHaveText(['CURRENT SEASON', 'OLD SEASON']);
+
+    await page.locator('#bowlerCards [data-season="2025"]').click();
+    await expect(page.locator('.bc-card[data-name="Archie"]')).toBeVisible();
+    await expect(page.locator('#syncStatus')).toContainText('ARCHIVED');
+    await expect(page.locator('#stat-avg')).toHaveText('171');
+    expect(new URL(page.url()).searchParams.get('season')).toBe('2025');
+
+    // Back to the (empty) current season: the old numbers must not linger
+    await page.locator('#seasonSelect').selectOption('');
+    await expect(page.locator('.bc-card')).toHaveCount(0);
+    await expect(page.locator('#stat-avg')).toHaveText('—');
+    expect(new URL(page.url()).searchParams.get('season')).toBeNull();
+  });
+
+  test('?season= in the URL opens that archive; an unknown one falls back to current', async ({ page }) => {
+    await withSeasons(page);
+    await page.goto('/?leagueId=BlameItOnTheLane&season=2025');
+    await expect(page.locator('.bc-card[data-name="Archie"]')).toBeVisible();
+
+    await page.goto('/?leagueId=BlameItOnTheLane&season=1999');
+    await expect(page.locator('#statusStrip')).not.toHaveClass(/archived/);
+    await expect.poll(() => new URL(page.url()).searchParams.get('season')).toBeNull();
+  });
+});
+
 /* ── BOWLER CARDS ────────────────────────────────────────────────── */
 test.describe('Bowler cards', () => {
   const payload = avg => ({

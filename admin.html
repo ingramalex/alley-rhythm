@@ -366,6 +366,21 @@ header{background:var(--deep);border-bottom:3px solid var(--neon-r2);box-shadow:
       <button class="btn-sec" onclick="toast('Opens your Google Sheet — link in Apps Script')">OPEN GOOGLE SHEET</button>
     </div>
 
+    <!-- NEW SEASON (super admin only) -->
+    <div id="seasonSection" style="display:none;">
+      <div class="sec-lbl" style="margin-top:32px;">▶ NEW SEASON</div>
+      <div style="font-family:'Exo 2',sans-serif;font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;max-width:640px;">
+        Archives every session and game for <strong style="color:var(--text);" id="seasonLeagueName">this league</strong>
+        and starts the stats from zero. Scores are <strong style="color:var(--text);">moved, not deleted</strong>: they are
+        copied to archive tabs in the Google Sheet first. The roster, bowlers and approved users stay as they are.
+        Download an export above first if you want your own copy.
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <button class="btn-sec" style="border-color:var(--neon-r);color:var(--neon-r);" onclick="startNewSeason()">🏁 ARCHIVE &amp; START NEW SEASON</button>
+        <div id="seasonStatus" style="font-family:'Exo 2',sans-serif;font-size:13px;"></div>
+      </div>
+    </div>
+
   </div>
   </div>
 
@@ -586,6 +601,8 @@ function applyAdminVerify(r){
   _isSuperAdmin = r.isSuperAdmin || false;
   const leaguesTab = document.getElementById('tab-btn-leagues');
   if (leaguesTab) leaguesTab.style.display = _isSuperAdmin ? 'inline-block' : 'none';
+  const seasonSection = document.getElementById('seasonSection');
+  if (seasonSection) seasonSection.style.display = _isSuperAdmin ? 'block' : 'none';
   showAdmin();
 }
 
@@ -933,6 +950,28 @@ async function sendTestEmail(){
     await apiPost('send_test_email',{});
     toast('TEST EMAIL SENT!');
   }catch(e){toast('EMAIL FAILED: '+e.message,true);}
+}
+
+/* ── New season: archive the league's scores and start from zero (super admin) ── */
+async function startNewSeason(){
+  if(!_isSuperAdmin){toast('SUPER ADMIN ONLY',true);return;}
+  const status=document.getElementById('seasonStatus');
+  const leagueName=(document.getElementById('seasonLeagueName')||{}).textContent||'this league';
+  const seasonId=(prompt('Name for the season being archived (letters and numbers).\nIt becomes the archive tab name, e.g. Games_2026:', String(new Date().getFullYear()))||'').trim();
+  if(!seasonId) return;
+  const typed=prompt('This archives ALL current scores for '+leagueName+' and resets its stats to zero.\n\nType RESET to confirm.');
+  if(typed!=='RESET'){toast('CANCELLED — NOTHING CHANGED');return;}
+  status.style.color='var(--text2)';status.textContent='Archiving…';
+  try{
+    const r=await apiPost('start_new_season',{seasonId,label:seasonId});
+    status.style.color='var(--neon-g)';
+    status.textContent='Done — archived '+r.sessions+' sessions and '+r.gameRows+' game rows to '+(r.archivedTabs||[]).join(' and ')+'.';
+    toast('NEW SEASON STARTED');
+  }catch(e){
+    status.style.color='var(--neon-r)';
+    status.textContent='Failed: '+e.message;
+    toast('NEW SEASON FAILED: '+e.message,true);
+  }
 }
 
 async function exportData(){
