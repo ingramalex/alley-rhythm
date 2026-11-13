@@ -14,6 +14,9 @@ const {
   setCache,
   getMilestoneForScore,
   computeFilteredBowlers,
+  uniqueInitials,
+  lastBowledLabel,
+  escHtml,
 } = require('../../js/utils');
 
 /* ── pColor ─────────────────────────────────────────────────────── */
@@ -250,4 +253,55 @@ describe('computeFilteredBowlers', () => {
   test('returns allBowlers when weeks slice is empty', () => {
     expect(computeFilteredBowlers([], 5, allBowlers)).toBe(allBowlers);
   });
+});
+
+/* ── uniqueInitials ─────────────────────────────────────────────── */
+describe('uniqueInitials', () => {
+  test('keeps the first two letters when nothing clashes', () => {
+    expect(uniqueInitials(['Wayne', 'Alex'])).toEqual({ Wayne: 'WA', Alex: 'AL' });
+  });
+  test('separates names that share their first two letters', () => {
+    const m = uniqueInitials(['Jess', 'Jen', 'Mark']);
+    expect(m.Jess).toBe('JS');
+    expect(m.Jen).toBe('JN');
+    expect(m.Mark).toBe('MA');
+  });
+  test('never hands out initials another bowler already has', () => {
+    const m = uniqueInitials(['Jess', 'Jen', 'Js', 'Jn']);
+    expect(new Set(Object.values(m)).size).toBe(4);
+  });
+  test('falls back to a digit for identical-looking names', () => {
+    const m = uniqueInitials(['Al', 'AL']);
+    expect(new Set(Object.values(m)).size).toBe(2);
+  });
+  test('handles empty input', () => {
+    expect(uniqueInitials([])).toEqual({});
+    expect(uniqueInitials(null)).toEqual({});
+  });
+});
+
+/* ── lastBowledLabel ────────────────────────────────────────────── */
+describe('lastBowledLabel', () => {
+  const now = new Date(2026, 10, 13, 12); // 13 Nov 2026
+  test.each([
+    ['11/13/2026', 'TODAY'],
+    ['11/12/2026', 'YESTERDAY'],
+    ['11/08/2026', '5 DAYS AGO'],
+    ['10/12/2026', '4 WEEKS AGO'],
+    ['05/04/2026', '6 MONTHS AGO'],
+  ])('%s -> %s', (date, label) => {
+    expect(lastBowledLabel(date, now)).toBe(label);
+  });
+  test('returns empty string for missing or bad dates', () => {
+    expect(lastBowledLabel('', now)).toBe('');
+    expect(lastBowledLabel('not a date', now)).toBe('');
+  });
+});
+
+/* ── escHtml ────────────────────────────────────────────────────── */
+describe('escHtml', () => {
+  test('escapes markup and quotes', () => {
+    expect(escHtml(`<a href="x">O'Neil & co</a>`)).toBe('&lt;a href=&quot;x&quot;&gt;O&#39;Neil &amp; co&lt;/a&gt;');
+  });
+  test('tolerates null', () => { expect(escHtml(null)).toBe(''); });
 });

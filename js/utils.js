@@ -14,6 +14,58 @@ function ini2(n) {
   return (n || '??').slice(0, 2).toUpperCase();
 }
 
+/** Two-letter avatar initials that stay distinct across a roster.
+ *  "Jess" and "Jen" both start "JE", so they become "JS" and "JN": the first
+ *  letter plus the first later letter no other clashing name has in that spot.
+ *  Returns { name: initials }. */
+function uniqueInitials(names) {
+  const out = {};
+  const groups = {};
+  [...new Set((names || []).filter(Boolean))].forEach(n => {
+    const k = ini2(n);
+    (groups[k] = groups[k] || []).push(n);
+  });
+  const taken = new Set(Object.keys(groups).filter(k => groups[k].length === 1));
+  Object.entries(groups).forEach(([ini, group]) => {
+    if (group.length === 1) { out[group[0]] = ini; return; }
+    const up = group.map(n => n.toUpperCase());
+    group.forEach((n, gi) => {
+      const u = up[gi];
+      let pick = null;
+      for (let k = 1; k < u.length && !pick; k++) {
+        const cand = u[0] + u[k];
+        if (!/[A-Z0-9]/.test(u[k]) || taken.has(cand)) continue;
+        if (up.some((o, oi) => oi !== gi && o[k] === u[k])) continue;
+        pick = cand;
+      }
+      for (let d = 1; !pick; d++) { if (!taken.has(u[0] + d)) pick = u[0] + d; }
+      taken.add(pick);
+      out[n] = pick;
+    });
+  });
+  return out;
+}
+
+/** "4 WEEKS AGO"-style label for how long since a session date. '' if unparseable. */
+function lastBowledLabel(dateStr, now) {
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  const days = Math.floor(((now || new Date()) - d) / 86400000);
+  if (days < 1)  return 'TODAY';
+  if (days === 1) return 'YESTERDAY';
+  if (days < 14) return days + ' DAYS AGO';
+  if (days < 63) return Math.floor(days / 7) + ' WEEKS AGO';
+  return Math.round(days / 30) + ' MONTHS AGO';
+}
+
+/** Escape text for use inside an HTML attribute or element. */
+function escHtml(v) {
+  return String(v == null ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 /* ── MARQUEE ────────────────────────────────────────────────────── */
 function buildMarquee(items) {
   const doubled = [...items, ...items];
@@ -122,6 +174,9 @@ if (typeof module !== 'undefined' && module.exports) {
     CACHE_TTL_MS,
     pColor,
     ini2,
+    uniqueInitials,
+    lastBowledLabel,
+    escHtml,
     buildMarquee,
     emptyState,
     loadingState,
